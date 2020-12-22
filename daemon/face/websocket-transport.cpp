@@ -25,7 +25,7 @@
 
 #include "websocket-transport.hpp"
 #include "common/global.hpp"
-#include "common/mw-nfd-global.hpp"
+#include "mw-nfd/mw-nfd-global.hpp"
 
 namespace nfd {
 namespace face {
