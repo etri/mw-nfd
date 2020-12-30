@@ -226,7 +226,7 @@ face_system
   ; The websocket section contains settings for WebSocket faces and channels.
   @IF_HAVE_WEBSOCKET@websocket
   @IF_HAVE_WEBSOCKET@{
-  @IF_HAVE_WEBSOCKET@  listen no ; set to 'no' to disable WebSocket listener, default 'yes'
+  @IF_HAVE_WEBSOCKET@  listen yes ; set to 'no' to disable WebSocket listener, default 'yes'
   @IF_HAVE_WEBSOCKET@  port 9696 ; WebSocket listener port number
   @IF_HAVE_WEBSOCKET@  enable_v4 yes ; set to 'no' to disable listening on IPv4 socket, default 'yes'
   @IF_HAVE_WEBSOCKET@  enable_v6 no ; set to 'no' to disable listening on IPv6 socket, default 'yes'
