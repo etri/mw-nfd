@@ -59,6 +59,8 @@ def options(opt):
                       help='Build other tests')
     nfdopt.add_option('--with-counters', action='store_true', default=False,
                       help='face coutnering(NDN Net Packet) Mode')
+    nfdopt.add_option('--with-nfd-org-arch', action='store_true', default=False,
+                      help='Support NFD original Arch Mode')
 
 
 PRIVILEGE_CHECK_CODE = '''
@@ -95,6 +97,7 @@ def configure(conf):
     conf.env.WITH_TESTS = conf.options.with_tests
 
     conf.env.WITH_COUNTERS = conf.options.with_counters
+    conf.env.WITH_NFD_ORG_ARCH = conf.options.with_nfd_org_arch
 
     conf.env.WITH_OTHER_TESTS = conf.options.with_other_tests
 
@@ -145,6 +148,7 @@ def configure(conf):
     conf.define_cond('WITH_TESTS', conf.env.WITH_TESTS)
     conf.define_cond('WITH_OTHER_TESTS', conf.env.WITH_OTHER_TESTS)
     conf.define_cond('WITH_COUNTERS', conf.env.WITH_COUNTERS)
+    conf.define_cond('WITH_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
 
     conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/mw-nfd.conf' % conf.env.SYSCONFDIR)
     # The config header will contain all defines that were added using conf.define()

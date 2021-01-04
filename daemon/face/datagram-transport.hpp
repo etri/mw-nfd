@@ -99,7 +99,7 @@ protected:
 private:
   std::array<uint8_t, ndn::MAX_NDN_PACKET_SIZE> m_receiveBuffer;
   bool m_hasRecentlyReceived;
-  int32_t m_iwId;
+  uint8_t m_iwId;
 };
 
 
@@ -118,6 +118,10 @@ DatagramTransport<T, U>::DatagramTransport(typename DatagramTransport::protocol:
   else {
     this->setSendQueueCapacity(sendBufferSizeOption.value());
   }
+
+  //auto ep = socket->local_endpoint();
+
+//  std::cout << "endp: " << socket << std::endl;
 
   m_iwId = getGlobalIwId();
 
@@ -185,6 +189,8 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
     int32_t packetType;
     int32_t worker;
     std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
+
+    std::cout << "UDP: m_iwId: " << m_iwId << std::endl;
 
     if(packetType>0){
         NDN_MSG msg;

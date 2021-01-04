@@ -174,9 +174,11 @@ int32_t computeWorkerId(const uint8_t *wire, size_t size)
     const uint8_t* pos = wire;
     const uint8_t* end = wire+size;
 
+    bool ret __attribute__((unused));
+
     do{ 
-        tlv::readType(pos, end, type);
-        tlv::readVarNumber(pos, end, length);
+        ret=tlv::readType(pos, end, type);
+        ret=tlv::readVarNumber(pos, end, length);
 
 	if( !memcmp(pos, "localhost", 9) ){
 		return DCN_LOCALHOST_PREFIX;
@@ -208,15 +210,16 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
     uint32_t packetType = 0;  
     uint64_t seq=0, index=0, count=0;
     bool isFrag = false;
+    bool ret __attribute__((unused));
 
     if( wire[0]==0x64 ){
 
-        tlv::readType(pos, end, packetType);  
-        tlv::readVarNumber(pos, end, length);  
+        ret=tlv::readType(pos, end, packetType);  
+        ret=tlv::readVarNumber(pos, end, length);  
 
         do{   
-            tlv::readType(pos, end, type);  
-            tlv::readVarNumber(pos, end, length);  
+            ret=tlv::readType(pos, end, type);  
+            ret=tlv::readVarNumber(pos, end, length);  
 
             if(type == ndn::lp::tlv::FragCount){  
                 if( length == 1 )
@@ -287,11 +290,11 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
     }else{
 
 
-        tlv::readType(pos, end, packetType);  
-        tlv::readVarNumber(pos, end, length);  
+        ret = tlv::readType(pos, end, packetType);  
+        ret = tlv::readVarNumber(pos, end, length);  
 
-        tlv::readType(pos, end, type);  
-        tlv::readVarNumber(pos, end, length);  
+        ret = tlv::readType(pos, end, type);  
+        ret = tlv::readVarNumber(pos, end, length);  
         if(type == tlv::Name){   
             worker=computeWorkerId(pos, length);  
         }  

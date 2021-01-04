@@ -26,6 +26,8 @@
 #include "transport.hpp"
 #include "face.hpp"
 
+#include <iostream>
+
 namespace nfd {
 namespace face {
 
@@ -114,6 +116,7 @@ Transport::send(const Block& packet, const EndpointId& endpoint)
 void
 Transport::receive(const Block& packet, const EndpointId& endpoint)
 {
+
   BOOST_ASSERT(packet.isValid());
   BOOST_ASSERT(this->getMtu() == MTU_UNLIMITED ||
                packet.size() <= static_cast<size_t>(this->getMtu()));

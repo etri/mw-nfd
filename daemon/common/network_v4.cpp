@@ -70,18 +70,25 @@ network_v4::network_v4(const address_v4& addr, const address_v4& mask)
         break;
       case 254: // prefix_length_ += 7
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 252: // prefix_length_ += 6
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 248: // prefix_length_ += 5
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 240: // prefix_length_ += 4
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 224: // prefix_length_ += 3
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 192: // prefix_length_ += 2
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 128: // prefix_length_ += 1
         prefix_length_ += 1;
+        [[gnu::fallthrough]];
       case 0:   // nbits += 0
         finished = true;
         break;

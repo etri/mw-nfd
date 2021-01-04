@@ -410,7 +410,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 
   // added by ETRI(modori) on 20201215 
 	auto token = data.getTag<lp::PitToken>();
-    ST_PIT_TOKEN  *pitToken=nullptr;
+    ST_PIT_TOKEN  *pitToken __attribute__((unused))=nullptr;
 	if(token!=nullptr){
 		pitToken = (ST_PIT_TOKEN *)token->data();
         //std::cout << "Rcv's PitToken's hashValue: " << pitToken->hashValue << std::endl;

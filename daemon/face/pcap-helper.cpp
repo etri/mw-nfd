@@ -140,14 +140,15 @@ PcapHelper::getLastError() const
   return pcap_geterr(m_pcap);
 }
 
-size_t
+std::tuple<size_t,size_t>
 PcapHelper::getNDropped() const
 {
   pcap_stat ps{};
   if (pcap_stats(m_pcap, &ps) < 0)
     NDN_THROW(Error("pcap_stats: " + getLastError()));
 
-  return ps.ps_drop;
+  //return ps.ps_drop;
+  return std::make_tuple(ps.ps_drop, ps.ps_ifdrop);
 }
 
 void

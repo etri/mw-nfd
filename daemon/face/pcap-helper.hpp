@@ -105,7 +105,7 @@ public:
    * @throw Error on any error
    * @sa pcap_stats(3pcap)
    */
-  size_t
+  std::tuple<size_t,size_t>
   getNDropped() const;
 
   /**

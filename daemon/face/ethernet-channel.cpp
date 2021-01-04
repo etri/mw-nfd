@@ -144,7 +144,9 @@ EthernetChannel::handleRead(const boost::system::error_code& error,
   }
 
 #ifdef _DEBUG
-  size_t nDropped = m_pcap.getNDropped();
+  //size_t nDropped = m_pcap.getNDropped();
+  size_t nDropped, nIfDropped;
+  std::tie(nDropped, nIfDropped)= m_pcap.getNDropped();
   if (nDropped - m_nDropped > 0)
     NFD_LOG_CHAN_DEBUG("Detected " << nDropped - m_nDropped << " dropped frame(s)");
   m_nDropped = nDropped;

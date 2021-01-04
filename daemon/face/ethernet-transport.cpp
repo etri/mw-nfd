@@ -64,14 +64,9 @@ EthernetTransport::EthernetTransport(const ndn::net::NetworkInterface& localEndp
 #endif
     {
 
-#if 1
   try {
     m_pcap.activate(DLT_EN10MB);
-
     m_socket.assign(m_pcap.getFd());
-#else
-
-#endif
   }
   catch (const PcapHelper::Error& e) {
     NDN_THROW_NESTED(Error(e.what()));
@@ -174,6 +169,57 @@ EthernetTransport::asyncRead()
 
 }
 
+#ifdef ETRI_NFD_ORG_ARCH
+
+void
+EthernetTransport::handleRead(const boost::system::error_code& error)
+{
+    if (error) {
+        // boost::asio::error::operation_aborted must be checked first: in that case, the Transport
+        // may already have been destructed, therefore it's unsafe to call getState() or do logging.
+        if (error != boost::asio::error::operation_aborted &&
+                getState() != TransportState::CLOSING &&
+                getState() != TransportState::FAILED &&
+                getState() != TransportState::CLOSED) {
+            handleError("Receive operation failed: " + error.message());
+        }
+        return;
+    }
+
+    const uint8_t* pkt;
+    size_t len;
+    std::string err;
+    std::tie(pkt, len, err) = m_pcap.readNextPacket();
+
+    if (pkt == nullptr) {
+        NFD_LOG_FACE_WARN("Read error: " << err);
+    }
+    else {
+        const ether_header* eh;
+        std::tie(eh, err) = ethernet::checkFrameHeader(pkt, len, m_srcAddress,
+                m_destAddress.isMulticast() ? m_destAddress : m_srcAddress);
+        if (eh == nullptr) {
+            NFD_LOG_FACE_WARN(err);
+        }
+        else {
+            ethernet::Address sender(eh->ether_shost);
+            pkt += ethernet::HDR_LEN;
+            len -= ethernet::HDR_LEN;
+            receivePayload(pkt, len, sender);
+        }
+    }
+
+#ifdef _DEBUG
+    size_t nDropped = m_pcap.getNDropped();
+    if (nDropped - m_nDropped > 0)
+        NFD_LOG_FACE_DEBUG("Detected " << nDropped - m_nDropped << " dropped frame(s)");
+    m_nDropped = nDropped;
+#endif
+
+    asyncRead();
+}
+
+#else
     void
 EthernetTransport::handleRead(const boost::system::error_code& error)
 {
@@ -192,6 +238,9 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
     const uint8_t *pkt;
     size_t len=0;
     std::string err;
+    bool ret __attribute__((unused))=false;
+    int32_t packetType;
+    int32_t worker;
 
     std::tie(pkt, len, err) = m_pcap.readNextPacket();
 
@@ -209,37 +258,38 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
             // modified by ETRI(modori) 
             pkt += ethernet::HDR_LEN;
             len -= ethernet::HDR_LEN;
-                int32_t packetType;
-                int32_t worker;
-                std::tie(packetType, worker) = dissectNdnPacket(pkt, len);
+            std::tie(packetType, worker) = dissectNdnPacket(pkt, len);
 
-                int32_t m_iwId = getGlobalIwId();
+            int32_t m_iwId = getGlobalIwId();
 
-                if(packetType>=0 and m_iwId >=0){
-                    NDN_MSG msg;
-                    msg.buffer = make_shared<ndn::Buffer>(pkt, len);
-                    msg.type = 0;
-                    if(m_destAddress.isMulticast())
-                        std::memcpy(&msg.endpoint, eh->ether_shost, 6);
-                    else
-                        msg.endpoint = 0;
+            if(packetType>=0 and m_iwId >=0){
+                NDN_MSG msg;
+                msg.buffer = make_shared<ndn::Buffer>(pkt, len);
+                msg.type = 0;
+                if(m_destAddress.isMulticast())
+                    std::memcpy(&msg.endpoint, eh->ether_shost, 6);
+                else
+                    msg.endpoint = 0;
 
-                    msg.face = const_cast<nfd::face::Face*>(getFace());
+                msg.face = const_cast<nfd::face::Face*>(getFace());
 
-                    if(packetType==tlv::Interest){
-                        nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
+                if(packetType==tlv::Interest){
+                    ret = nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
 
-                    } else{
-                        nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
-                    }   
+                } else{
+                    ret = nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
+                }   
 
-                }
+            }
         }
     }
 
 
 #ifdef _DEBUG
-    size_t nDropped = m_pcap.getNDropped();
+
+    //size_t nDropped = m_pcap.getNDropped();
+    size_t nDropped=0, nIfDropped=0;
+    std::make_tuple(nDropped, nIfDropped) = m_pcap.getNDropped();
     if (nDropped - m_nDropped > 0){
         m_nDropped = nDropped;
     }
@@ -248,12 +298,13 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
     asyncRead();
 }
 
+#endif
+
 void
 EthernetTransport::receivePayload(const uint8_t* payload, size_t length,
                                   const ethernet::Address& sender)
 {
   NFD_LOG_FACE_TRACE("Received: " << length << " bytes from " << sender);
-  //std::cout << "Received: " << length << " bytes from " << sender << std::endl;
 
   bool isOk = false;
   Block element;

@@ -181,6 +181,7 @@ StreamTransport<T>::deferredClose()
   this->setState(TransportState::CLOSED);
 }
 
+#ifdef ETRI_NFD_ORG_ARCH
 template<class T>
 void
 StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
@@ -190,22 +191,44 @@ StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
   if (getState() != TransportState::UP){
     return;
   }
+  bool wasQueueEmpty = m_sendQueue.empty();
+  m_sendQueue.push(packet);
+  m_sendQueueBytes += packet.size();
+
+  if (wasQueueEmpty){
+    sendFromQueue();
+  }
+
+}
+#else
+template<class T>
+void
+StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
+{
+  NFD_LOG_FACE_TRACE(__func__);
+
+  if (getState() != TransportState::UP){
+    return;
+  }
+
 #if 0
   // added by ETRI(modori) on 202012
   bool wasQueueEmpty = m_sendQueue.empty();
   m_sendQueue.push(packet);
   m_sendQueueBytes += packet.size();
 
-    printf("S doSend on CPU %d, wasQueueEmpty: %d, m_sendQueue.size:%d\n", sched_getcpu(), wasQueueEmpty, m_sendQueue.size());
+  printf("S doSend on CPU %d, wasQueueEmpty: %d, m_sendQueue.size:%d\n", sched_getcpu(), wasQueueEmpty, m_sendQueue.size());
   if (wasQueueEmpty){
-    sendFromQueue();
+      sendFromQueue();
   }
 #else
   boost::asio::async_write(m_socket, boost::asio::buffer(packet),
-                           [this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
+          [this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
 
 #endif
+
 }
+#endif
 
 template<class T>
 void
@@ -214,6 +237,29 @@ StreamTransport<T>::sendFromQueue()
   boost::asio::async_write(m_socket, boost::asio::buffer(m_sendQueue.front()),
                            [this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
 }
+
+#ifdef ETRI_NFD_ORG_ARCH
+template<class T>
+void
+StreamTransport<T>::handleSend(const boost::system::error_code& error,
+                               size_t nBytesSent)
+{
+  if (error)
+    return processErrorCode(error);
+
+  NFD_LOG_FACE_TRACE("Successfully sent: " << nBytesSent << " bytes");
+
+  BOOST_ASSERT(!m_sendQueue.empty());
+  BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
+  m_sendQueueBytes -= nBytesSent;
+  m_sendQueue.pop();
+  printf("Successfully sent: %d, size:%d\n" , nBytesSent , m_sendQueue.size());
+
+  if (!m_sendQueue.empty())
+    sendFromQueue();
+}
+
+#else
 
 template<class T>
 void
@@ -237,6 +283,8 @@ StreamTransport<T>::handleSend(const boost::system::error_code& error,
     sendFromQueue();
 #endif
 }
+
+#endif
 
 template<class T>
 void
@@ -309,7 +357,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
     int32_t worker;
     Block element;
     NDN_MSG msg;
-    bool ret = false;
+    bool ret __attribute__((unused));
 
     while (m_receiveBufferSize - offset > 0) {
 
@@ -341,7 +389,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                 else
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
 
-                std::cout << "getGlobalIwId: " << getGlobalIwId() << std::endl;
             }
         }
     }
