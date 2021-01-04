@@ -50,6 +50,7 @@ StrategyChoiceManager::StrategyChoiceManager(StrategyChoice& strategyChoice,
     bind(&StrategyChoiceManager::listChoices, this, _3));
 }
 
+#ifdef ETRI_NFD_ORG_ARCH
 void
 StrategyChoiceManager::setStrategy(ControlParameters parameters,
                                    const ndn::mgmt::CommandContinuation& done)
@@ -58,23 +59,8 @@ StrategyChoiceManager::setStrategy(ControlParameters parameters,
   const Name& strategy = parameters.getStrategy();
 
   // added by ETRI(modori) on 20200914
- #if 0
-  int32_t workers = getForwardingWorkers();
-  for(int32_t i=0;i<workers;i++){
-      auto worker = getMwNfd(i);
-      if(worker==nullptr)
-          return done(ControlResponse(501, "InternalError"));
-
-      StrategyChoice::InsertResult res = worker->getStrategyChoiceTable().insert(prefix, strategy);
-      if (!res) {
-          NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): cannot-create " << res);
-          return done(ControlResponse(res.getStatusCode(), boost::lexical_cast<std::string>(res)));
-      }
-  }
-#else
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
   emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, nullptr, pa, false);
-#endif
 
   NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
   bool hasEntry = false;
@@ -85,12 +71,37 @@ StrategyChoiceManager::setStrategy(ControlParameters parameters,
 
   std::tie(hasEntry, instanceName) = worker->getStrategyChoiceTable().get(prefix);
 
-  //std::tie(hasEntry, instanceName) = m_table.get(prefix);
   BOOST_ASSERT_MSG(hasEntry, "StrategyChoice entry must exist after StrategyChoice::insert");
   parameters.setStrategy(instanceName);
 
   return done(ControlResponse(200, "OK").setBody(parameters.wireEncode()));
 }
+
+#else
+
+    void
+StrategyChoiceManager::setStrategy(ControlParameters parameters,
+        const ndn::mgmt::CommandContinuation& done)
+{
+    const Name& prefix = parameters.getName();
+    const Name& strategy = parameters.getStrategy();
+
+    StrategyChoice::InsertResult res = m_table.insert(prefix, strategy);
+    if (!res) {
+        NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): cannot-create " << res);
+        return done(ControlResponse(res.getStatusCode(), boost::lexical_cast<std::string>(res)));
+    }
+
+    NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
+    bool hasEntry = false;
+    Name instanceName;
+    std::tie(hasEntry, instanceName) = m_table.get(prefix);
+    BOOST_ASSERT_MSG(hasEntry, "StrategyChoice entry must exist after StrategyChoice::insert");
+    parameters.setStrategy(instanceName);
+    return done(ControlResponse(200, "OK").setBody(parameters.wireEncode()));
+}
+
+#endif
 
 void
 StrategyChoiceManager::unsetStrategy(ControlParameters parameters,

@@ -48,25 +48,13 @@ CsManager::CsManager(Cs& cs, const ForwarderCounters& fwCounters,
   registerStatusDatasetHandler("info", bind(&CsManager::serveInfo, this, _1, _2, _3));
 }
 
+#ifndef ETRI_NFD_ORG_ARCH
 void
 CsManager::changeConfig(const ControlParameters& parameters,
                         const ndn::mgmt::CommandContinuation& done)
 {
   using ndn::nfd::CsFlagBit;
 
-#if 0
-      if (parameters.hasCapacity()) {
-          m_cs.setLimit(parameters.getCapacity());
-      }
-
-      if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
-          m_cs.enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
-      }
-
-      if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
-          m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
-      }
-#else
   int32_t workers = getForwardingWorkers();
   for(int32_t i=0;i<workers;i++){
       auto worker = getMwNfd(i);
@@ -85,7 +73,6 @@ CsManager::changeConfig(const ControlParameters& parameters,
       }
 
   }
-#endif
 
   ControlParameters body;
 
@@ -99,84 +86,85 @@ CsManager::changeConfig(const ControlParameters& parameters,
   body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, worker->getCsTable().shouldServe(), false);
   done(ControlResponse(200, "OK").setBody(body.wireEncode()));
 }
+#else
 
+void
+CsManager::changeConfig(const ControlParameters& parameters,
+                                const ndn::mgmt::CommandContinuation& done)
+{
+    using ndn::nfd::CsFlagBit;
+
+    if (parameters.hasCapacity()) {
+        m_cs.setLimit(parameters.getCapacity());
+    }
+
+    if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
+        m_cs.enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
+    }
+
+    if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
+        m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
+    }
+
+    ControlParameters body;
+    body.setCapacity(m_cs.getLimit());
+    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, m_cs.shouldAdmit(), false);
+    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, m_cs.shouldServe(), false);
+    done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+}
+#endif
+
+#ifndef ETRI_NFD_ORG_ARCH
 void
 CsManager::erase(const ControlParameters& parameters,
                  const ndn::mgmt::CommandContinuation& done)
 {
-  //size_t count = parameters.hasCount() ?
-   //              parameters.getCount() :
-    //             std::numeric_limits<size_t>::max();
-
   ControlParameters body;
   body.setName(parameters.getName());
 
 // added by ETRI(modori) on 20200914
-#if 1
-
-#if 0
-  int32_t workers = getForwardingWorkers();
-  size_t nTotalErased = 0;
-
-  body.setName(parameters.getName());
-
-  for(int32_t i=0;i<workers;i++){
-      auto worker = getMwNfd(i);
-
-    worker->getCsTable().erase(parameters.getName(), std::min(count, ERASE_LIMIT),
-    [&] (size_t nErased) {
-
-    nTotalErased += nErased;
-
-      if (nErased == ERASE_LIMIT && count > ERASE_LIMIT) {
-        m_cs.find(Interest(parameters.getName()).setCanBePrefix(true),
-          [=] (const Interest&, const Data&) mutable {
-            body.setCapacity(ERASE_LIMIT);
-            //done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-          },
-          [=] (const Interest&) {
-            //done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-          });
-      }
-      else {
-        //done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-      }
-    });
-
-  }
-#else
   size_t nTotalErased = 0;
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
   nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, nullptr, pa, false);
 
   body.setCount(nTotalErased);
   done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-#endif
 
-#else
-  m_cs.erase(parameters.getName(), std::min(count, ERASE_LIMIT),
-    [=] (size_t nErased) {
-      ControlParameters body;
-      body.setName(parameters.getName());
-      body.setCount(nErased);
-
-      if (nErased == ERASE_LIMIT && count > ERASE_LIMIT) {
-        m_cs.find(Interest(parameters.getName()).setCanBePrefix(true),
-          [=] (const Interest&, const Data&) mutable {
-            body.setCapacity(ERASE_LIMIT);
-            done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-          },
-          [=] (const Interest&) {
-            done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-          });
-      }
-      else {
-        done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-      }
-    });
-#endif
 }
 
+#else
+
+    void
+CsManager::erase(const ControlParameters& parameters,
+        const ndn::mgmt::CommandContinuation& done)
+{
+    size_t count = parameters.hasCount() ?
+        parameters.getCount() :
+        std::numeric_limits<size_t>::max();
+    m_cs.erase(parameters.getName(), std::min(count, ERASE_LIMIT),
+            [=] (size_t nErased) {
+            ControlParameters body;
+            body.setName(parameters.getName());
+            body.setCount(nErased);
+            if (nErased == ERASE_LIMIT && count > ERASE_LIMIT) {
+            m_cs.find(Interest(parameters.getName()).setCanBePrefix(true),
+                    [=] (const Interest&, const Data&) mutable {
+                    body.setCapacity(ERASE_LIMIT);
+                    done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+                    },
+                    [=] (const Interest&) {
+                    done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+                    });
+            }
+            else {
+            done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+            }
+            });
+}
+
+#endif
+
+#ifndef ETRI_NFD_ORG_ARCH
 void
 CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
                      ndn::mgmt::StatusDatasetContext& context) const
@@ -215,5 +203,23 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
   context.append(info.wireEncode());
   context.end();
 }
+
+#else
+void
+CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
+                             ndn::mgmt::StatusDatasetContext& context) const
+{
+    ndn::nfd::CsInfo info;
+    info.setCapacity(m_cs.getLimit());
+    info.setEnableAdmit(m_cs.shouldAdmit());
+    info.setEnableServe(m_cs.shouldServe());
+    info.setNEntries(m_cs.size());
+    info.setNHits(m_fwCounters.nCsHits);
+    info.setNMisses(m_fwCounters.nCsMisses);
+
+    context.append(info.wireEncode());
+    context.end();
+}
+#endif
 
 } // namespace nfd
