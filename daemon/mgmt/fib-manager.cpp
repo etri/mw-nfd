@@ -83,6 +83,7 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
     return done(ControlResponse(410, "Face not found"));
   }
 
+#ifndef ETRI_NFD_ORG_ARCH
   // added by ETRI(modori) on 20200913
   // modified by ETRI(modori) on 20201112
     if( !prefix.compare( 0, 1, "localhost") ){
@@ -93,6 +94,14 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
    emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, nullptr, pa, getGlobalNetName());
    setGlobalNetName(false);
     }
+#else
+
+    fib::Entry* entry = m_fib.insert(prefix).first;
+    m_fib.addOrUpdateNextHop(*entry, *face, cost);
+
+    NFD_LOG_TRACE("fib/add-nexthop(" << prefix << ',' << faceId << ',' << cost << "): OK");
+
+#endif
 
   return done(ControlResponse(200, "Success").setBody(parameters.wireEncode()));
 }
@@ -102,7 +111,6 @@ FibManager::removeNextHop(const Name& topPrefix, const Interest& interest,
                           ControlParameters parameters,
                           const ndn::mgmt::CommandContinuation& done)
 {
-      std::cout << "1100addNextHop"  << std::endl;
   setFaceForSelfRegistration(interest, parameters);
   const Name& prefix = parameters.getName();
   FaceId faceId = parameters.getFaceId();
@@ -121,12 +129,13 @@ FibManager::removeNextHop(const Name& topPrefix, const Interest& interest,
     return;
   }
 
-   //auto in = make_shared<ndn::Interest>(interest);
+
+#ifndef ETRI_NFD_ORG_ARCH
    auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
    emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, nullptr, pa, false);
 
-#if 0
-          //auto status = m_fib.removeNextHop(*entry, *face);
+#else
+          auto status = m_fib.removeNextHop(*entry, *face);
           switch (status) {
               case Fib::RemoveNextHopResult::NO_SUCH_NEXTHOP:
                   NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-nexthop");
@@ -149,6 +158,7 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
   std::pair<std::map<std::string,int>::iterator,bool> ret;
   size_t listSize=0;
 
+#ifdef ETRI_NFD_ORG_ARCH
   for (const auto& entry : m_fib) {
     const auto& nexthops = entry.getNextHops() |
                            boost::adaptors::transformed([] (const fib::NextHop& nh) {
@@ -169,15 +179,41 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
 
     listSize += blk.size();
 
-#if 0
     context.append(ndn::nfd::FibEntry()
                    .setPrefix(entry.getPrefix())
                    .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
                    .wireEncode());
-#endif
   }
 
+#else
   // added by ETRI(modori) on 20200913
+  for (const auto& entry : m_fib) {
+    const auto& nexthops = entry.getNextHops() |
+                           boost::adaptors::transformed([] (const fib::NextHop& nh) {
+                             return ndn::nfd::NextHopRecord()
+                                 .setFaceId(nh.getFace().getId())
+                                 .setCost(nh.getCost());
+                           });
+
+                    ret = tmpMap.insert( std::pair<std::string, int>(entry.getPrefix().toUri(), 0) ); 
+                    if(ret.second==false)
+                        continue;
+
+    auto blk = ndn::nfd::FibEntry()
+                   .setPrefix(entry.getPrefix())
+                   .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
+                   .wireEncode();
+    context.append(blk);
+
+    listSize += blk.size();
+
+    /*
+    context.append(ndn::nfd::FibEntry()
+                   .setPrefix(entry.getPrefix())
+                   .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
+                   .wireEncode());
+                   */
+  }
 
   int32_t workers = getForwardingWorkers();
   for(int32_t i=0;i<workers;i++){
@@ -206,15 +242,10 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
                     // ndn::MAX_NDN_PACKET_SIZE
                     if( listSize < 4096 )
                         context.append(blk);
-#if 0
-    context.append(ndn::nfd::FibEntry()
-                   .setPrefix(entry.getPrefix())
-                   .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
-                   .wireEncode());
-#endif
-
 		  }
   }
+
+#endif
 
   context.end();
 }
