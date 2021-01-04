@@ -119,6 +119,7 @@ StreamTransport<T>::StreamTransport(typename StreamTransport::protocol::socket&&
   // Therefore, protecting against send queue overflows is less critical than in other transport
   // types. Instead, we use the default threshold specified in the GenericLinkService options.
 
+    //std::cout << "stream: " << socket.remote_endpoint() << std::endl;
   startReceive();
 }
 
@@ -190,6 +191,7 @@ StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
     return;
   }
 #if 0
+  // added by ETRI(modori) on 202012
   bool wasQueueEmpty = m_sendQueue.empty();
   m_sendQueue.push(packet);
   m_sendQueueBytes += packet.size();
@@ -224,6 +226,7 @@ StreamTransport<T>::handleSend(const boost::system::error_code& error,
   NFD_LOG_FACE_TRACE("Successfully sent: " << nBytesSent << " bytes");
 
 #if 0
+  // added by ETRI(modori) on 202012
   BOOST_ASSERT(!m_sendQueue.empty());
   BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
   m_sendQueueBytes -= nBytesSent;
@@ -246,7 +249,7 @@ StreamTransport<T>::startReceive()
                          [this] (auto&&... args) { this->handleReceive(std::forward<decltype(args)>(args)...); });
 }
 
-#if 0
+#ifdef ETRI_NFD_ORG_ARCH
 template<class T> void
 StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
@@ -306,7 +309,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
     int32_t worker;
     Block element;
     NDN_MSG msg;
-    //bool ret = false;
+    bool ret = false;
 
     while (m_receiveBufferSize - offset > 0) {
 
@@ -321,7 +324,9 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
         BOOST_ASSERT(offset <= m_receiveBufferSize);
 
         std::tie(packetType, worker) = dissectNdnPacket( element.wire(), element.size() );
-        if(element.type()==lp::tlv::LpPacket or worker==DCN_LOCALHOST_PREFIX){
+        if(worker==DCN_LOCALHOST_PREFIX){
+            this->receive(element);
+        }else if(element.type()==lp::tlv::LpPacket and worker==DCN_LOCALHOST_PREFIX){
             this->receive(element);
         }else{
             if(packetType>=0 and worker >=0){
@@ -332,9 +337,11 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                 msg.face = const_cast<nfd::face::Face*>(getFace());
 
                 if(packetType==tlv::Interest)
-                    nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
+                    ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
                 else
-                    nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+                    ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+
+                std::cout << "getGlobalIwId: " << getGlobalIwId() << std::endl;
             }
         }
     }
