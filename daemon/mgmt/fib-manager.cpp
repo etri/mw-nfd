@@ -83,7 +83,6 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
   }
 
 #ifndef ETRI_NFD_ORG_ARCH
-  std::cout << "ETRI_NFD_ORG_ARCH!!!: " << prefix << std::endl;
   // added by ETRI(modori) on 20200913
   // modified by ETRI(modori) on 20201112
     if( !prefix.compare( 0, 1, "localhost") ){
@@ -95,7 +94,6 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
         setGlobalNetName(false);
     }
 #else
-  std::cout << "###ETRI_NFD_ORG_ARCH!!!" << std::endl;
 
     fib::Entry* entry = m_fib.insert(prefix).first;
     m_fib.addOrUpdateNextHop(*entry, *face, cost);

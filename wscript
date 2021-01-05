@@ -148,7 +148,7 @@ def configure(conf):
     conf.define_cond('WITH_TESTS', conf.env.WITH_TESTS)
     conf.define_cond('WITH_OTHER_TESTS', conf.env.WITH_OTHER_TESTS)
     conf.define_cond('WITH_COUNTERS', conf.env.WITH_COUNTERS)
-    conf.define_cond('WITH_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
+    conf.define_cond('ETRI_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
 
     conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/mw-nfd.conf' % conf.env.SYSCONFDIR)
     # The config header will contain all defines that were added using conf.define()
