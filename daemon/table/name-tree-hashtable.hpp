@@ -116,7 +116,7 @@ public:
   HashtableOptions(size_t size = 64 * 1024);
 #else
   explicit
-  HashtableOptions(size_t size = 1024);
+  HashtableOptions(size_t size = 16);
 #endif
 
 public:

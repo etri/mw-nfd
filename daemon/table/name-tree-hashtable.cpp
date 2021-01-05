@@ -238,9 +238,7 @@ Hashtable::insert(const Name& name, size_t prefixLen, const HashValue& hash)
   return this->findOrInsert(name, prefixLen, hash, true);
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
-
-    void
+void
 Hashtable::erase(Node* node)
 {
     BOOST_ASSERT(node != nullptr);
@@ -259,34 +257,6 @@ Hashtable::erase(Node* node)
         this->resize(newNBuckets);
     }
 }
-
-#else
-void
-Hashtable::erase(Node* node)
-{
-  BOOST_ASSERT(node != nullptr);
-  BOOST_ASSERT(node->entry.getParent() == nullptr);
-
-  size_t bucket = this->computeBucketIndex(node->hash);
-  NFD_LOG_TRACE("erase " << node->entry.getName() << " hash=" << node->hash << " bucket=" << bucket);
-
-  this->detach(bucket, node);
-  delete node;
-
-  //modori 20200701
-  if(m_size>0){
-      --m_size;
-// added by ETRI(modori) on 20201215
-      if (m_size < m_shrinkThreshold) {
-          size_t newNBuckets = std::max(m_options.minSize,
-                  static_cast<size_t>(m_options.shrinkFactor * this->getNBuckets()));
-          this->resize(newNBuckets);
-      }
-
-  }
-}
-
-#endif
 
 void
 Hashtable::computeThresholds()
