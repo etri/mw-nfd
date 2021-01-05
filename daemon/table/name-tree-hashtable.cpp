@@ -225,6 +225,23 @@ Hashtable::find(const Name& name, size_t prefixLen, const HashSequence& hashes) 
   return const_cast<Hashtable*>(this)->findOrInsert(name, prefixLen, hashes[prefixLen], false).first;
 }
 
+#ifdef ETRI_PITTOKEN_HASH
+const Node*
+Hashtable::find(const Name& name, size_t prefixLen, const HashValue& hash) const
+{
+  size_t bucket = this->computeBucketIndex(hash);
+
+  for (const Node* node = m_buckets[bucket]; node != nullptr; node = node->next) {
+    if (node->hash == hash && name.compare(0, prefixLen, node->entry.getName()) == 0) {
+      NFD_LOG_TRACE("found " << name.getPrefix(prefixLen) << " hash=" << hash << " bucket=" << bucket);
+      return node;
+    }
+  }
+
+	return nullptr;
+}
+#endif
+
 std::pair<const Node*, bool>
 Hashtable::insert(const Name& name, size_t prefixLen, const HashSequence& hashes)
 {

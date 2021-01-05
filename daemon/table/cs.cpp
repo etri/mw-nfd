@@ -27,6 +27,7 @@
 #include "common/logger.hpp"
 #include "core/algorithm.hpp"
 #include "fw/forwarder.hpp"
+#include "mw-nfd/mw-nfd-global.hpp"
 
 #include <ndn-cxx/lp/tags.hpp>
 #include <ndn-cxx/util/concepts.hpp>
@@ -66,6 +67,7 @@ Cs::insert(const Data& data, bool isUnsolicited)
     }
   }
 
+#ifndef ETRI_DUAL_CS
 	const_iterator it;
   bool isNewEntry = false;
 	std::tie(it, isNewEntry) = m_table.emplace(data.shared_from_this(), isUnsolicited);
@@ -83,7 +85,116 @@ Cs::insert(const Data& data, bool isUnsolicited)
 	else {
 		m_policy->afterInsert(it);
 	}
+
+#else
+	bool isCanBePrefix = 1;
+	auto token = data.getTag<lp::PitToken>();
+	if(token!=nullptr){
+		ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)token->data();
+		isCanBePrefix = pitToken->CanBePrefix;
+	}else {
+		NFD_LOG_DEBUG("PitToken is NULL");
+	}
+
+  bool isNewEntry = false;
+	if(isCanBePrefix) {
+	  NFD_LOG_DEBUG("insert -> m_table" );
+  	const_iterator it;
+	  std::tie(it, isNewEntry) = m_table.emplace(data.shared_from_this(), isUnsolicited);
+  	Entry& entry = const_cast<Entry&>(*it);
+		entry.updateFreshUntil();
+
+		if (!isNewEntry) { // existing entry
+			// XXX This doesn't forbid unsolicited Data from refreshing a solicited entry.
+			if (entry.isUnsolicited() && !isUnsolicited) {
+				entry.clearUnsolicited();
+			}
+			m_policy->afterRefresh(it);
+		}
+		else {
+			m_policy->afterInsert(it);
+			//NFD_LOG_DEBUG("insert -> afterInsert" );
+		}
+	} else {
+	  NFD_LOG_DEBUG("insert -> m_tableExact" );
+  	const_iterator_exact it;
+	  std::tie(it, isNewEntry) = m_tableExact.emplace(data.shared_from_this(), isUnsolicited);
+  	Entry& entry = const_cast<Entry&>(*it);
+		entry.updateFreshUntil();
+
+		if (!isNewEntry) { // existing entry
+			// XXX This doesn't forbid unsolicited Data from refreshing a solicited entry.
+			if (entry.isUnsolicited() && !isUnsolicited) {
+				entry.clearUnsolicited();
+			}
+			m_policy->afterRefreshExact(it);
+			//NFD_LOG_DEBUG("insert -> afterRefresh" );
+		}
+		else {
+			m_policy->afterInsertExact(it);
+			//NFD_LOG_DEBUG("insert -> afterInsert" );
+		}
+	}
+#endif
+
 }
+
+#ifdef ETRI_DUAL_CS
+
+Cs::const_iterator_exact
+Cs::findExactMatch(const std::shared_ptr<Data>& data) const
+{
+  const Entry entry(data, false);
+  //NFD_LOG_DEBUG("findExactMatch " << entry.getName());
+  auto const_iter = m_tableExact.find(entry);
+  return const_iter;
+}
+
+Cs::const_iterator_exact
+Cs::findImplExact(const Interest& interest) const
+{
+  NFD_LOG_DEBUG("findImplExact interest name = " << interest.getName());
+
+  if (!m_shouldServe || m_policy->getLimit() == 0) {
+    return m_tableExact.end();
+  }
+
+  auto data = make_shared<Data>(interest.getName());
+  const Entry entry(data, false);
+  auto match = m_tableExact.find(entry);
+
+  if (match == m_tableExact.end()) {
+    NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
+    return m_tableExact.end();
+  }
+  if (!match->canSatisfy(interest)) {
+    NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-canSatisfy");
+    return m_tableExact.end();
+  }
+
+  NFD_LOG_DEBUG("findImplExact " << interest.getName() << " matching ");
+  m_policy->beforeUseExact(match);
+  return match;
+}
+
+size_t
+Cs::eraseImplExact(const Name& exact, size_t limit)
+{
+  NFD_LOG_DEBUG("eraseImplExact: name " << exact << " " );
+  auto data = make_shared<Data>(exact);
+  auto match = findExactMatch(data);
+
+  if (match == m_tableExact.end()) {
+    NFD_LOG_DEBUG("eraseImplExact: find " << exact << " no-match");
+    return 0;
+  }
+
+  m_policy->beforeEraseExact(match);
+  m_tableExact.erase(match);
+
+  return 1;
+}
+#endif
 
 std::pair<Cs::const_iterator, Cs::const_iterator>
 Cs::findPrefixRange(const Name& prefix) const
@@ -160,6 +271,10 @@ Cs::setPolicyImpl(unique_ptr<Policy> policy)
   NFD_LOG_DEBUG("set-policy " << policy->getName());
   m_policy = std::move(policy);
   m_beforeEvictConnection = m_policy->beforeEvict.connect([this] (auto it) { m_table.erase(it); });
+#ifdef ETRI_DUAL_CS
+  m_beforeEvictExactConnection = m_policy->beforeEvictExact.connect([this] (auto it) { m_tableExact.erase(it); });
+#endif
+
   m_policy->setCs(this);
   BOOST_ASSERT(m_policy->getCs() == this);
 }

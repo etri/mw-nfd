@@ -211,6 +211,10 @@ public:
   const Node*
   find(const Name& name, size_t prefixLen, const HashSequence& hashes) const;
 
+#ifdef ETRI_PITTOKEN_HASH
+  const Node*
+	find(const Name& name, size_t prefixLen, const HashValue& hash) const;
+#endif
   /** \brief find or insert node for name.getPrefix(prefixLen)
    *  \pre name.size() > prefixLen
    *  \pre hashes == computeHashes(name)

@@ -117,6 +117,11 @@ public:
    */
   signal::Signal<Policy, EntryRef> beforeEvict;
 
+#ifdef ETRI_DUAL_CS
+  using EntryRefExact = TableExact::const_iterator;
+  signal::Signal<Policy, EntryRefExact> beforeEvictExact;
+#endif
+
   /** \brief invoked by CS after a new entry is inserted
    *  \post cs.size() <= getLimit()
    *
@@ -145,6 +150,32 @@ public:
    */
   void
   beforeUse(EntryRef i);
+
+#ifdef ETRI_DUAL_CS
+  void
+  afterInsertExact(EntryRefExact i);
+
+  /** \brief invoked by CS after an existing entry is refreshed by same Data
+   *
+   *  The policy may witness this refresh to make better eviction decisions in the future.
+   */
+  void
+  afterRefreshExact(EntryRefExact i);
+
+  /** \brief invoked by CS before an entry is erased due to management command
+   *  \warning CS must not invoke this method if an entry is erased due to eviction.
+   */
+  void
+  beforeEraseExact(EntryRefExact i);
+
+  /** \brief invoked by CS before an entry is used to match a lookup
+   *
+   *  The policy may witness this usage to make better eviction decisions in the future.
+   */
+  void
+  beforeUseExact(EntryRefExact i);
+
+#endif
 
 protected:
   /** \brief invoked after a new entry is created in CS
@@ -189,8 +220,50 @@ protected:
   virtual void
   evictEntries() = 0;
 
+#ifdef ETRI_DUAL_CS
+
+  virtual void
+  doAfterInsertExact(EntryRefExact i) = 0;
+
+  /** \brief invoked after an existing entry is refreshed by same Data
+   *
+   *  When overridden in a subclass, a policy implementation may witness this operation
+   *  and adjust its cleanup index.
+   */
+  virtual void
+  doAfterRefreshExact(EntryRefExact i) = 0;
+
+  /** \brief invoked before an entry is erased due to management command
+   *  \note This will not be invoked for an entry being evicted by policy.
+   *
+   *  When overridden in a subclass, a policy implementation should erase \p i
+   *  from its cleanup index without emitted \p afterErase signal.
+   */
+  virtual void
+  doBeforeEraseExact(EntryRefExact i) = 0;
+
+  /** \brief invoked before an entry is used to match a lookup
+   *
+   *  When overridden in a subclass, a policy implementation may witness this operation
+   *  and adjust its cleanup index.
+   */
+  virtual void
+  doBeforeUseExact(EntryRefExact i) = 0;
+
+  /** \brief evicts zero or more entries
+   *  \post CS size does not exceed hard limit
+   */
+  virtual void
+  evictEntriesExact() = 0;
+
+#endif
+
 protected:
   DECLARE_SIGNAL_EMIT(beforeEvict)
+
+#ifdef ETRI_DUAL_CS
+  DECLARE_SIGNAL_EMIT(beforeEvictExact)
+#endif
 
 private: // registry
   using CreateFunc = std::function<unique_ptr<Policy>()>;

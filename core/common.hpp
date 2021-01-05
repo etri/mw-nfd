@@ -44,6 +44,14 @@
 #define FINAL_UNLESS_WITH_TESTS final
 #endif
 
+#ifdef WITH_DUAL_CS
+#define ETRI_DUAL_CS 
+#endif
+
+#ifdef WITH_PITTOKEN_HASH
+#define ETRI_PITTOKEN_HASH 
+#endif
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>

@@ -31,6 +31,8 @@ namespace nfd {
 namespace cs {
 namespace priority_fifo {
 
+
+#ifndef ETRI_DUAL_CS
 const std::string PriorityFifoPolicy::POLICY_NAME = "priority_fifo";
 NFD_REGISTER_CS_POLICY(PriorityFifoPolicy);
 
@@ -157,6 +159,8 @@ PriorityFifoPolicy::moveToStaleQueue(EntryRef i)
   entryInfo->queueIt = queue.insert(queue.end(), i);
   m_entryInfoMap[i] = entryInfo;
 }
+
+#endif
 
 } // namespace priority_fifo
 } // namespace cs

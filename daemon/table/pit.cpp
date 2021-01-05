@@ -27,8 +27,11 @@
 
 #include <iostream>
 
+
 namespace nfd {
 namespace pit {
+
+NFD_LOG_INIT(PIT);
 
 static inline bool
 nteHasPitEntries(const name_tree::Entry& nte)
@@ -100,15 +103,70 @@ Pit::findAllDataMatches(const Data& data) const
     DataMatchResult matches;
 
     for (const auto& nte : ntMatches) {
-
-        for (const auto& pitEntry : nte.getPitEntries()) {
-            if (pitEntry->getInterest().matchesData(data))
-                matches.emplace_back(pitEntry);
-        }
+			for (const auto& pitEntry : nte.getPitEntries()) {
+      if (pitEntry->getInterest().matchesData(data))
+        matches.emplace_back(pitEntry);
     }
+  }
 
-    return matches;
+  return matches;
 }
+
+#ifdef ETRI_DUAL_CS
+
+shared_ptr<Entry>
+Pit::findDataExactMatch(const Data& data) const
+{
+  const Name& name = data.getName();
+  size_t nteDepth = name.size();
+
+  // ensure NameTree entry exists
+  name_tree::Entry* nte = nullptr;
+	nte = m_nameTree.findExactMatch(name, nteDepth);
+	if (nte == nullptr) {
+		return nullptr;
+	}
+
+	for (const auto& pitEntry : nte->getPitEntries()) {
+		if (pitEntry->getInterest().matchesData(data))
+			return pitEntry;
+	}
+
+  return nullptr;
+}
+
+#endif
+
+#ifdef ETRI_PITTOKEN_HASH
+
+shared_ptr<Entry>
+Pit::findDataExactMatch(const Data& data, size_t hash) const
+{
+  NFD_LOG_TRACE("findDataExactMatch(  hash = " << hash << ')');
+
+  const Name& name = data.getName();
+  size_t nteDepth = name.size();
+
+  // ensure NameTree entry exists
+  name_tree::Entry* nte = nullptr;
+	nte = m_nameTree.findExactMatch(name, nteDepth, hash);
+	if (nte == nullptr) {
+		return nullptr;
+	}
+
+  NFD_LOG_TRACE("findDataExactMatch --> nte exist    ");
+
+	for (const auto& pitEntry : nte->getPitEntries()) {
+		if (pitEntry->getInterest().matchesData(data))
+			return pitEntry;
+	}
+
+  NFD_LOG_TRACE("findDataExactMatch --> return  nullptr  ");
+
+  return nullptr;
+}
+
+#endif
 
 void
 Pit::erase(Entry* entry, bool canDeleteNte)

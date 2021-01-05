@@ -233,7 +233,7 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry,
     return;
   }
 
-    interest.setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
+	interest.setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) )); 
 
   m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
 }

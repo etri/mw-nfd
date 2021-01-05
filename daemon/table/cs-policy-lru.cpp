@@ -89,6 +89,61 @@ LruPolicy::insertToQueue(EntryRef i, bool isNewEntry)
   }
 }
 
+#ifdef ETRI_DUAL_CS
+void
+LruPolicy::doAfterInsertExact(EntryRefExact i)
+{
+  this->insertToQueueExact(i, true);
+  this->evictEntriesExact();
+}
+
+void
+LruPolicy::doAfterRefreshExact(EntryRefExact i)
+{
+  this->insertToQueueExact(i, false);
+}
+
+void
+LruPolicy::doBeforeEraseExact(EntryRefExact i)
+{
+  m_queueExact.get<1>().erase(i);
+}
+
+void
+LruPolicy::doBeforeUseExact(EntryRefExact i)
+{
+  this->insertToQueueExact(i, false);
+}
+
+void
+LruPolicy::evictEntriesExact()
+{
+  BOOST_ASSERT(this->getCs() != nullptr);
+  while (this->getCs()->sizeExact() > this->getLimit()) {
+    BOOST_ASSERT(!m_queueExact.empty());
+    EntryRefExact i = m_queueExact.front();
+    m_queueExact.pop_front();
+    this->emitSignal(beforeEvictExact, i);
+  }
+}
+
+void
+LruPolicy::insertToQueueExact(EntryRefExact i, bool isNewEntry)
+{
+
+  QueueExact::iterator it;
+  bool isNew = false;
+  // push_back only if i does not exist
+  std::tie(it, isNew) = m_queueExact.push_back(i);
+
+  BOOST_ASSERT(isNew == isNewEntry);
+  if (!isNewEntry) {
+    m_queueExact.relocate(m_queueExact.end(), it);
+  }
+}
+
+#endif
+
 } // namespace lru
 } // namespace cs
 } // namespace nfd

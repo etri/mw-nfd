@@ -41,7 +41,9 @@ Entry::Entry(const Name& name, Node* node)
 void
 Entry::setParent(Entry& entry)
 {
+#ifndef ETRI_DUAL_CS
   BOOST_ASSERT(this->getParent() == nullptr);
+#endif
   BOOST_ASSERT(!this->getName().empty());
   BOOST_ASSERT(entry.getName() == this->getName().getPrefix(-1));
 
