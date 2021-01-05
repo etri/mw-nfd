@@ -119,12 +119,7 @@ TcpFactory::doProcessConfig(OptionalConfigSection configSection,
   providedSchemes.insert("tcp");
 
   if (enableV4) {
-	//modified by ETRI(modori)
-   #if 0
     tcp::Endpoint endpoint(ip::tcp::v4(), port);
-#else
-    tcp::Endpoint endpoint( boost::asio::ip::address_v4::from_string("127.0.0.1"), port);
-#endif
 
     auto v4Channel = this->createChannel(endpoint);
     if (wantListen && !v4Channel->isListening()) {

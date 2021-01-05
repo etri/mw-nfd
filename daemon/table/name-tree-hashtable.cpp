@@ -204,12 +204,9 @@ Hashtable::findOrInsert(const Name& name, size_t prefixLen, HashValue h, bool al
   NFD_LOG_TRACE("insert " << node->entry.getName() << " hash=" << h << " bucket=" << bucket);
   ++m_size;
 
-// added by ETRI(modori) on 20201215
-#if 1
   if (m_size > m_expandThreshold) {
       this->resize(static_cast<size_t>(m_options.expandFactor * this->getNBuckets()));
   }
-#endif
 
   return {node, true};
 }
@@ -241,6 +238,29 @@ Hashtable::insert(const Name& name, size_t prefixLen, const HashValue& hash)
   return this->findOrInsert(name, prefixLen, hash, true);
 }
 
+#ifdef ETRI_NFD_ORG_ARCH
+
+    void
+Hashtable::erase(Node* node)
+{
+    BOOST_ASSERT(node != nullptr);
+    BOOST_ASSERT(node->entry.getParent() == nullptr);
+
+    size_t bucket = this->computeBucketIndex(node->hash);
+    NFD_LOG_TRACE("erase " << node->entry.getName() << " hash=" << node->hash << " bucket=" << bucket);
+
+    this->detach(bucket, node);
+    delete node;
+    --m_size;
+
+    if (m_size < m_shrinkThreshold) {
+        size_t newNBuckets = std::max(m_options.minSize,
+                static_cast<size_t>(m_options.shrinkFactor * this->getNBuckets()));
+        this->resize(newNBuckets);
+    }
+}
+
+#else
 void
 Hashtable::erase(Node* node)
 {
@@ -255,19 +275,18 @@ Hashtable::erase(Node* node)
 
   //modori 20200701
   if(m_size>0){
-
       --m_size;
 // added by ETRI(modori) on 20201215
-#if 1
       if (m_size < m_shrinkThreshold) {
           size_t newNBuckets = std::max(m_options.minSize,
                   static_cast<size_t>(m_options.shrinkFactor * this->getNBuckets()));
           this->resize(newNBuckets);
       }
-#endif
 
   }
 }
+
+#endif
 
 void
 Hashtable::computeThresholds()

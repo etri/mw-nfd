@@ -110,10 +110,14 @@ public:
    *  \post initialSize == size
    *  \post minSize == size
    */
+#ifndef ETRI_NFD_ORG_ARCH
     // modified by ETRI(modori) on 20201215, 1024->8192
   explicit
-  //HashtableOptions(size_t size = 1024);
   HashtableOptions(size_t size = 64 * 1024);
+#else
+  explicit
+  HashtableOptions(size_t size = 1024);
+#endif
 
 public:
   /** \brief initial number of buckets
@@ -126,9 +130,7 @@ public:
 
   /** \brief if hashtable has more than nBuckets*expandLoadFactor nodes, it will be expanded
    */
-  //modori
   float expandLoadFactor = 0.5;
-  //float expandLoadFactor = 0.9;
 
   /** \brief when hashtable is expanded, its new size is nBuckets*expandFactor
    */
@@ -140,9 +142,7 @@ public:
 
   /** \brief when hashtable is shrunk, its new size is max(nBuckets*shrinkFactor, minSize)
    */
-  //modori
   float shrinkFactor = 0.5;
-  //float shrinkFactor = 0.9;
 };
 
 /** \brief a hashtable for fast exact name lookup

@@ -59,7 +59,6 @@ getDefaultStrategyName()
 }
 
 Forwarder::Forwarder(FaceTable& faceTable, boost::asio::io_service& ios, uint8_t wid)
-  //  : m_counters(getGlobalForwarderCounters())
   : m_faceTable(faceTable)
   , m_unsolicitedDataPolicy(make_unique<fw::DefaultUnsolicitedDataPolicy>())
   , m_fib(m_nameTree)
@@ -75,11 +74,9 @@ Forwarder::Forwarder(FaceTable& faceTable, boost::asio::io_service& ios, uint8_t
 
     m_strategyChoice.setDefaultStrategy(getDefaultStrategyName());
 
-//   m_scheduler = make_unique<Scheduler>(ios);
 }
 
 Forwarder::Forwarder(FaceTable& faceTable)
-  //  : m_counters(getGlobalForwarderCounters())
   : m_faceTable(faceTable)
   , m_unsolicitedDataPolicy(make_unique<fw::DefaultUnsolicitedDataPolicy>())
   , m_fib(m_nameTree)
@@ -112,11 +109,13 @@ Forwarder::Forwarder(FaceTable& faceTable)
             });
 
     m_faceTable.beforeRemove.connect([this] (const Face& face) {
+#ifndef ETRI_NFD_ORG_ARCH
 // added by ETRI(modori) on 20201207
             ControlParameters parameters;
             parameters.setFaceId(face.getId());
             auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
             emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, nullptr, pa, getGlobalNetName());
+#endif
             cleanupOnFaceRemoval(m_nameTree, m_fib, m_pit, face);
             });
 
@@ -171,8 +170,10 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
 
         pitEntry = m_pit.insert(interest).first;
 
+#ifndef ETRI_NFD_ORG_ARCH
 	//modori 20200602 using PitToken
 	pitEntry->m_workerId = workerId;
+#endif
 
     // detect duplicate Nonce in PIT entry
     int dnw = fw::findDuplicateNonce(*pitEntry, interest.getNonce(), ingress.face);
@@ -408,6 +409,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
     return;
   }
 
+#ifndef ETRI_NFD_ORG_ARCH
   // added by ETRI(modori) on 20201215 
 	auto token = data.getTag<lp::PitToken>();
     ST_PIT_TOKEN  *pitToken __attribute__((unused))=nullptr;
@@ -418,6 +420,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 		NFD_LOG_DEBUG("PitToken is NULL");
 	}
     // end by ETRI(modori)
+#endif
 
   // PIT match
   pit::DataMatchResult pitMatches = m_pit.findAllDataMatches(data);

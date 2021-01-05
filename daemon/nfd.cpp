@@ -29,7 +29,6 @@
 #include <iostream>
 
 #include "nfd.hpp"
-//#include "common/message-queue.hpp"
 #include "common/global.hpp"
 #include "common/logger.hpp"
 #include "common/privilege-helper.hpp"
@@ -220,7 +219,6 @@ Nfd::reloadConfigFile()
 void
 Nfd::reloadConfigFileFaceSection()
 {
-//  std::cout << "reload only face_system section of the config file to re-initialize multicast faces" << std::endl;
   ConfigFile config(&ConfigFile::ignoreUnknownSection);
   m_faceSystem->setConfigFile(config);
 

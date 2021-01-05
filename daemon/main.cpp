@@ -96,6 +96,7 @@ std::string g_logFilePath;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 
+#ifndef ETRI_NFD_ORG_ARCH
 static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std::string&)
 {
     std::string user;
@@ -165,6 +166,7 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
     g_logFilePath = opt->get_value<std::string>();
 
 }
+#endif
 
 class NfdRunner : noncopyable
 {
@@ -344,9 +346,112 @@ printLogModules(std::ostream& os)
 
 } // namespace nfd
 
+#ifdef ETRI_NFD_ORG_ARCH
+
+    int
+main(int argc, char** argv)
+{
+    std::cout << "\n\n" << std::endl;
+    std::cout << "      Running NFD Original Archecture..." << std::endl;
+    std::cout << "\n\n" << std::endl;
+    using namespace nfd;
+
+    std::string configFile = DEFAULT_CONFIG_FILE;
+
+    po::options_description description("Options");
+    description.add_options()
+        ("help,h",    "print this message and exit")
+        ("version,V", "show version information and exit")
+        ("config,c",  po::value<std::string>(&configFile),
+         "path to configuration file (default: " DEFAULT_CONFIG_FILE ")")
+        ("modules,m", "list available logging modules")
+        ;
+
+    po::variables_map vm;
+    try {
+        po::store(po::parse_command_line(argc, argv, description), vm);
+        po::notify(vm);
+    }
+    catch (const std::exception& e) {
+        // Cannot use NFD_LOG_* macros here, because the logging subsystem is not initialized yet
+        // at this point. Moreover, we don't want to clutter error messages related to command-line
+        // parsing with timestamps and other useless text added by the macros.
+        std::cerr << "ERROR: " << e.what() << "\n\n";
+        printUsage(std::cerr, argv[0], description);
+        return 2;
+    }
+
+    if (vm.count("help") > 0) {
+        printUsage(std::cout, argv[0], description);
+        return 0;
+    }
+
+    if (vm.count("version") > 0) {
+        std::cout << NFD_VERSION_BUILD_STRING << std::endl;
+        return 0;
+    }
+
+    if (vm.count("modules") > 0) {
+        printLogModules(std::cout);
+        return 0;
+    }
+
+    const std::string boostBuildInfo =
+        "with Boost version " + to_string(BOOST_VERSION / 100000) +
+        "." + to_string(BOOST_VERSION / 100 % 1000) +
+        "." + to_string(BOOST_VERSION % 100);
+    const std::string pcapBuildInfo =
+#ifdef HAVE_LIBPCAP
+        "with " + std::string(pcap_lib_version());
+#else
+    "without libpcap";
+#endif
+    const std::string wsBuildInfo =
+#ifdef HAVE_WEBSOCKET
+        "with WebSocket++ version " + to_string(websocketpp::major_version) +
+        "." + to_string(websocketpp::minor_version) +
+        "." + to_string(websocketpp::patch_version);
+#else
+    "without WebSocket++";
+#endif
+
+    std::clog << "NFD version " << NFD_VERSION_BUILD_STRING << " starting\n"
+        << "Built with " BOOST_COMPILER ", with " BOOST_STDLIB
+        ", " << boostBuildInfo <<
+        ", " << pcapBuildInfo <<
+        ", " << wsBuildInfo <<
+        ", with ndn-cxx version " NDN_CXX_VERSION_BUILD_STRING
+        << std::endl;
+
+    NfdRunner runner(configFile);
+    try {
+        runner.initialize();
+    }
+    catch (const boost::filesystem::filesystem_error& e) {
+        NFD_LOG_FATAL(boost::diagnostic_information(e));
+        return e.code() == boost::system::errc::permission_denied ? 4 : 1;
+    }
+    catch (const std::exception& e) {
+        NFD_LOG_FATAL(boost::diagnostic_information(e));
+        return 1;
+    }
+    catch (const PrivilegeHelper::Error& e) {
+        // PrivilegeHelper::Errors do not inherit from std::exception
+        // and represent seteuid/gid failures
+        NFD_LOG_FATAL(e.what());
+        return 4;
+    }
+
+    return runner.run();
+}
+
+#else
 int
 main(int argc, char** argv)
 {
+    std::cout << "\n\n" << std::endl;
+    std::cout << "      Running Multi-Worker NFD Archecture..." << std::endl;
+    std::cout << "\n\n" << std::endl;
   using namespace nfd;
 
     std::string configFile = DEFAULT_CONFIG_FILE;
@@ -550,3 +655,7 @@ main(int argc, char** argv)
 
     return runner.run();
 }
+
+
+
+#endif

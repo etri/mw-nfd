@@ -119,10 +119,6 @@ DatagramTransport<T, U>::DatagramTransport(typename DatagramTransport::protocol:
     this->setSendQueueCapacity(sendBufferSizeOption.value());
   }
 
-  //auto ep = socket->local_endpoint();
-
-//  std::cout << "endp: " << socket << std::endl;
-
   m_iwId = getGlobalIwId();
 
   m_socket.async_receive_from(boost::asio::buffer(m_receiveBuffer), m_sender,
@@ -176,6 +172,37 @@ DatagramTransport<T, U>::doSend(const Block& packet, const EndpointId&)
                       });
 }
 
+
+#ifdef ETRI_NFD_ORG_ARCH
+template<class T, class U>
+void
+DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
+                                                 const boost::system::error_code& error)
+{
+    if (error)
+        return processErrorCode(error);
+
+    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
+
+    bool isOk = false;
+    Block element;
+    std::tie(isOk, element) = Block::fromBuffer(buffer, nBytesReceived);
+    if (!isOk) {
+        NFD_LOG_FACE_WARN("Failed to parse incoming packet from " << m_sender);
+        // This packet won't extend the face lifetime
+        return;
+    }
+    if (element.size() != nBytesReceived) {
+        NFD_LOG_FACE_WARN("Received datagram size and decoded element size don't match");
+        // This packet won't extend the face lifetime
+        return;
+    }
+    m_hasRecentlyReceived = true;
+
+    this->receive(element, makeEndpointId(m_sender));
+}
+
+#else
 template<class T, class U>
     void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
@@ -190,7 +217,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
     int32_t worker;
     std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
 
-    std::cout << "UDP: m_iwId: " << m_iwId << std::endl;
+    bool ret __attribute__((unused))=false;
 
     if(packetType>0){
         NDN_MSG msg;
@@ -199,13 +226,19 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
         msg.face = const_cast<nfd::face::Face*>(getFace());
 
         if(packetType==tlv::Interest)
-            nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
+            ret=nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
         else
-            nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
+            ret=nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
+
+        if(ret==false){
+            this->enqMiss();
+        }
     }
 
     m_hasRecentlyReceived = true;
 }
+
+#endif
 
 template<class T, class U> void
 DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)

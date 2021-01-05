@@ -41,7 +41,6 @@ NFD_LOG_INIT(NameTree);
 NameTree::NameTree(size_t nBuckets)
   : m_ht(HashtableOptions(nBuckets))
 {
-    //getGlobalLogger().info("NameTree's nBuckets: {}", nBuckets);
 }
 
 Entry&

@@ -253,7 +253,6 @@ StreamTransport<T>::handleSend(const boost::system::error_code& error,
   BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
   m_sendQueueBytes -= nBytesSent;
   m_sendQueue.pop();
-  printf("Successfully sent: %d, size:%d\n" , nBytesSent , m_sendQueue.size());
 
   if (!m_sendQueue.empty())
     sendFromQueue();
@@ -388,6 +387,9 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
                 else
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+
+                if(ret==false)
+                    this->enqMiss();
 
             }
         }

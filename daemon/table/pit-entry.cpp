@@ -30,11 +30,19 @@
 namespace nfd {
 namespace pit {
 
+#ifndef ETRI_NFD_ORG_ARCH
 Entry::Entry(const Interest& interest)
 	:m_lpBlock(nullptr)
   , m_interest(interest.shared_from_this())
 {
 }
+#else
+Entry::Entry(const Interest& interest)
+  : m_interest(interest.shared_from_this())
+{
+}
+
+#endif
 
 bool
 Entry::canMatch(const Interest& interest, size_t nEqualNameComps) const

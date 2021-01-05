@@ -292,7 +292,10 @@ protected: // actions
   VIRTUAL_WITH_TESTS void
   rejectPendingInterest(const shared_ptr<pit::Entry>& pitEntry)
   {
+#ifndef ETRI_NFD_ORG_ARCH
+      // added by ETRI(modori) on 20210105
       getGlobalLogger().info("rejectPendingInterest: {}" , pitEntry->getName().toUri());
+#endif
     this->setExpiryTimer(pitEntry, 0_ms);
   }
 

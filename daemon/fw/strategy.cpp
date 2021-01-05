@@ -197,18 +197,11 @@ Strategy::onDroppedInterest(const FaceEndpoint& egress, const Interest& interest
 }
 
     //added by ETRI(modori) 20200602
-#if 0
+#ifdef ETRI_NFD_ORG_ARCH
 void
 Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry,
                        const FaceEndpoint& egress, const Interest& interest)
 {
-#if 1  // pitToken
-	auto b = make_shared<ndn::Buffer>(32);
-	ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
-	pitToken->workerId = pitEntry->m_workerId;
-	pitToken->CanBePrefix = interest.getCanBePrefix();
-#endif
-	
   if (interest.getTag<lp::PitToken>() != nullptr) {
     Interest interest2 = interest; // make a copy to preserve tag on original packet
     interest2.removeTag<lp::PitToken>();
@@ -229,7 +222,6 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry,
     pitToken->CanBePrefix = interest.getCanBePrefix();
     auto node = pitEntry->m_nameTreeEntry->getNode();
     pitToken->hashValue = node->hash;
-    //std::cout << "node->hashValue: " << node->hash << std::endl;
     
   if (interest.getTag<lp::PitToken>() != nullptr) {
     Interest interest2 = interest; // make a copy to preserve tag on original packet

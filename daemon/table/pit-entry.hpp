@@ -235,10 +235,11 @@ public:
    */
   time::milliseconds dataFreshnessPeriod = 0_ms;
 
+#ifndef ETRI_NFD_ORG_ARCH
   //modori 20200602
   uint8_t m_workerId;
   shared_ptr<ndn::Block> m_lpBlock;
-  //uint64_t hash;
+#endif
 
 private:
   shared_ptr<const Interest> m_interest;
@@ -248,8 +249,10 @@ private:
   name_tree::Entry* m_nameTreeEntry = nullptr;
 
   friend class name_tree::Entry;
+#ifndef ETRI_NFD_ORG_ARCH
   // added by ETRI(MODORI) on 20201218
   friend class fw::Strategy;
+#endif
 };
 
 } // namespace pit

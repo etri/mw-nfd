@@ -38,11 +38,6 @@ FaceRecord::update(const Interest& interest)
   if (lifetime < 0_ms) {
     lifetime = ndn::DEFAULT_INTEREST_LIFETIME;
   }
-#if 0
-  //modori
-  time::milliseconds to = 1500_ms;
-    lifetime = to;
-#endif
 
   m_expiry = m_lastRenewed + lifetime;
 }

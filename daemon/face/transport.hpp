@@ -84,6 +84,8 @@ public:
    *  This counter is increased only if transport is UP.
    */
   ByteCounter nOutBytes;
+
+  PacketCounter  nEnqMiss;
 };
 
 /** \brief indicates the transport has no limit on payload size
@@ -226,6 +228,9 @@ public: // static properties
   ssize_t
   getMtu() const;
 
+  void enqMiss(){++nEnqMiss;}
+
+
   /** \return capacity of the send queue (in bytes)
    *  \retval QUEUE_UNSUPPORTED transport does not support queue capacity retrieval
    *  \retval QUEUE_ERROR transport was unable to retrieve the queue capacity
@@ -238,6 +243,8 @@ public: // dynamic properties
    */
   TransportState
   getState() const;
+
+  ssize_t getEnqMiss() const;
 
   /** \brief signals when transport state changes
    */

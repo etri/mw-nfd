@@ -92,7 +92,9 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
 #else
 	int ifIndex = getIfIndex(remoteEndpoint.address().to_string().c_str());
 	if(ifIndex==0){
+#ifndef ETRI_NFD_ORG_ARCH
 		getGlobalLogger().info("TCP Connection Error {}.", remoteEndpoint.address().to_string() );
+#endif
 		return;
 	}
 

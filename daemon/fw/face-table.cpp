@@ -86,7 +86,6 @@ FaceTable::addImpl(shared_ptr<Face> face, FaceId faceId)
                " remote=" << face->getRemoteUri() <<
                " local=" << face->getLocalUri());
 
-  //getGlobalLogger().info("Added face id={}/{}/{}" , faceId , face->getRemoteUri().toString() ,face->getLocalUri().toString());
 
   connectFaceClosedSignal(*face, [=] { remove(faceId); });
 

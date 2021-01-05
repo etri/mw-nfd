@@ -147,11 +147,9 @@ EthernetTransport::sendPacket(const ndn::Block& block)
   if (sent < 0){
     //handleError("Send operation failed00: " + m_pcap.getLastError());
     //Resource temporarily unavailable
-    //getGlobalLogger().info("Send operation failed: {}, buffer.size:{}" ,m_pcap.getLastError(), buffer.size());
   }else if (static_cast<size_t>(sent) < buffer.size()){
     handleError("Failed to send the full frame: size=" + to_string(buffer.size()) +
                 " sent=" + to_string(sent));
-        //    getGlobalLogger().info("Failed to send the full frame: size={}, sent={}" , buffer.size() , sent);
     }else{
 
         // print block size because we don't want to count the padding in buffer
@@ -280,6 +278,10 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
                     ret = nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
                 }   
 
+                ++nInPackets;
+
+                if(ret==false)
+                    this->enqMiss();
             }
         }
     }
