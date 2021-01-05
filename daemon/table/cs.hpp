@@ -64,6 +64,11 @@ public:
   erase(const Name& prefix, size_t limit, AfterEraseCallback&& cb)
   {
     size_t nErased = eraseImpl(prefix, limit);
+
+#ifdef ETRI_DUAL_CS
+   	nErased += eraseImplExact(prefix, limit);
+#endif
+			 
     cb(nErased);
   }
 
@@ -81,12 +86,33 @@ public:
   find(const Interest& interest, HitCallback&& hit, MissCallback&& miss) const
   {
 
+#ifndef ETRI_DUAL_CS
 		auto match = findImpl(interest);
 		if (match == m_table.end()) {
 			miss(interest);
 			return;
 		}
 		hit(interest, match->getData());
+#else
+		bool isCanBePrefix = 0;
+		isCanBePrefix = interest.getCanBePrefix();
+
+		if(isCanBePrefix) {
+			auto match = findImpl(interest);
+			if (match == m_table.end()) {
+				miss(interest);
+				return;
+			}
+			hit(interest, match->getData());
+		} else {
+			auto match = findImplExact(interest);
+			if (match == m_tableExact.end()) {
+				miss(interest);
+				return;
+			}
+			hit(interest, match->getData());
+		}
+#endif
   }
 
   /** \brief get number of stored packets
@@ -96,6 +122,20 @@ public:
   {
     return m_table.size();
   }
+
+#ifdef ETRI_DUAL_CS
+  size_t
+  sizeExact() const
+  {
+    return m_tableExact.size();
+  }
+
+  size_t
+  sizeAll() const
+  {
+    return m_table.size() + m_tableExact.size();
+  }
+#endif
 
 public: // configuration
   /** \brief get capacity (in number of packets)
@@ -186,6 +226,22 @@ private:
 
   void
   setPolicyImpl(unique_ptr<Policy> policy);
+
+#ifdef ETRI_DUAL_CS
+
+  const_iterator_exact
+  findExactMatch(const std::shared_ptr<Data>& exact) const;
+
+  size_t
+  eraseImplExact(const Name& prefix, size_t limit);
+
+  const_iterator_exact
+  findImplExact(const Interest& interest) const;
+
+  TableExact m_tableExact;
+  signal::ScopedConnection m_beforeEvictExactConnection;
+
+#endif
 
 PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   void

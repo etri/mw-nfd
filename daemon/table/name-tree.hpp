@@ -93,6 +93,11 @@ public: // mutation
   Entry&
   lookup(const Name& name, size_t prefixLen);
 
+#ifdef ETRI_PITTOKEN_HASH
+  Entry*
+  lookup(const Name& name, size_t prefixLen, HashValue hash);
+#endif
+
   /** \brief Equivalent to `lookup(name, name.size())`
    */
   Entry&
@@ -148,6 +153,11 @@ public: // matching
    */
   Entry*
   findExactMatch(const Name& name, size_t prefixLen = std::numeric_limits<size_t>::max()) const;
+
+#ifdef ETRI_PITTOKEN_HASH
+  Entry*
+  findExactMatch(const Name& name, size_t prefixLen, HashValue hash) const;
+#endif
 
   /** \brief Longest prefix matching
    *  \return entry whose name is a prefix of \p name and passes \p entrySelector,

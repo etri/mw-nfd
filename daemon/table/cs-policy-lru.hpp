@@ -37,6 +37,36 @@ namespace nfd {
 namespace cs {
 namespace lru {
 
+#ifdef ETRI_DUAL_CS
+struct EntryRefHasherExact
+{
+	size_t
+	operator()(const Policy::EntryRefExact& t) const {
+  	    Entry& entry = const_cast<Entry&>(*t);
+	    return nfd::name_tree::computeHash(entry.getName());
+	}
+};
+
+struct EntryRefComparatorExact {
+	bool
+	operator()(const Policy::EntryRefExact& t1, const Policy::EntryRefExact& t2) const {
+  	Entry& entry1 = const_cast<Entry&>(*t1);
+  	Entry& entry2 = const_cast<Entry&>(*t2);
+		if(entry1.getName() == entry2.getName())
+			return true;
+		return false;
+	}
+};
+
+using QueueExact = boost::multi_index_container< 
+                Policy::EntryRefExact,
+                boost::multi_index::indexed_by<
+                  boost::multi_index::sequenced<>,
+                  boost::multi_index::hashed_unique<boost::multi_index::identity<Policy::EntryRefExact>, EntryRefHasherExact, EntryRefComparatorExact>
+                >
+              >;
+#endif
+
 using Queue = boost::multi_index_container<
                 Policy::EntryRef,
                 boost::multi_index::indexed_by<
@@ -70,11 +100,35 @@ private:
   void
   evictEntries() override;
 
+#ifdef ETRI_DUAL_CS
+  void
+  doAfterInsertExact(EntryRefExact i) override;
+
+  void
+  doAfterRefreshExact(EntryRefExact i) override;
+
+  void
+  doBeforeEraseExact(EntryRefExact i) override;
+
+  void
+  doBeforeUseExact(EntryRefExact i) override;
+
+  void
+  evictEntriesExact() override;
+#endif
+
 private:
   /** \brief moves an entry to the end of queue
    */
   void
   insertToQueue(EntryRef i, bool isNewEntry);
+
+#ifdef ETRI_DUAL_CS
+  void
+  insertToQueueExact(EntryRefExact i, bool isNewEntry);
+
+  QueueExact m_queueExact;
+#endif
 
 private:
   Queue m_queue;

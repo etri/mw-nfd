@@ -73,6 +73,7 @@ public:
   static const std::string POLICY_NAME;
 
 private:
+#ifndef ETRI_DUAL_CS 
   void
   doAfterInsert(EntryRef i) override;
 
@@ -87,6 +88,7 @@ private:
 
   void
   evictEntries() override;
+#endif
 
 private:
   /** \brief evicts one entry

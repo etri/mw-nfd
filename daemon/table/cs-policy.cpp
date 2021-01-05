@@ -70,6 +70,9 @@ Policy::setLimit(size_t nMaxEntries)
   NFD_LOG_INFO("setLimit " << nMaxEntries);
   m_limit = nMaxEntries;
   this->evictEntries();
+#ifdef ETRI_DUAL_CS
+  this->evictEntriesExact();
+#endif
 }
 
 void
@@ -99,6 +102,37 @@ Policy::beforeUse(EntryRef i)
   BOOST_ASSERT(m_cs != nullptr);
   this->doBeforeUse(i);
 }
+
+#ifdef ETRI_DUAL_CS
+
+void
+Policy::afterInsertExact(EntryRefExact i)
+{
+  BOOST_ASSERT(m_cs != nullptr);
+  this->doAfterInsertExact(i);
+}
+
+void
+Policy::afterRefreshExact(EntryRefExact i)
+{
+  BOOST_ASSERT(m_cs != nullptr);
+  this->doAfterRefreshExact(i);
+}
+
+void
+Policy::beforeEraseExact(EntryRefExact i)
+{
+  BOOST_ASSERT(m_cs != nullptr);
+  this->doBeforeEraseExact(i);
+}
+
+void
+Policy::beforeUseExact(EntryRefExact i)
+{
+  BOOST_ASSERT(m_cs != nullptr);
+  this->doBeforeUseExact(i);
+}
+#endif 
 
 } // namespace cs
 } // namespace nfd
