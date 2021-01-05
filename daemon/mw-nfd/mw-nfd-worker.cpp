@@ -185,7 +185,6 @@ Measurements& MwNfd::getMeasurementsTable()
     return m_forwarder->getMeasurements();
 }
 
-#if 1
 void MwNfd::handleNfdcCommand()
 {
 using ndn::nfd::CsFlagBit;
@@ -353,7 +352,6 @@ response:
     sendto(m_sockNfdcCmd, buf, sizeof(mw_nfdc), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
 
 }
-#endif
 
 void MwNfd::terminate(const boost::system::error_code& error, int signalNo)
 {

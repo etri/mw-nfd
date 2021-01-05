@@ -452,6 +452,7 @@ main(int argc, char** argv)
     std::cout << "\n\n" << std::endl;
     std::cout << "      Running Multi-Worker NFD Archecture..." << std::endl;
     std::cout << "\n\n" << std::endl;
+
   using namespace nfd;
 
     std::string configFile = DEFAULT_CONFIG_FILE;
@@ -534,7 +535,6 @@ main(int argc, char** argv)
     config.parse(configFile, false);
 
     makeGlobalLogger(g_logFilePath);
-    //getGlobalLogger().info("MW-NFD's Mode [{}]" , g_dcnMode );
 
     std::mutex m;
     std::condition_variable cv;
@@ -655,7 +655,5 @@ main(int argc, char** argv)
 
     return runner.run();
 }
-
-
 
 #endif

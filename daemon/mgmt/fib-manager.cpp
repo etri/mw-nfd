@@ -61,7 +61,6 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
                        ControlParameters parameters,
                        const ndn::mgmt::CommandContinuation& done)
 {
-      //std::cout << "00addNextHop"  << std::endl;
   setFaceForSelfRegistration(interest, parameters);
   const Name& prefix = parameters.getName();
   FaceId faceId = parameters.getFaceId();
@@ -84,17 +83,19 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
   }
 
 #ifndef ETRI_NFD_ORG_ARCH
+  std::cout << "ETRI_NFD_ORG_ARCH!!!: " << prefix << std::endl;
   // added by ETRI(modori) on 20200913
   // modified by ETRI(modori) on 20201112
     if( !prefix.compare( 0, 1, "localhost") ){
       fib::Entry* entry = m_fib.insert(prefix).first;
       m_fib.addOrUpdateNextHop(*entry, *face, cost);
     }else{
-   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-   emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, nullptr, pa, getGlobalNetName());
-   setGlobalNetName(false);
+        auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
+        emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, nullptr, pa, getGlobalNetName());
+        setGlobalNetName(false);
     }
 #else
+  std::cout << "###ETRI_NFD_ORG_ARCH!!!" << std::endl;
 
     fib::Entry* entry = m_fib.insert(prefix).first;
     m_fib.addOrUpdateNextHop(*entry, *face, cost);
@@ -156,7 +157,6 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
 {
   std::map<std::string,int> tmpMap;
   std::pair<std::map<std::string,int>::iterator,bool> ret;
-  size_t listSize=0;
 
 #ifdef ETRI_NFD_ORG_ARCH
   for (const auto& entry : m_fib) {
@@ -167,18 +167,6 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
                                  .setCost(nh.getCost());
                            });
 
-                    ret = tmpMap.insert( std::pair<std::string, int>(entry.getPrefix().toUri(), 0) ); 
-                    if(ret.second==false)
-                        continue;
-
-    auto blk = ndn::nfd::FibEntry()
-                   .setPrefix(entry.getPrefix())
-                   .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
-                   .wireEncode();
-    context.append(blk);
-
-    listSize += blk.size();
-
     context.append(ndn::nfd::FibEntry()
                    .setPrefix(entry.getPrefix())
                    .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
@@ -187,6 +175,7 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
 
 #else
   // added by ETRI(modori) on 20200913
+  size_t listSize=0;
   for (const auto& entry : m_fib) {
     const auto& nexthops = entry.getNextHops() |
                            boost::adaptors::transformed([] (const fib::NextHop& nh) {
@@ -206,13 +195,6 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
     context.append(blk);
 
     listSize += blk.size();
-
-    /*
-    context.append(ndn::nfd::FibEntry()
-                   .setPrefix(entry.getPrefix())
-                   .setNextHopRecords(std::begin(nexthops), std::end(nexthops))
-                   .wireEncode());
-                   */
   }
 
   int32_t workers = getForwardingWorkers();
