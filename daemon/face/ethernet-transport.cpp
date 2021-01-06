@@ -46,6 +46,8 @@
 
 #include <boost/endian/conversion.hpp>
 
+extern size_t nEnqMiss[128];
+
 namespace nfd {
 namespace face {
 
@@ -280,8 +282,8 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
 
                 ++nInPackets;
 
-                if(ret==false)
-                    this->enqMiss();
+                if(ret==false) 
+                    nEnqMiss[msg.face->getId()-face::FACEID_RESERVED_MAX];
             }
         }
     }

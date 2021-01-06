@@ -29,6 +29,8 @@
 
 #include "mw-nfd/mw-nfd-global.hpp"
 
+size_t nEnqMiss[128];
+
 namespace nfd {
 
 static const time::milliseconds STATUS_FRESHNESS(5000);
@@ -51,7 +53,7 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setStartTimestamp(m_startTimestamp);
   status.setCurrentTimestamp(time::system_clock::now());
 
-#if 1
+#ifndef ETRI_NFD_ORG_ARCH
   size_t nNameTree=0;
   size_t nFib=0;
   size_t nPit=0;
@@ -95,8 +97,6 @@ ForwarderStatusManager::collectGeneralStatus()
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
 
 
-#ifdef WITH_COUNTERS
-    //getGlobalLogger().info("worker({}) - counters.nFaceCounters: ", worker->getWorkerId());
     for(int i=0;i<8;i++){
         if( counters.nFaceCounters[i][0] != 0 or counters.nFaceCounters[i][1] != 0 or counters.nFaceCounters[i][2] != 0 or counters.nFaceCounters[i][3] != 0)
         {
@@ -106,7 +106,6 @@ ForwarderStatusManager::collectGeneralStatus()
             outData[i] += counters.nFaceCounters[i][3];
         }
     }
-#endif
 
   }
 
@@ -117,6 +116,9 @@ ForwarderStatusManager::collectGeneralStatus()
                     inInt[i], outInt[i], inData[i], outData[i]
                     );
         }
+
+        if(nEnqMiss[i]!=0)
+            getGlobalLogger().info("Face({}) - nEnqMiss: {}" , i+face::FACEID_RESERVED_MAX, nEnqMiss[i]);
     }
 
   status.setNNameTreeEntries(nNameTree);

@@ -388,8 +388,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                 else
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
 
-                if(ret==false)
-                    this->enqMiss();
+                //if(ret==false) this->enqMiss();
 
             }
         }

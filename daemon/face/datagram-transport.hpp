@@ -231,7 +231,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
             ret=nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
 
         if(ret==false){
-            this->enqMiss();
+        //    this->enqMiss();
         }
     }
 
