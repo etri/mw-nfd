@@ -221,7 +221,11 @@ lp::Sequence
 GenericLinkService::assignSequence(lp::Sequence val)
 {
     // modified by ETRI(modori) on 20201203
+#ifndef ETRI_NFD_ORG_ARCH 
   return m_lastSeqNo.fetch_add(val);
+#else
+  return 0;
+#endif
 }
 void
 GenericLinkService::assignSequence(lp::Packet& pkt)
