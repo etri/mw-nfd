@@ -304,8 +304,11 @@ PROTECTED_WITH_TESTS_ELSE_PRIVATE:
   LpReassembler m_reassembler;
   LpReliability m_reliability;
   // added by ETRI(modori) on 20201203
-  //lp::Sequence m_lastSeqNo;
+#ifdef ETRI_NFD_ORG_ARCH
+  lp::Sequence m_lastSeqNo;
+#else
   std::atomic<lp::Sequence> m_lastSeqNo;
+#endif
 
 PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   /// Time to mark next packet due to send queue congestion
