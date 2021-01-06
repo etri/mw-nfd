@@ -27,9 +27,9 @@
 #include "core/common.hpp"
 #include "fw/forwarder-counters.hpp"
 #include "face/face.hpp"
-#include "common/network_v4.hpp"
+#include "network_v4.hpp"
 #include "table/pit-entry.hpp"
-#include "common/concurrentqueue.h"
+#include "concurrentqueue.h"
 #include "mw-nfd-worker.hpp"
 
 #include <spdlog/sinks/daily_file_sink.h>
