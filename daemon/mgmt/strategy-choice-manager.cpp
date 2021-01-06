@@ -50,7 +50,7 @@ StrategyChoiceManager::StrategyChoiceManager(StrategyChoice& strategyChoice,
     bind(&StrategyChoiceManager::listChoices, this, _3));
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
+#ifndef ETRI_NFD_ORG_ARCH
 void
 StrategyChoiceManager::setStrategy(ControlParameters parameters,
                                    const ndn::mgmt::CommandContinuation& done)
@@ -110,17 +110,7 @@ StrategyChoiceManager::unsetStrategy(ControlParameters parameters,
   const Name& prefix = parameters.getName();
   // no need to test for ndn:/ , parameter validation takes care of that
 
-#if 1
-  /*
-  int32_t workers = getForwardingWorkers();
-  for(int32_t i=0;i<workers;i++){
-      auto worker = getMwNfd(i);
-      if(worker==nullptr) 
-        return done(ControlResponse(501, "InternalError").setBody(parameters.wireEncode()));
-
-    worker->getStrategyChoiceTable().erase(parameters.getName());
-  }
-  */
+#ifndef ETRI_NFD_ORG_ARCH
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
   emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_UNSET, nullptr, pa, false);
 #else
@@ -135,7 +125,7 @@ void
 StrategyChoiceManager::listChoices(ndn::mgmt::StatusDatasetContext& context)
 {
 
-#if 1
+#ifndef ETRI_NFD_ORG_ARCH
       auto worker = getMwNfd(0);
   for (const auto& i : worker->getStrategyChoiceTable()) {
     ndn::nfd::StrategyChoice entry;
