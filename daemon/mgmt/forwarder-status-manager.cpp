@@ -30,6 +30,8 @@
 #include "mw-nfd/mw-nfd-global.hpp"
 
 size_t nEnqMiss[128];
+size_t nDropped[128];
+size_t nIfDropped[128];
 
 namespace nfd {
 
@@ -119,6 +121,11 @@ ForwarderStatusManager::collectGeneralStatus()
 
         if(nEnqMiss[i]!=0)
             getGlobalLogger().info("Face({}) - nEnqMiss: {}" , i+face::FACEID_RESERVED_MAX, nEnqMiss[i]);
+
+        if(nDropped[i]!=0)
+            getGlobalLogger().info("Face({}) - nDrooped: {}" , i+face::FACEID_RESERVED_MAX, nDropped[i]);
+        if(nDropped[i]!=0)
+            getGlobalLogger().info("Face({}) - nIfDrooped: {}" , i+face::FACEID_RESERVED_MAX, nIfDropped[i]);
     }
 
   status.setNNameTreeEntries(nNameTree);

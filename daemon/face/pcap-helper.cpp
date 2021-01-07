@@ -43,7 +43,7 @@ PcapHelper::PcapHelper(const std::string& interfaceName)
   : m_pcap(nullptr)
 {
   char errbuf[PCAP_ERRBUF_SIZE] = {};
-#if 1
+
   m_pcap = pcap_create(interfaceName.data(), errbuf);
   if (!m_pcap)
     NDN_THROW(Error("pcap_create: " + std::string(errbuf)));
@@ -58,24 +58,6 @@ PcapHelper::PcapHelper(const std::string& interfaceName)
 
   pcap_set_snaplen(m_pcap, ethernet::HDR_LEN + ndn::MAX_NDN_PACKET_SIZE);
   pcap_set_buffer_size(m_pcap, 2 * 1024 * 1024); // bytes
-#else
-   /* Open device for live capture */
-
-  struct  bpf_program fcode;
-
-  m_pcap = pcap_open_live(
-          interfaceName.data(),
-          BUFSIZ,
-          0, //NONPROMISCUOUS 
-          -1,
-          errbuf
-          );
-
-  bpf_u_int32 myself, localnet, netmask;
-
-  //if(pcap_compile(m_pcap, &fcode, "eth.type==0x8624", 0, netmask) < 0) { }
-  //if(pcap_setfilter(m_pcap, &fcode) < 0) { }
-#endif
 
 }
 
