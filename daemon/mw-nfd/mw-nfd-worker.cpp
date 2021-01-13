@@ -247,9 +247,10 @@ using ndn::nfd::CsFlagBit;
                         goto response;
                     }
                 }
-					//m_logger.info("Worker[{}] added prefix into FIB({})", m_workerId, prefix.toUri());
+				m_logger.info("Worker[{}/{}] added prefix into FIB({}), nh: {}", m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
                 fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
-                getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+				if(entry!=nullptr)
+                	getFibTable().addOrUpdateNextHop(*entry, *face, cost);
 
             }else if(nfdc->verb == MW_NFDC_VERB_REMOVE){
                 const Name& prefix = nfdc->parameters->getName();
@@ -260,7 +261,15 @@ using ndn::nfd::CsFlagBit;
                     goto response;
                 }
                 fib::Entry* entry = m_forwarder->getFib().findExactMatch(prefix);
-                m_forwarder->getFib().removeNextHop(*entry, *face);
+				if(entry!=nullptr){
+					m_logger.info("Successfully removed Prefix({}) with NextHop({}) on Worker[{}/{}].", 
+						prefix.toUri(), face->getId(),
+						m_workerId,sched_getcpu()
+					);
+                	m_forwarder->getFib().removeNextHop(*entry, *face);
+				}else
+					m_logger.info("There Exist No Entry to be removed from FIB. Worker[{}/{}], prefix({}), nh({})", 
+						m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
             }else if(nfdc->verb == MW_NFDC_VERB_LIST){
             }
         }else if(nfdc->mgr == MW_NFDC_MGR_FACE){
