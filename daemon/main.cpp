@@ -354,6 +354,12 @@ main(int argc, char** argv)
     std::cout << "\n\n" << std::endl;
     std::cout << "      Running NFD Original Archecture..." << std::endl;
     std::cout << "\n\n" << std::endl;
+#ifdef ETRI_DEBUG_COUNTERS
+    std::cout << "\n\n" << std::endl;
+    std::cout << "      Running NFD Original Archecture WITH DEBUG-COUNTERS" << std::endl;
+    std::cout << "\n\n" << std::endl;
+#endif
+
     using namespace nfd;
 
     std::string configFile = DEFAULT_CONFIG_FILE;
@@ -452,6 +458,12 @@ main(int argc, char** argv)
     std::cout << "\n\n" << std::endl;
     std::cout << "      Running Multi-Worker NFD Archecture..." << std::endl;
     std::cout << "\n\n" << std::endl;
+
+#ifdef ETRI_DEBUG_COUNTERS
+    std::cout << "\n\n" << std::endl;
+    std::cout << "      Running Multi-Worker NFD Archecture WITH DEBUG-COUNTERS." << std::endl;
+    std::cout << "\n\n" << std::endl;
+#endif
 
   using namespace nfd;
 

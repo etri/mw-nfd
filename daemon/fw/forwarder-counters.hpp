@@ -47,7 +47,7 @@ public:
   PacketCounter nCsHits;
   PacketCounter nCsMisses;
 
-#ifdef WITH_COUNTERS
+#ifdef ETRI_DEBUG_COUNTERS
   PacketCounter nFaceCounters[128][16]; // 0: inInt, outInt, inData, outData
 #endif
 

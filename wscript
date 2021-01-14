@@ -152,7 +152,7 @@ def configure(conf):
 
     conf.define_cond('WITH_TESTS', conf.env.WITH_TESTS)
     conf.define_cond('WITH_OTHER_TESTS', conf.env.WITH_OTHER_TESTS)
-    conf.define_cond('WITH_COUNTERS', conf.env.WITH_COUNTERS)
+    conf.define_cond('ETRI_DEBUG_COUNTERS', conf.env.WITH_COUNTERS)
     conf.define_cond('ETRI_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
     conf.define_cond('WITH_DUAL_CS', conf.env.WITH_DUAL_CS)
     conf.define_cond('WITH_PITTOKEN_HASH', conf.env.WITH_PITTOKEN_HASH)

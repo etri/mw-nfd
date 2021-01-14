@@ -296,7 +296,7 @@ protected: // actions
       // added by ETRI(modori) on 20210105
       if(pitEntry->getName().compare(0, 1, "localhop"))
       	getGlobalLogger().info("rejectPendingInterest: {} on CPU {}" , pitEntry->getName().toUri(), sched_getcpu());
-#
+#endif
     this->setExpiryTimer(pitEntry, 0_ms);
   }
 

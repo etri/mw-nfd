@@ -99,7 +99,7 @@ ForwarderStatusManager::collectGeneralStatus()
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
 
 
-#ifdef WITH_COUNTERS
+#ifdef ETRI_DEBUG_COUNTERS
     for(int i=0;i<8;i++){
         if( counters.nFaceCounters[i][0] != 0 or counters.nFaceCounters[i][1] != 0 or counters.nFaceCounters[i][2] != 0 or counters.nFaceCounters[i][3] != 0)
         {
