@@ -218,7 +218,6 @@ public:
     std::mutex m;
     std::condition_variable cv;
 
-#if 1
     std::thread ribThread([configFile = m_configFile, &retval, &ribIo, mainIo, &cv, &m] {
       {
         std::lock_guard<std::mutex> lock(m);
@@ -253,7 +252,7 @@ public:
       cv.wait(lock, [&ribIo] { return ribIo != nullptr; });
         retval = 0;
     }
-#endif
+
     try {
       systemdNotify("READY=1");
 
@@ -326,7 +325,7 @@ private:
   boost::asio::signal_set m_reloadSignalSet;
 };
 
-    static void
+static void
 printUsage(std::ostream& os, const char* programName, const po::options_description& opts)
 {
     os << "Usage: " << programName << " [options]\n"
@@ -336,7 +335,53 @@ printUsage(std::ostream& os, const char* programName, const po::options_descript
         << opts;
 }
 
-    static void
+static void
+printAddedFeatures(std::ostream& os)
+{
+#ifdef ETRI_DEBUG_COUNTERS
+    //std::cout << "***+ Running NFD Original Archecture..." << std::endl;
+    std::cout << "   +-- with ETRI-DEBUG-COUNTERS." << std::endl;
+#endif
+#ifdef ETRI_NFD_ORG_ARCH
+    std::cout << "   +-- with ETRI-NFD-ARCH." << std::endl;
+#endif
+#ifdef WITH_DUAL_CS
+    std::cout << "   +-- with WITH-DUAL-CAS." << std::endl;
+#endif
+#ifdef WITH_PITTOKEN_HASH
+    std::cout << "   +-- with WITH-PITTOKEN-HASH." << std::endl;
+#endif
+
+    std::cout << "\n \n" << std::endl;
+    //std::cout << "\n *v* Visit https://www.etri.re.kr *v*\n" << std::endl;
+cout << "	                  {}\n";
+cout << "	  ,   A           {}\n";
+cout << "	 / \\, | ,        .--.\n";
+cout << "	|  =|= >        /.--.\\\n";
+cout << "	 \\ /` | `       |====|\n";
+cout << "	  `   |         |`::`|\n";
+cout << "	      |     .-;`\\..../`;_.-^-._\n";
+cout << "	     /\\\\/  /  |...::..|`   :   `|                ::::::::::: :::::::::\n";
+cout << "	     |:'\\ |   /'''::''|   .:.   |                   :+:     :+:    :+:\n";
+cout << "	      \\ /\\;-,/\\   ::  |..MWNFD..|                  +:+     +:+    +:+\n";
+cout << "	      |\\ <` >  >._::_.| ':NDN:' |                 +#+     +#++:++#+\n";
+cout << "	      | `""`_/   ^^/>/> |   ':'   |                +#+     +#+\n";
+cout << "	      |       |       \\    :    /               #+#     #+#\n";
+cout << "	      |       |        \\   :   /           ########### ###\n";
+cout << "	      |       |___/\\___|`-.:.-`\n";
+cout << "	      |        \\_ || _/    `\n";
+cout << "	      |        <_ >< _>\n";
+cout << "	      |        |  ||  |\n";
+cout << "	      |        |  ||  |\n";
+cout << "	      |       _\\.:||:./_\n";
+cout << "	      | ETRI /____/\\____\\\n";
+cout << "\n";
+//cout << ".:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*: https://www.etri.re.kr :*~*:" << endl;
+cout << ".:*~*: https://github.com/etri/MW-NFD.git :*~*._.:*~*: https://www.ETRI.re.kr :*~*:" << endl;
+cout << "\n\n\n" << endl;
+}
+
+static void
 printLogModules(std::ostream& os)
 {
     const auto& modules = ndn::util::Logging::getLoggerNames();
@@ -348,17 +393,11 @@ printLogModules(std::ostream& os)
 
 #ifdef ETRI_NFD_ORG_ARCH
 
-    int
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
-    std::cout << "\n\n" << std::endl;
-    std::cout << "      Running NFD Original Archecture..." << std::endl;
-    std::cout << "\n\n" << std::endl;
-#ifdef ETRI_DEBUG_COUNTERS
-    std::cout << "\n\n" << std::endl;
-    std::cout << "      Running NFD Original Archecture WITH DEBUG-COUNTERS" << std::endl;
-    std::cout << "\n\n" << std::endl;
-#endif
+    std::cout << std::endl;
+    std::cout << " *v* Running NFD Original Archecture..." << std::endl;
+	nfd::printAddedFeatures(std::cout);
 
     using namespace nfd;
 
@@ -452,18 +491,13 @@ main(int argc, char** argv)
 }
 
 #else
-int
-main(int argc, char** argv)
-{
-    std::cout << "\n\n" << std::endl;
-    std::cout << "      Running Multi-Worker NFD Archecture..." << std::endl;
-    std::cout << "\n\n" << std::endl;
 
-#ifdef ETRI_DEBUG_COUNTERS
-    std::cout << "\n\n" << std::endl;
-    std::cout << "      Running Multi-Worker NFD Archecture WITH DEBUG-COUNTERS." << std::endl;
-    std::cout << "\n\n" << std::endl;
-#endif
+int main(int argc, char** argv)
+{
+    std::cout << std::endl;
+    std::cout << " *v* Running Multi-Worker NFD Archecture..." << std::endl;
+    //std::cout << "\n\n" << std::endl;
+	nfd::printAddedFeatures(std::cout);
 
   using namespace nfd;
 
@@ -508,11 +542,11 @@ main(int argc, char** argv)
         return 0;
     }
 
-        cpu_set_t  mask;
-        CPU_ZERO(&mask);
-        //CPU_SET(std::thread::hardware_concurrency()-1, &mask);
-        CPU_SET(31, &mask);
-        sched_setaffinity(getpid(), sizeof(mask), &mask);
+	cpu_set_t  mask;
+	CPU_ZERO(&mask);
+	//CPU_SET(std::thread::hardware_concurrency()-1, &mask);
+	CPU_SET(0, &mask);
+	sched_setaffinity(getpid(), sizeof(mask), &mask);
 
     const std::string boostBuildInfo =
         "with Boost version " + to_string(BOOST_VERSION / 100000) +

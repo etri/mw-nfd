@@ -284,26 +284,36 @@ void EthernetTransport::handleRead(const boost::system::error_code& error)
 
                 ++nInPackets;
 
+#ifdef ETRI_DEBUG_COUNTERS
                 if(ret==false) 
                     nEnqMiss[msg.face->getId()-face::FACEID_RESERVED_MAX] +=1;
+#endif
             }
         }
     }
 
 
-//#ifdef _DEBUG
-    //size_t nDropped = m_pcap.getNDropped();
+#ifdef ETRI_NFD_ORG_ARCH
+#ifdef _DEBUG
+  size_t nDropped = m_pcap.getNDropped();
+  if (nDropped - m_nDropped > 0)
+    NFD_LOG_FACE_DEBUG("Detected " << nDropped - m_nDropped << " dropped frame(s)");
+  m_nDropped = nDropped;
+#endif
+#endif
+
+#ifdef ETRI_DEBUG_COUNTERS
     size_t nDropped1=0, nIfDropped1=0;
     std::make_tuple(nDropped1, nIfDropped1) = m_pcap.getNDropped();
-    if( nDropped1 != 0 or nIfDropped1 != 0)
-        std::cout << "nDropped1: " << nDropped1 << ", nIfDropped1:" << nIfDropped1 << std::endl;
+    //if( nDropped1 != 0 or nIfDropped1 != 0)
+     //   std::cout << "nDropped1: " << nDropped1 << ", nIfDropped1:" << nIfDropped1 << std::endl;
     if (nDropped1 - nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0){
         nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = nDropped1;
     }
     if (nIfDropped1 - nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0){
         nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = nIfDropped1;
     }
-//#endif
+#endif
 
     asyncRead();
 }
