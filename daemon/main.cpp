@@ -607,6 +607,8 @@ main(int argc, char** argv)
                     return;
                     }
 
+					getGlobalLogger().info("MW-NFD-Worker(worker-id:{}/core:{})", workerId, coreId);
+
                     const nfd::face::GenericLinkService::Options options;
                     try{
 					auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options);

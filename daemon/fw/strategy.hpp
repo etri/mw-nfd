@@ -295,8 +295,8 @@ protected: // actions
 #ifndef ETRI_NFD_ORG_ARCH
       // added by ETRI(modori) on 20210105
       if(pitEntry->getName().compare(0, 1, "localhop"))
-      getGlobalLogger().info("rejectPendingInterest: {} on CPU {}" , pitEntry->getName().toUri(), getpid());
-#endif
+      	getGlobalLogger().info("rejectPendingInterest: {} on CPU {}" , pitEntry->getName().toUri(), sched_getcpu());
+#
     this->setExpiryTimer(pitEntry, 0_ms);
   }
 
