@@ -215,7 +215,7 @@ void setGlobalIoService(int, boost::asio::io_service*);
 int32_t getGlobalIwId();
 void setGlobalIwId(int32_t id);
 
-//void print_payload(const u_char *payload,int len);
+void print_payload(const u_char *payload,int len);
 
 } // namespace mw-nfd
 

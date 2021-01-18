@@ -278,13 +278,12 @@ using ndn::nfd::CsFlagBit;
                 Face* face = m_faceTable->get(faceId);
                 if(face!=nullptr){
                     cleanupOnFaceRemoval(
-                        m_forwarder->getNameTree(), 
-                        m_forwarder->getFib(), 
-                        m_forwarder->getPit(), 
-                        *face);
+                        m_forwarder->getNameTree(), m_forwarder->getFib(), 
+                        m_forwarder->getPit(), *face);
                 }else
-                    m_logger.info("None Face {}", faceId);
+                    m_logger.info("Face Destroy - None Face {}", faceId);
 
+				goto response;
             }
         }else if(nfdc->mgr == MW_NFDC_MGR_CS){
             nfd::cs::Cs &cs = m_forwarder->getCs();
@@ -724,7 +723,6 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 		int32_t wid;//, ndnType;
         size_t fibs=0;
 
-#if 1
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
         char* ptr __attribute__((unused));
 
@@ -739,7 +737,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 		}
 		line_cnt -=1;
 		fclose(fp);
-#endif
+
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
 
 		while ( !feof(fp) ) {
@@ -779,8 +777,10 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
                 }
 
                 fib::Entry * entry = getFibTable().insert(prefix).first;
-                getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-                fibs += 1;
+				if( entry !=nullptr){
+					getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+					fibs += 1;
+				}
 
 				ndx++;
 				memset(line, '\0', sizeof(line));
@@ -853,8 +853,10 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
                 }
 
                 fib::Entry * entry = getFibTable().insert(prefix).first;
-                getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-                fibs += 1;
+				if(entry!=nullptr){
+                	getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+                	fibs += 1;
+				}
 
 				ndx++;
 				memset(line, '\0', sizeof(line));
