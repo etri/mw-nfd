@@ -26,11 +26,9 @@
 #include "face-manager.hpp"
 
 #include "common/logger.hpp"
-//#include "common/safe-nfdc-cmd.hpp"
 #include "face/generic-link-service.hpp"
 #include "face/protocol-factory.hpp"
 #include "fw/face-table.hpp"
-//#include "input-thread.hpp"
 
 #include <ndn-cxx/lp/tags.hpp>
 #include <ndn-cxx/mgmt/nfd/channel-status.hpp>
@@ -131,30 +129,6 @@ FaceManager::createFace(const ControlParameters& parameters,
     faceParams.wantCongestionMarking = parameters.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED);
   }
 
-#if 0
-  std::string cmd = "face,create," + remoteUri.toString() + "," + localUri->toString();
-  hii::dcn::SafeNfdcCmd<hii::dcn::NfdcCmd>::instance()->emit_nfdc_face( cmd );
-
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-  for (const auto& face : m_faceTable) {
-	  //std::cout << face.getRemoteUri().toString() << "/" << remoteUri.toString() << std::endl; 
-	  if (!face.getRemoteUri().toString().compare(remoteUri.toString())) {
-		//  ndn::nfd::FaceStatus status = makeFaceStatus(face, now);
-		 // context.append(status.wireEncode());
-  		ControlParameters response = makeCreateFaceResponse(face);
-  		done(ControlResponse(200, "OK").setBody(response.wireEncode()));
-	  }
-  }
-
-
-    //
-  //ControlParameters response = makeCreateFaceResponse(*face);
-  //done(ControlResponse(200, "OK").setBody(response.wireEncode()));
-
-	done(ControlResponse(500, "Face creation failed due to internal error"));
-
-#else
   try {
     factory->createFace({remoteUri, localUri, faceParams},
                         [this, parameters, done] (const auto& face) {
@@ -175,7 +149,6 @@ FaceManager::createFace(const ControlParameters& parameters,
     done(ControlResponse(500, "Face creation failed due to internal error"));
     return;
   }
-#endif
 }
 
 template<typename T>
