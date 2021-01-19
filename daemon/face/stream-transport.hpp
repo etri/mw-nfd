@@ -104,6 +104,7 @@ protected:
 private:
   uint8_t m_receiveBuffer[ndn::MAX_NDN_PACKET_SIZE];
   size_t m_receiveBufferSize;
+
   std::queue<Block> m_sendQueue;
   size_t m_sendQueueBytes;
 };
@@ -119,7 +120,6 @@ StreamTransport<T>::StreamTransport(typename StreamTransport::protocol::socket&&
   // Therefore, protecting against send queue overflows is less critical than in other transport
   // types. Instead, we use the default threshold specified in the GenericLinkService options.
 
-    //std::cout << "stream: " << socket.remote_endpoint() << std::endl;
   startReceive();
 }
 
@@ -187,20 +187,22 @@ StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
 {
 	NFD_LOG_FACE_TRACE(__func__);
 
+	//std::cout << __func__ << " on CPU " << sched_getcpu() << std::endl;
 	if (getState() != TransportState::UP){
 		return;
 	}
+
 #ifdef ETRI_NFD_ORG_ARCH
 	bool wasQueueEmpty = m_sendQueue.empty();
 	m_sendQueue.push(packet);
 	m_sendQueueBytes += packet.size();
-
 	if (wasQueueEmpty){
 		sendFromQueue();
 	}
 #else
-	m_socket.send(boost::asio::buffer(packet.wire(), packet.size()));
+	m_socket.send(boost::asio::buffer(packet));
 #endif
+
 }
 
 template<class T>
@@ -225,8 +227,7 @@ StreamTransport<T>::handleSend(const boost::system::error_code& error,
 	BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
 	m_sendQueueBytes -= nBytesSent;
 	m_sendQueue.pop();
-
-	if (!m_sendQueue.empty())
+	if (!m_sendQueue.empty()) 
 		sendFromQueue();
 }
 
