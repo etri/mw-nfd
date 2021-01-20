@@ -211,13 +211,17 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
     if (error)
         return processErrorCode(error);
 
+
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
 
     int32_t packetType;
     int32_t worker;
-    std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
-
     bool ret __attribute__((unused))=false;
+
+	if(nBytesReceived==0)
+		return;
+
+    std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
 
     if(packetType>0){
         NDN_MSG msg;

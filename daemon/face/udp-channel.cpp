@@ -119,7 +119,6 @@ UdpChannel::handleNewPeer(const boost::system::error_code& error,
   }
 
   NFD_LOG_CHAN_TRACE("New peer " << m_remoteEndpoint);
-  std::cout << "Udp New peer " << m_remoteEndpoint << std::endl;
 
   bool isCreated = false;
   shared_ptr<Face> face;
@@ -158,15 +157,14 @@ UdpChannel::createFace(const udp::Endpoint& remoteEndpoint,
     return {false, it->second};
   }
 
-  //boost::asio::io_service* ios;
-
   // else, create a new face
- #if 0
+#ifdef ETRI_NFD_ORG_ARCH 
   ip::udp::socket socket(getGlobalIoService(), m_localEndpoint.protocol());
 #else
-  int ifIndex=getIfIndex(m_localEndpoint.address().to_string().c_str());
-  std::cout << "UdpChannel::createFace: localEndpoint's IfIndex: " << ifIndex << std::endl;
-
+  //int ifIndex=getIfIndex(m_localEndpoint.address().to_string().c_str());
+  int ifIndex=getIfIndex(remoteEndpoint.address().to_string().c_str());
+  getGlobalLogger().info("UdpChannel::createFace: remoteEndpoint's IfIndex: {}, addr: {}" , 	
+	ifIndex, remoteEndpoint.address().to_string() );
   ip::udp::socket socket( *getGlobalIoService(ifIndex), m_localEndpoint.protocol());
 #endif
 

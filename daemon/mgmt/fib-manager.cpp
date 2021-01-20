@@ -210,7 +210,6 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
                     ret = tmpMap.insert( std::pair<std::string, int>(entry.getPrefix().toUri(), 0) ); 
                     if(ret.second==false)
                         continue;
-
     auto blk = ndn::nfd::FibEntry()
                    .setPrefix(entry.getPrefix())
                    .setNextHopRecords(std::begin(nexthops), std::end(nexthops))

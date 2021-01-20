@@ -36,16 +36,37 @@
 #include <face/link-service.hpp>
 #include <face/generic-link-service.hpp>
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/rotating_file_sink.h>
 #include <boost/asio.hpp>
 #include <boost/exception/diagnostic_information.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include <string>
+#include <set>
 
 namespace nfd {
+
+class mw_nfd_cmd_handler
+{
+public:
+	mw_nfd_cmd_handler(){
+		x.resize(128, 0);
+	}	
+	void clear(size_t idx){
+		x[idx]=0;
+//		std::cout << __func__ << ", " << idx << ", value: " << x[idx] << std::endl;
+	}
+	size_t get(size_t idx){
+		//std::cout << __func__ << ", " << idx << std::endl;
+		return x[idx];
+	}
+	void set(){
+		//std::cout << __func__ << std::endl;
+		x.set();
+	}
+private:
+	boost::dynamic_bitset<> x;
+
+};
 
 class CommandAuthenticator;
 class ForwarderStatusManager;
@@ -80,7 +101,7 @@ public:
 
   void runWorker();
 
-  explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options);
+  explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options, mw_nfd_cmd_handler &);
 
     void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
             const shared_ptr<ndn::Interest> 
@@ -124,8 +145,10 @@ private:
 private:
 void bulk_test_case_01();
 void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
+#ifndef ETRI_NFD_ORG_ARCH
  void terminate(const boost::system::error_code& error, int signalNo);
  void onNotification(const ndn::nfd::FaceEventNotification& notification);
+#endif
 
   ConfigSection m_configSection;
 
@@ -143,8 +166,6 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
   unique_ptr<FibManager> m_fibManager;
   unique_ptr<CsManager> m_csManager;
   unique_ptr<StrategyChoiceManager> m_strategyChoiceManager;
-
-  spdlog::logger& m_logger;
 
   shared_ptr<ndn::net::NetworkMonitor> m_netmon;
   scheduler::ScopedEventId m_reloadConfigEvent;
@@ -174,6 +195,8 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
     ndn::Face m_face;
 
     ndn::nfd::FaceMonitor m_faceMonitor;
+
+	mw_nfd_cmd_handler &m_mwNfdCmd;
 };
 
 } // namespace nfd

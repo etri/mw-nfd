@@ -1,11 +1,13 @@
 
-#include "nfd.hpp"
+#ifndef ETRI_NFD_ORG_ARCH
 #include "mw-nfd/input-thread.hpp"
 #include "mw-nfd/mw-nfd-worker.hpp"
-#include "rib/service.hpp"
-
-#include "common/global.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
+#endif
+
+#include "nfd.hpp"
+#include "rib/service.hpp"
+#include "common/global.hpp"
 #include "common/logger.hpp"
 #include "common/privilege-helper.hpp"
 #include "core/version.hpp"
@@ -15,6 +17,14 @@
 #include <boost/program_options/variables_map.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio.hpp>
+//#include <boost/asio/detail/chrono.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -53,21 +63,6 @@ namespace nfd {
  *  well.  In other words, when NFD fails, RIB manager will be terminated; when RIB manager
  *  fails, NFD will be terminated.
  */
-void print_affinity() {
-    cpu_set_t mask;
-    long nproc, i;
-
-    if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) == -1) {
-        perror("sched_getaffinity");
-        assert(false);
-    }
-    nproc = sysconf(_SC_NPROCESSORS_ONLN);
-    printf("sched_getaffinity = ");
-    for (i = 0; i < nproc; i++) {
-        printf("%d ", CPU_ISSET(i, &mask));
-    }
-    printf("\n");
-}
 
 inline void
 ignoreConfigSections(const std::string& filename, const std::string& sectionName,
@@ -89,7 +84,7 @@ ignoreConfigSections(const std::string& filename, const std::string& sectionName
     }
 }
 
-bool g_dcnMode=false;
+nfd::mw_nfd_cmd_handler g_mwNfdCmd;
 std::list<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_logFilePath;
@@ -101,8 +96,6 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 {
     std::string user;
     std::string group;
-
-    g_dcnMode = true;
 
     OptionalConfigSection opt = section.get_child_optional("input-thread-core-assign");
 	if(opt){
@@ -166,6 +159,17 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
     g_logFilePath = opt->get_value<std::string>();
 
 }
+
+void mwNfdCmdHandler(const boost::system::error_code& /*e*/,
+    boost::asio::deadline_timer* t)
+{
+	//std::cout << "mwNfdCmdHandler" << std::endl;
+	nfd::g_mwNfdCmd.set();
+    t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
+    t->async_wait(boost::bind(mwNfdCmdHandler,
+          boost::asio::placeholders::error, t));
+}
+
 #endif
 
 class NfdRunner : noncopyable
@@ -192,13 +196,6 @@ public:
     m_nfd.initialize();
   }
 
-  void
-  bulk_fib()
-  {
-		//boost::system::error_code error;
-		//m_nfd.bulk_fib(error, 1);
-  }
-
   int
   run()
   {
@@ -210,6 +207,11 @@ public:
     boost::asio::io_service* const mainIo = &getGlobalIoService();
     setMainIoService(mainIo);
     boost::asio::io_service* ribIo = nullptr;
+
+#ifndef ETRI_NFD_ORG_ARCH
+	boost::asio::deadline_timer t(getMainIoService(), boost::posix_time::milliseconds(5));
+  	t.async_wait(boost::bind(nfd::mwNfdCmdHandler, boost::asio::placeholders::error, &t));
+#endif
 
     // Mutex and conditional variable to implement synchronization between main and RIB manager
     // threads:
@@ -492,12 +494,9 @@ int main(int argc, char** argv)
 
 #else
 
+
 int main(int argc, char** argv)
 {
-    std::cout << std::endl;
-    std::cout << " *v* Running Multi-Worker NFD Archecture..." << std::endl;
-    //std::cout << "\n\n" << std::endl;
-	nfd::printAddedFeatures(std::cout);
 
   using namespace nfd;
 
@@ -548,6 +547,17 @@ int main(int argc, char** argv)
 	CPU_SET(0, &mask);
 	sched_setaffinity(getpid(), sizeof(mask), &mask);
 
+
+    ConfigFile config(&ignoreConfigSections);
+    config.addSectionHandler("mw-nfd", &onMwNfdConfig);
+    config.parse(configFile, false);
+    makeGlobalLogger(g_logFilePath);
+
+    getGlobalLogger().info("");;
+    //getGlobalLogger().info(" *v* Running Multi-Worker NFD Archecture...");
+    std::cout << " *v* Running NFD Original Archecture..." << std::endl;
+	nfd::printAddedFeatures(std::cout);
+
     const std::string boostBuildInfo =
         "with Boost version " + to_string(BOOST_VERSION / 100000) +
         "." + to_string(BOOST_VERSION / 100 % 1000) +
@@ -576,11 +586,6 @@ int main(int argc, char** argv)
         << std::endl;
     boost::thread_group tg;
 
-    ConfigFile config(&ignoreConfigSections);
-    config.addSectionHandler("mw-nfd", &onMwNfdConfig);
-    config.parse(configFile, false);
-
-    makeGlobalLogger(g_logFilePath);
 
     std::mutex m;
     std::condition_variable cv;
@@ -592,91 +597,88 @@ int main(int argc, char** argv)
     NfdRunner runner(configFile);
     runner.initialize();
 
-    if(g_dcnMode){
+	uint32_t coreId;
+	nfd::mq_allocation();
 
-        uint32_t coreId;
+	int8_t workerId=2; // 0 is for mainThread
 
-        nfd::mq_allocation();
 
-        int8_t workerId=2; // 0 is for mainThread
+	for(auto & x:g_inputWorkerList){
 
-        for(auto & x:g_inputWorkerList){
+		string if_name = x.first;
+		coreId = x.second;
 
-            string if_name = x.first;
-            coreId = x.second;
+		tg.create_thread( [workerId, coreId, if_name]{
 
-            tg.create_thread( [workerId, coreId, if_name]{
+				cpu_set_t cpuset;
+				CPU_ZERO(&cpuset);
+				CPU_SET(coreId, &cpuset);
+				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
+				if (rc != 0) {
+				std::cerr << "The Input Thread : Error calling pthread_setaffinity_np: " << rc << "\n";
+				}
 
-                    cpu_set_t cpuset;
-                    CPU_ZERO(&cpuset);
-                    CPU_SET(coreId, &cpuset);
-                    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
-                    if (rc != 0) {
-                        std::cerr << "The Input Thread : Error calling pthread_setaffinity_np: " << rc << "\n";
-                    }
+				pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 
-                    pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+				getGlobalLogger().info("The Input-Thread is Running with core#: {}/worker#:{}, TID:{}", 
+						coreId, workerId, syscall(SYS_gettid));
 
-                    getGlobalLogger().info("The Input-Thread is Running with core#: {}/worker#:{}, TID:{}", 
-                                coreId, workerId, syscall(SYS_gettid));
+				setGlobalIwId(workerId);
 
-                    setGlobalIwId(workerId);
+				try{
+				InputThread iw;
+				iw.initialize(workerId, if_name);
+				iw.run();
+				}catch (const std::exception& e) {
+					//mainIo->stop();
+				}
 
-                    try{
-                        InputThread iw;
-                        iw.initialize(workerId, if_name);
-                        iw.run();
-                    }catch (const std::exception& e) {
-                        //mainIo->stop();
-                    }
+		});
+		workerId +=2;
+	}
 
-            });
-            workerId +=2;
-        }
+	workerId =0;
 
-        workerId =0;
+	for(auto core : g_dcnWorkerList){
+		coreId = core;
 
-        for(auto core : g_dcnWorkerList){
-            coreId = core;
+		tg.create_thread( [ workerId, coreId, &cv, &m, &retval]{
 
-            tg.create_thread( [ workerId, coreId, &cv, &m, &retval]{
+				cpu_set_t cpuset;
+				CPU_ZERO(&cpuset);
+				CPU_SET(coreId, &cpuset);
+				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
 
-                    cpu_set_t cpuset;
-                    CPU_ZERO(&cpuset);
-                    CPU_SET(coreId, &cpuset);
-                    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
+				ndn::KeyChain           m_nfdKeyChain;
 
-        			ndn::KeyChain           m_nfdKeyChain;
+				if (rc != 0) {
+				getGlobalLogger().info("Dcn Thread ERROR+++ calling pthread_setaffinity_np: {}", rc);
+				return;
+				}
 
-                    if (rc != 0) {
-                    getGlobalLogger().info("Dcn Thread ERROR+++ calling pthread_setaffinity_np: {}", rc);
-                    return;
-                    }
+				getGlobalLogger().info("MW-NFD-Worker(worker-id:{}/core:{})", workerId, coreId);
 
-					getGlobalLogger().info("MW-NFD-Worker(worker-id:{}/core:{})", workerId, coreId);
+				const nfd::face::GenericLinkService::Options options;
+				try{
+				auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options, g_mwNfdCmd);
+				{
+				std::unique_lock<std::mutex> lock(m);
+				cv.wait(lock, [&retval] { return retval == 1; });
+				}   
+				setMwNfd(workerId, mwNfd);
+				mwNfd->initialize( g_inputWorkerList.size()+1 );
 
-                    const nfd::face::GenericLinkService::Options options;
-                    try{
-					auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options);
-                    {
-                        std::unique_lock<std::mutex> lock(m);
-                        cv.wait(lock, [&retval] { return retval == 1; });
-                    }   
-					setMwNfd(workerId, mwNfd);
-                    mwNfd->initialize( g_inputWorkerList.size()+1 );
+				if(getBulkFibTest())
+					mwNfd->prepareBulkFibTest(g_bulkFibTestPort0, g_bulkFibTestPort1);
 
-					if(getBulkFibTest())
-							mwNfd->prepareBulkFibTest(g_bulkFibTestPort0, g_bulkFibTestPort1);
+				mwNfd->runWorker();
 
-                    mwNfd->runWorker();
+				}catch (const std::exception& e) {
+				}
+		});
+		workerId +=1;
+	}
 
-                    }catch (const std::exception& e) {
-                    }
-            });
-            workerId +=1;
-        }
-
-    }
 
     try {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));

@@ -30,6 +30,7 @@
 #include "socket-utils.hpp"
 #include "common/global.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
+#include "mw-nfd/concurrentqueue.h"
 #include "common/city-hash.hpp"
 
 #include <queue>
