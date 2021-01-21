@@ -511,7 +511,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 			// when more than one PIT entry is matched, trigger strategy: before satisfy Interest,
 			// and send Data to all matched out faces
 			else {
-				std::set<std::pair<Face*>> pendingDownstreams;
+				std::set<Face*> pendingDownstreams;
 				auto now = time::steady_clock::now();
 
 				for (const auto& pitEntry : pitMatches) {
@@ -642,7 +642,10 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 
 		bool isCanBePrefix = 1;
 		bool isLocalhost = ingress.face.getScope() == ndn::nfd::FACE_SCOPE_LOCAL;
+#ifdef ETRI_PITTOKEN_HASH  
 		size_t hashValue = 0;
+#endif
+
 		ST_PIT_TOKEN  *pitToken;
 
 		if (!isLocalhost) {
@@ -743,7 +746,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 		// when more than one PIT entry is matched, trigger strategy: before satisfy Interest,
 		// and send Data to all matched out faces
 		else {
-			std::set<std::pair<Face*>> pendingDownstreams;
+			std::set<Face*> pendingDownstreams;
 			auto now = time::steady_clock::now();
 
 			for (const auto& pitEntry : pitMatches) {
