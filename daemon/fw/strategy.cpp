@@ -242,7 +242,7 @@ Strategy::afterNewNextHop(const fib::NextHop& nextHop, const shared_ptr<pit::Ent
 }
 
 bool
-Strategy::sendData(const shared_ptr<pit::Entry>& pitEntry, const Data& data, const Face& egress)
+Strategy::sendData(const shared_ptr<pit::Entry>& pitEntry, const Data& data, Face& egress)
 {
   BOOST_ASSERT(pitEntry->getInterest().matchesData(data));
 
@@ -276,7 +276,7 @@ Strategy::sendData(const shared_ptr<pit::Entry>& pitEntry, const Data& data, con
 
 void
 Strategy::sendDataToAll(const shared_ptr<pit::Entry>& pitEntry,
-                        const Face& ingress, const Data& data)
+                        const Face& inFace, const Data& data)
 {
   std::set<Face*> pendingDownstreams;
   auto now = time::steady_clock::now();
@@ -284,7 +284,7 @@ Strategy::sendDataToAll(const shared_ptr<pit::Entry>& pitEntry,
   // remember pending downstreams
   for (const pit::InRecord& inRecord : pitEntry->getInRecords()) {
     if (inRecord.getExpiry() > now) {
-      if (inRecord.getFace().getId() == ingress.getId() &&
+      if (inRecord.getFace().getId() == inFace.getId() &&
           inRecord.getFace().getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) {
         continue;
       }
