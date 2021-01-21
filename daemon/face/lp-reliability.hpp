@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -26,7 +26,7 @@
 #ifndef NFD_DAEMON_FACE_LP_RELIABILITY_HPP
 #define NFD_DAEMON_FACE_LP_RELIABILITY_HPP
 
-#include "core/common.hpp"
+#include "face-common.hpp"
 
 #include <ndn-cxx/lp/packet.hpp>
 #include <ndn-cxx/lp/sequence.hpp>
@@ -93,8 +93,9 @@ public:
 
   /** \brief extract and parse all Acks and add Ack for contained Fragment (if any) to AckQueue
    *  \param pkt incoming LpPacket
+   *  \return whether incoming LpPacket is new and not a duplicate
    */
-  void
+  bool
   processIncomingPacket(const lp::Packet& pkt);
 
   /** \brief called by GenericLinkService to attach Acks onto an outgoing LpPacket
@@ -139,7 +140,7 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
    *  \return vector of the TxSequences of fragments removed due to a network packet being removed
    */
   std::vector<lp::Sequence>
-  onLpPacketLost(lp::Sequence txSeq);
+  onLpPacketLost(lp::Sequence txSeq, bool isTimeout);
 
   /** \brief remove the fragment with the given sequence number from the map of unacknowledged
    *         fragments, as well as its associated network packet (if any)
@@ -210,10 +211,15 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
    */
   UnackedFrags::iterator m_firstUnackedFrag;
   std::queue<lp::Sequence> m_ackQueue;
+  std::map<lp::Sequence, time::steady_clock::TimePoint> m_recentRecvSeqs;
+  std::queue<lp::Sequence> m_recentRecvSeqsQueue;
   lp::Sequence m_lastTxSeqNo;
   scheduler::ScopedEventId m_idleAckTimer;
   ndn::util::RttEstimator m_rttEst;
 };
+
+std::ostream&
+operator<<(std::ostream& os, const FaceLogHelper<LpReliability>& flh);
 
 } // namespace face
 } // namespace nfd

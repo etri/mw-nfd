@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -52,43 +52,15 @@ void
 InternalForwarderTransport::receivePacket(const Block& packet)
 {
   getGlobalIoService().post([this, packet] {
-    NFD_LOG_FACE_TRACE("MODORI-Received: " << packet.size() << " bytes");
-
-    // added by ETRI(modori) on 20201110
-#if 1
+    NFD_LOG_FACE_TRACE("Received: " << packet.size() << " bytes");
     receive(packet);
-#else
-    int32_t packetType;
-    int32_t worker;
-
-    //print_payload(packet.wire(), packet.size());
-    std::tie(packetType, worker) = getWorkerId( packet.wire(), packet.size() );
-
-    auto b = make_shared<ndn::Buffer>(packet.wire(), packet.size());
-    NDN_MSG msg;
-    msg.buffer = b;
-    msg.endpoint = 0;
-    msg.faceId = 1;
-
-    if( worker < 0 ){
-        std::cout << "InternalForwarderTransport's worker is < 0" << std::endl;
-        return;
-    }
-
-     if(packetType==tlv::Interest){
-        nfd::g_dcnMoodyMQ[ 0 ][worker]->try_enqueue(msg);
-     } else{
-        nfd::g_dcnMoodyMQ[ 1 ][worker]->try_enqueue(msg);
-     }
-#endif
   });
 }
 
 void
-InternalForwarderTransport::doSend(const Block& packet, const EndpointId& id)
+InternalForwarderTransport::doSend(const Block& packet)
 {
   NFD_LOG_FACE_TRACE("Sending to " << m_peer);
-//    std::cout << "Sending... packet.type: " << packet.type() << ", Id: " << id << ", to " << m_peer << std::endl;
 
   if (m_peer)
     m_peer->receivePacket(packet);

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -53,7 +53,7 @@ public:
 
   /** \brief count of Interests dropped by reliability system for exceeding allowed number of retx
    */
-  PacketCounter nDroppedInterests;
+  PacketCounter nInterestsExceededRetx;
 
   /** \brief count of incoming Data packets
    */
@@ -112,24 +112,27 @@ public:
   virtual const Counters&
   getCounters() const;
 
+  virtual ssize_t
+  getEffectiveMtu() const;
+
 public: // upper interface to be used by forwarding
-  /** \brief Send Interest to \p endpoint
+  /** \brief Send Interest
    *  \pre setTransport has been called
    */
   void
-  sendInterest(const Interest& interest, const EndpointId& endpoint);
+  sendInterest(const Interest& interest);
 
-  /** \brief Send Data to \p endpoint
+  /** \brief Send Data
    *  \pre setTransport has been called
    */
   void
-  sendData(const Data& data, const EndpointId& endpoint);
+  sendData(const Data& data);
 
-  /** \brief Send Nack to \p endpoint
+  /** \brief Send Nack
    *  \pre setTransport has been called
    */
   void
-  sendNack(const ndn::lp::Nack& nack, const EndpointId& endpoint);
+  sendNack(const ndn::lp::Nack& nack);
 
   /** \brief signals on Interest received
    */
@@ -170,30 +173,30 @@ protected: // upper interface to be invoked in subclass (receive path terminatio
   receiveNack(const lp::Nack& nack, const EndpointId& endpoint);
 
 protected: // lower interface to be invoked in subclass (send path termination)
-  /** \brief send a lower-layer packet via Transport to \p endpoint
+  /** \brief send a lower-layer packet via Transport
    */
   void
-  sendPacket(const Block& packet, const EndpointId& endpoint);
+  sendPacket(const Block& packet);
 
 protected:
   void
   notifyDroppedInterest(const Interest& packet);
 
 private: // upper interface to be overridden in subclass (send path entrypoint)
-  /** \brief performs LinkService specific operations to send an Interest to \p endpoint
+  /** \brief performs LinkService specific operations to send an Interest
    */
   virtual void
-  doSendInterest(const Interest& interest, const EndpointId& endpoint) = 0;
+  doSendInterest(const Interest& interest) = 0;
 
-  /** \brief performs LinkService specific operations to send a Data to \p endpoint
+  /** \brief performs LinkService specific operations to send a Data
    */
   virtual void
-  doSendData(const Data& data, const EndpointId& endpoint) = 0;
+  doSendData(const Data& data) = 0;
 
-  /** \brief performs LinkService specific operations to send a Nack to \p endpoint
+  /** \brief performs LinkService specific operations to send a Nack
    */
   virtual void
-  doSendNack(const lp::Nack& nack, const EndpointId& endpoint) = 0;
+  doSendNack(const lp::Nack& nack) = 0;
 
 private: // lower interface to be overridden in subclass
   virtual void
@@ -229,6 +232,12 @@ LinkService::getCounters() const
   return *this;
 }
 
+inline ssize_t
+LinkService::getEffectiveMtu() const
+{
+  return m_transport->getMtu();
+}
+
 inline void
 LinkService::receivePacket(const Block& packet, const EndpointId& endpoint)
 {
@@ -236,9 +245,9 @@ LinkService::receivePacket(const Block& packet, const EndpointId& endpoint)
 }
 
 inline void
-LinkService::sendPacket(const Block& packet, const EndpointId& endpoint)
+LinkService::sendPacket(const Block& packet)
 {
-  m_transport->send(packet, endpoint);
+  m_transport->send(packet);
 }
 
 std::ostream&

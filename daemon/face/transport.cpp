@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -32,8 +32,6 @@ namespace nfd {
 namespace face {
 
 NFD_LOG_INIT(Transport);
-
-const ssize_t Transport::MIN_MTU;
 
 std::ostream&
 operator<<(std::ostream& os, TransportState state)
@@ -93,7 +91,7 @@ Transport::close()
 }
 
 void
-Transport::send(const Block& packet, const EndpointId& endpoint)
+Transport::send(const Block& packet)
 {
   BOOST_ASSERT(packet.isValid());
   BOOST_ASSERT(this->getMtu() == MTU_UNLIMITED ||
@@ -110,7 +108,7 @@ Transport::send(const Block& packet, const EndpointId& endpoint)
     this->nOutBytes += packet.size();
   }
 
-  this->doSend(packet, endpoint);
+  this->doSend(packet);
 }
 
 void
@@ -125,6 +123,22 @@ Transport::receive(const Block& packet, const EndpointId& endpoint)
   this->nInBytes += packet.size();
 
   m_service->receivePacket(packet, endpoint);
+}
+
+void
+Transport::setMtu(ssize_t mtu)
+{
+  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu >= 0);
+
+  if (mtu == m_mtu) {
+    return;
+  }
+
+  if (m_mtu != MTU_INVALID) {
+    NFD_LOG_FACE_INFO("setMtu " << m_mtu << " -> " << mtu);
+  }
+
+  m_mtu = mtu;
 }
 
 bool

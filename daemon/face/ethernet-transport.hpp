@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -84,7 +84,7 @@ private:
   handleNetifStateChange(ndn::net::InterfaceState netifState);
 
   void
-  doSend(const Block& packet, const EndpointId& endpoint) final;
+  doSend(const Block& packet) final;
 
   /**
    * @brief Sends the specified TLV block on the network wrapped in an Ethernet frame
@@ -108,7 +108,8 @@ protected:
   ethernet::Address m_destAddress;
   std::string m_interfaceName;
 private:
-  signal::ScopedConnection m_netifStateConn;
+  signal::ScopedConnection m_netifStateChangedConn;
+  signal::ScopedConnection m_netifMtuChangedConn;
   bool m_hasRecentlyReceived;
     uint8_t m_iwId;
 #ifdef _DEBUG

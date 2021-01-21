@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -166,12 +166,11 @@ public: // upper interface
 
   /** \brief Send a link-layer packet
    *  \param packet the packet to be sent, must be a valid and well-formed TLV block
-   *  \param endpoint the destination endpoint
    *  \note This operation has no effect if getState() is neither UP nor DOWN
    *  \warning Behavior is undefined if packet size exceeds the MTU limit
    */
   void
-  send(const Block& packet, const EndpointId& endpoint = 0);
+  send(const Block& packet);
 
 public: // static properties
   /** \return a FaceUri representing local endpoint
@@ -336,18 +335,10 @@ protected: // to be overridden by subclass
 private: // to be overridden by subclass
   /** \brief performs Transport specific operations to send a packet
    *  \param packet the packet to be sent, can be assumed to be valid and well-formed
-   *  \param endpoint the destination endpoint
    *  \pre transport state is either UP or DOWN
    */
   virtual void
-  doSend(const Block& packet, const EndpointId& endpoint) = 0;
-
-public:
-  /** \brief minimum MTU that may be set on a transport
-   *
-   *  This is done to ensure the NDNLPv2 fragmentation feature functions properly.
-   */
-  static constexpr ssize_t MIN_MTU = 64;
+  doSend(const Block& packet) = 0;
 
 private:
   Face* m_face;
@@ -445,13 +436,6 @@ inline ssize_t
 Transport::getMtu() const
 {
   return m_mtu;
-}
-
-inline void
-Transport::setMtu(ssize_t mtu)
-{
-  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu > 0);
-  m_mtu = mtu;
 }
 
 inline ssize_t

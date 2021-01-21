@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -66,18 +66,38 @@ GenericLinkService::setOptions(const GenericLinkService::Options& options)
   m_reliability.setOptions(m_options.reliabilityOptions);
 }
 
-void
-GenericLinkService::requestIdlePacket(const EndpointId& endpointId)
+ssize_t
+GenericLinkService::getEffectiveMtu() const
 {
-  // No need to request Acks to attach to this packet from LpReliability, as they are already
-  // attached in sendLpPacket
-  this->sendLpPacket({}, endpointId);
+  // Since MTU_UNLIMITED is negative, it will implicitly override any finite override MTU
+  return std::min(m_options.overrideMtu, getTransport()->getMtu());
+}
+
+bool
+GenericLinkService::canOverrideMtuTo(ssize_t mtu) const
+{
+  // Not allowed to override unlimited transport MTU
+  if (getTransport()->getMtu() == MTU_UNLIMITED) {
+    return false;
+  }
+
+  // Override MTU must be at least MIN_MTU (also implicitly forbids MTU_UNLIMITED and MTU_INVALID)
+  return mtu >= MIN_MTU;
 }
 
 void
-GenericLinkService::sendLpPacket(lp::Packet&& pkt, const EndpointId& endpointId)
+GenericLinkService::requestIdlePacket()
 {
-  const ssize_t mtu = this->getTransport()->getMtu();
+  // No need to request Acks to attach to this packet from LpReliability, as they are already
+  // attached in sendLpPacket
+  NFD_LOG_FACE_TRACE("IDLE packet requested");
+  this->sendLpPacket({});
+}
+
+void
+GenericLinkService::sendLpPacket(lp::Packet&& pkt)
+{
+  const ssize_t mtu = getEffectiveMtu();
 
   if (m_options.reliabilityOptions.isEnabled) {
     m_reliability.piggyback(pkt, mtu);
@@ -93,38 +113,38 @@ GenericLinkService::sendLpPacket(lp::Packet&& pkt, const EndpointId& endpointId)
     NFD_LOG_FACE_WARN("attempted to send packet over MTU limit");
     return;
   }
-  this->sendPacket(block, endpointId);
+  this->sendPacket(block);
 }
 
 void
-GenericLinkService::doSendInterest(const Interest& interest, const EndpointId& endpointId)
+GenericLinkService::doSendInterest(const Interest& interest)
 {
   lp::Packet lpPacket(interest.wireEncode());
 
   encodeLpFields(interest, lpPacket);
 
-  this->sendNetPacket(std::move(lpPacket), endpointId, true);
+  this->sendNetPacket(std::move(lpPacket), true);
 }
 
 void
-GenericLinkService::doSendData(const Data& data, const EndpointId& endpointId)
+GenericLinkService::doSendData(const Data& data)
 {
 	lp::Packet lpPacket(data.wireEncode());
 
 	encodeLpFields(data, lpPacket);
 
-	this->sendNetPacket(std::move(lpPacket), endpointId, false);
+	this->sendNetPacket(std::move(lpPacket), false);
 }
 
 void
-GenericLinkService::doSendNack(const lp::Nack& nack, const EndpointId& endpointId)
+GenericLinkService::doSendNack(const lp::Nack& nack)
 {
   lp::Packet lpPacket(nack.getInterest().wireEncode());
   lpPacket.add<lp::NackField>(nack.getHeader());
 
   encodeLpFields(nack, lpPacket);
 
-  this->sendNetPacket(std::move(lpPacket), endpointId, false);
+  this->sendNetPacket(std::move(lpPacket), false);
 }
 
 void
@@ -161,10 +181,10 @@ GenericLinkService::encodeLpFields(const ndn::PacketBase& netPkt, lp::Packet& lp
 }
 
 void
-GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId, bool isInterest)
+GenericLinkService::sendNetPacket(lp::Packet&& pkt, bool isInterest)
 {
   std::vector<lp::Packet> frags;
-  ssize_t mtu = this->getTransport()->getMtu();
+  ssize_t mtu = getEffectiveMtu();
 
   // Make space for feature fields in fragments
   if (m_options.reliabilityOptions.isEnabled && mtu != MTU_UNLIMITED) {
@@ -175,7 +195,8 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId
     mtu -= CONGESTION_MARK_SIZE;
   }
 
-  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu > 0);
+  // An MTU of 0 is allowed but will cause all packets to be dropped before transmission
+  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu >= 0);
 
   if (m_options.allowFragmentation && mtu != MTU_UNLIMITED) {
     bool isOk = false;
@@ -202,8 +223,8 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId
     BOOST_ASSERT(!frags.front().has<lp::FragCountField>());
   }
 
-  // Only assign sequences to fragments if packet contains more than 1 fragment
-  if (frags.size() > 1) {
+  // Only assign sequences to fragments if reliability enabled or if packet contains >1 fragment
+  if (m_options.reliabilityOptions.isEnabled || frags.size() > 1) {
     // Assign sequences to all fragments
     this->assignSequences(frags);
   }
@@ -213,7 +234,7 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId
   }
 
   for (lp::Packet& frag : frags) {
-    this->sendLpPacket(std::move(frag), endpointId);
+    this->sendLpPacket(std::move(frag));
   }
 }
 
@@ -253,7 +274,9 @@ GenericLinkService::assignSequences(std::vector<lp::Packet>& pkts)
           
           });
 #else
-  std::for_each(pkts.begin(), pkts.end(), [this] (auto& pkt) { this->assignSequence(pkt); });
+	std::for_each(pkts.begin(), pkts.end(), [this] (lp::Packet& pkt) {
+		pkt.set<lp::SequenceField>(++m_lastSeqNo);
+   });
 #endif
 }
 
@@ -308,9 +331,14 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
     try {
         lp::Packet pkt(packet);
 
-        if (m_options.reliabilityOptions.isEnabled) {
-            m_reliability.processIncomingPacket(pkt);
-        }
+		if (m_options.reliabilityOptions.isEnabled) {
+			if (!m_reliability.processIncomingPacket(pkt)) {
+				NFD_LOG_FACE_TRACE("received duplicate fragment: DROP");
+				++this->nDuplicateSequence;
+				return;
+			}
+
+		}
 
         if (!pkt.has<lp::FragmentField>()) {
             NFD_LOG_FACE_TRACE("received IDLE packet: DROP");

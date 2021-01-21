@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -30,6 +30,8 @@
 
 namespace nfd {
 namespace face {
+
+NFD_LOG_INIT(LpReliability);
 
 LpReliability::LpReliability(const LpReliability::Options& options, GenericLinkService* linkService)
   : m_options(options)
@@ -71,6 +73,9 @@ LpReliability::handleOutgoing(std::vector<lp::Packet>& frags, lp::Packet&& pkt, 
   netPkt->unackedFrags.reserve(frags.size());
 
   for (lp::Packet& frag : frags) {
+    // Non-IDLE packets are required to have assigned Sequence numbers with LpReliability enabled
+    BOOST_ASSERT(frag.has<lp::SequenceField>());
+
     // Assign TxSequence number
     lp::Sequence txSeq = assignTxSequence(frag);
 
@@ -80,8 +85,13 @@ LpReliability::handleOutgoing(std::vector<lp::Packet>& frags, lp::Packet&& pkt, 
                                                  std::forward_as_tuple(txSeq),
                                                  std::forward_as_tuple(frag));
     unackedFragsIt->second.sendTime = sendTime;
-    unackedFragsIt->second.rtoTimer = getScheduler().schedule(m_rttEst.getEstimatedRto(),
-                                                              [=] { onLpPacketLost(txSeq); });
+    auto rto = m_rttEst.getEstimatedRto();
+    lp::Sequence seq = frag.get<lp::SequenceField>();
+    NFD_LOG_FACE_TRACE("transmitting seq=" << seq << ", txseq=" << txSeq << ", rto=" <<
+                       time::duration_cast<time::milliseconds>(rto).count() << "ms");
+    unackedFragsIt->second.rtoTimer = getScheduler().schedule(rto, [=] {
+      onLpPacketLost(txSeq, true);
+    });
     unackedFragsIt->second.netPkt = netPkt;
 
     if (m_unackedFrags.size() == 1) {
@@ -93,18 +103,20 @@ LpReliability::handleOutgoing(std::vector<lp::Packet>& frags, lp::Packet&& pkt, 
   }
 }
 
-void
+bool
 LpReliability::processIncomingPacket(const lp::Packet& pkt)
 {
   BOOST_ASSERT(m_options.isEnabled);
 
+  bool isDuplicate = false;
   auto now = time::steady_clock::now();
 
   // Extract and parse Acks
-  for (lp::Sequence ackSeq : pkt.list<lp::AckField>()) {
-    auto fragIt = m_unackedFrags.find(ackSeq);
+  for (lp::Sequence ackTxSeq : pkt.list<lp::AckField>()) {
+    auto fragIt = m_unackedFrags.find(ackTxSeq);
     if (fragIt == m_unackedFrags.end()) {
       // Ignore an Ack for an unknown TxSequence number
+      NFD_LOG_FACE_DEBUG("received ack for unknown txseq=" << ackTxSeq);
       continue;
     }
     auto& frag = fragIt->second;
@@ -113,12 +125,19 @@ LpReliability::processIncomingPacket(const lp::Packet& pkt)
     frag.rtoTimer.cancel();
 
     if (frag.retxCount == 0) {
+      NFD_LOG_FACE_TRACE("received ack for seq=" << frag.pkt.get<lp::SequenceField>() << ", txseq=" <<
+                         ackTxSeq << ", retx=0, rtt=" <<
+                         time::duration_cast<time::milliseconds>(now - frag.sendTime).count() << "ms");
       // This sequence had no retransmissions, so use it to estimate the RTO
       m_rttEst.addMeasurement(now - frag.sendTime);
     }
+    else {
+      NFD_LOG_FACE_TRACE("received ack for seq=" << frag.pkt.get<lp::SequenceField>() << ", txseq=" <<
+                         ackTxSeq << ", retx=" << frag.retxCount);
+    }
 
-    // Look for frags with TxSequence numbers < ackSeq (allowing for wraparound) and consider them
-    // lost if a configurable number of Acks containing greater TxSequence numbers have been
+    // Look for frags with TxSequence numbers < ackTxSeq (allowing for wraparound) and consider
+    // them lost if a configurable number of Acks containing greater TxSequence numbers have been
     // received.
     auto lostLpPackets = findLostLpPackets(fragIt);
 
@@ -135,8 +154,8 @@ LpReliability::processIncomingPacket(const lp::Packet& pkt)
     // Resend or fail fragments considered lost. Potentially increment the start of the window.
     for (lp::Sequence txSeq : lostLpPackets) {
       if (removedLpPackets.find(txSeq) == removedLpPackets.end()) {
-        auto removedThisTxSeq = onLpPacketLost(txSeq);
-        for (auto removedTxSeq : removedThisTxSeq) {
+        auto removedTxSeqs = onLpPacketLost(txSeq, false);
+        for (auto removedTxSeq : removedTxSeqs) {
           removedLpPackets.insert(removedTxSeq);
         }
       }
@@ -145,9 +164,29 @@ LpReliability::processIncomingPacket(const lp::Packet& pkt)
 
   // If packet has Fragment and TxSequence fields, extract TxSequence and add to AckQueue
   if (pkt.has<lp::FragmentField>() && pkt.has<lp::TxSequenceField>()) {
+    NFD_LOG_FACE_TRACE("queueing ack for remote txseq=" << pkt.get<lp::TxSequenceField>());
     m_ackQueue.push(pkt.get<lp::TxSequenceField>());
+
+    // Check for received frames with duplicate Sequences
+    if (pkt.has<lp::SequenceField>()) {
+      lp::Sequence pktSequence = pkt.get<lp::SequenceField>();
+      isDuplicate = m_recentRecvSeqs.count(pktSequence) > 0;
+      // Check for recent received Sequences to remove
+      auto now = time::steady_clock::now();
+      auto rto = m_rttEst.getEstimatedRto();
+      while (m_recentRecvSeqsQueue.size() > 0 &&
+             now > m_recentRecvSeqs[m_recentRecvSeqsQueue.front()] + rto) {
+        m_recentRecvSeqs.erase(m_recentRecvSeqsQueue.front());
+        m_recentRecvSeqsQueue.pop();
+      }
+      m_recentRecvSeqs.emplace(pktSequence, now);
+      m_recentRecvSeqsQueue.push(pktSequence);
+    }
+
     startIdleAckTimer();
   }
+
+  return !isDuplicate;
 }
 
 void
@@ -164,7 +203,7 @@ LpReliability::piggyback(lp::Packet& pkt, ssize_t mtu)
   remainingSpace -= pktSize;
 
   while (!m_ackQueue.empty()) {
-    lp::Sequence ackSeq = m_ackQueue.front();
+    lp::Sequence ackTxSeq = m_ackQueue.front();
     // Ack size = Ack TLV-TYPE (3 octets) + TLV-LENGTH (1 octet) + lp::Sequence (8 octets)
     const ssize_t ackSize = tlv::sizeOfVarNumber(lp::tlv::Ack) +
                             tlv::sizeOfVarNumber(sizeof(lp::Sequence)) +
@@ -174,7 +213,9 @@ LpReliability::piggyback(lp::Packet& pkt, ssize_t mtu)
       break;
     }
 
-    pkt.add<lp::AckField>(ackSeq);
+    NFD_LOG_FACE_TRACE("piggybacking ack for remote txseq=" << ackTxSeq);
+
+    pkt.add<lp::AckField>(ackTxSeq);
     m_ackQueue.pop();
     remainingSpace -= ackSize;
   }
@@ -201,7 +242,7 @@ LpReliability::startIdleAckTimer()
 
   m_idleAckTimer = getScheduler().schedule(m_options.idleAckTimerPeriod, [this] {
     while (!m_ackQueue.empty()) {
-      m_linkService->requestIdlePacket(0);
+      m_linkService->requestIdlePacket();
     }
   });
 }
@@ -222,6 +263,8 @@ LpReliability::findLostLpPackets(LpReliability::UnackedFrags::iterator ackIt)
 
     auto& unackedFrag = it->second;
     unackedFrag.nGreaterSeqAcks++;
+    NFD_LOG_FACE_TRACE("received ack=" << ackIt->first << " before=" << it->first <<
+                       ", before count=" << unackedFrag.nGreaterSeqAcks);
 
     if (unackedFrag.nGreaterSeqAcks >= m_options.seqNumLossThreshold) {
       lostLpPackets.push_back(it->first);
@@ -232,7 +275,7 @@ LpReliability::findLostLpPackets(LpReliability::UnackedFrags::iterator ackIt)
 }
 
 std::vector<lp::Sequence>
-LpReliability::onLpPacketLost(lp::Sequence txSeq)
+LpReliability::onLpPacketLost(lp::Sequence txSeq, bool isTimeout)
 {
   BOOST_ASSERT(m_unackedFrags.count(txSeq) > 0);
   auto txSeqIt = m_unackedFrags.find(txSeq);
@@ -241,9 +284,19 @@ LpReliability::onLpPacketLost(lp::Sequence txSeq)
   txFrag.rtoTimer.cancel();
   auto netPkt = txFrag.netPkt;
   std::vector<lp::Sequence> removedThisTxSeq;
+  lp::Sequence seq = txFrag.pkt.get<lp::SequenceField>();
+
+  if (isTimeout) {
+    NFD_LOG_FACE_TRACE("rto timer expired for seq=" << seq << ", txseq=" << txSeq);
+  }
+  else { // lost due to out-of-order TxSeqs
+    NFD_LOG_FACE_TRACE("seq=" << seq << ", txseq=" << txSeq <<
+                       " considered lost from acks for more recent txseqs");
+  }
 
   // Check if maximum number of retransmissions exceeded
   if (txFrag.retxCount >= m_options.maxRetx) {
+    NFD_LOG_FACE_DEBUG("seq=" << seq << " exceeded allowed retransmissions: DROP");
     // Delete all LpPackets of NetPkt from m_unackedFrags (except this one)
     for (size_t i = 0; i < netPkt->unackedFrags.size(); i++) {
       if (netPkt->unackedFrags[i] != txSeqIt) {
@@ -263,6 +316,7 @@ LpReliability::onLpPacketLost(lp::Sequence txSeq)
       onDroppedInterest(Interest(frag));
     }
 
+    // Delete this LpPacket from m_unackedFrags
     removedThisTxSeq.push_back(txSeqIt->first);
     deleteUnackedFrag(txSeqIt);
   }
@@ -292,11 +346,17 @@ LpReliability::onLpPacketLost(lp::Sequence txSeq)
     deleteUnackedFrag(txSeqIt);
 
     // Retransmit fragment
-    m_linkService->sendLpPacket(lp::Packet(newTxFrag.pkt), 0);
+    m_linkService->sendLpPacket(lp::Packet(newTxFrag.pkt));
+
+    auto rto = m_rttEst.getEstimatedRto();
+    NFD_LOG_FACE_TRACE("retransmitting seq=" << seq << ", txseq=" << newTxSeq << ", retx=" <<
+                       txFrag.retxCount << ", rto=" <<
+                       time::duration_cast<time::milliseconds>(rto).count() << "ms");
 
     // Start RTO timer for this sequence
-    newTxFrag.rtoTimer = getScheduler().schedule(m_rttEst.getEstimatedRto(),
-                                                 [=] { onLpPacketLost(newTxSeq); });
+    newTxFrag.rtoTimer = getScheduler().schedule(rto, [=] {
+      onLpPacketLost(newTxSeq, true);
+    });
   }
 
   return removedThisTxSeq;
@@ -360,6 +420,18 @@ LpReliability::NetPkt::NetPkt(lp::Packet&& pkt, bool isInterest)
   , isInterest(isInterest)
   , didRetx(false)
 {
+}
+
+std::ostream&
+operator<<(std::ostream& os, const FaceLogHelper<LpReliability>& flh)
+{
+  if (flh.obj.getLinkService() == nullptr) {
+    os << "[id=0,local=unknown,remote=unknown] ";
+  }
+  else {
+    os << FaceLogHelper<LinkService>(*flh.obj.getLinkService());
+  }
+  return os;
 }
 
 } // namespace face
