@@ -122,30 +122,28 @@ FibManager::removeNextHop(const Name& topPrefix, const Interest& interest,
     return;
   }
 
-  fib::Entry* entry = m_fib.findExactMatch(parameters.getName());
-  if (entry == nullptr) {
-    NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-entry");
-    return;
-  }
-
-
 #ifndef ETRI_NFD_ORG_ARCH
    auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
    emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, nullptr, pa, false);
-
 #else
-          auto status = m_fib.removeNextHop(*entry, *face);
-          switch (status) {
-              case Fib::RemoveNextHopResult::NO_SUCH_NEXTHOP:
-                  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-nexthop");
-                  break;
-              case Fib::RemoveNextHopResult::FIB_ENTRY_REMOVED:
-                  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK entry-erased");
-                  break;
-              case Fib::RemoveNextHopResult::NEXTHOP_REMOVED:
-                  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK nexthop-removed");
-                  break;
-          }
+   fib::Entry* entry = m_fib.findExactMatch(parameters.getName());
+   if (entry == nullptr) {
+       NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-entry");
+       return;
+   }
+
+   auto status = m_fib.removeNextHop(*entry, *face);
+   switch (status) {
+       case Fib::RemoveNextHopResult::NO_SUCH_NEXTHOP:
+           NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-nexthop");
+           break;
+       case Fib::RemoveNextHopResult::FIB_ENTRY_REMOVED:
+           NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK entry-erased");
+           break;
+       case Fib::RemoveNextHopResult::NEXTHOP_REMOVED:
+           NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK nexthop-removed");
+           break;
+   }
 #endif
 }
 
@@ -212,7 +210,6 @@ FibManager::listEntries(const Name& topPrefix, const Interest& interest,
                     ret = tmpMap.insert( std::pair<std::string, int>(entry.getPrefix().toUri(), 0) ); 
                     if(ret.second==false)
                         continue;
-
     auto blk = ndn::nfd::FibEntry()
                    .setPrefix(entry.getPrefix())
                    .setNextHopRecords(std::begin(nexthops), std::end(nexthops))

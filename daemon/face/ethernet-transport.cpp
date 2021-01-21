@@ -46,6 +46,10 @@
 
 #include <boost/endian/conversion.hpp>
 
+extern size_t nEnqMiss[128];
+extern size_t nDropped[128];
+extern size_t nIfDropped[128];
+
 namespace nfd {
 namespace face {
 
@@ -53,7 +57,11 @@ NFD_LOG_INIT(EthernetTransport);
 
 EthernetTransport::EthernetTransport(const ndn::net::NetworkInterface& localEndpoint,
                                      const ethernet::Address& remoteEndpoint)
+#ifdef ETRI_NFD_ORG_ARG
+	: m_socket(getGlobalIoService())
+#else
   : m_socket(*getGlobalIoService(localEndpoint.getIndex()))
+#endif
   , m_pcap(localEndpoint.getName())
     , m_srcAddress(localEndpoint.getEthernetAddress())
     , m_destAddress(remoteEndpoint)
@@ -218,8 +226,7 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
 }
 
 #else
-    void
-EthernetTransport::handleRead(const boost::system::error_code& error)
+void EthernetTransport::handleRead(const boost::system::error_code& error)
 {
     if (error) {
         // boost::asio::error::operation_aborted must be checked first: in that case, the Transport
@@ -258,6 +265,7 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
             len -= ethernet::HDR_LEN;
             std::tie(packetType, worker) = dissectNdnPacket(pkt, len);
 
+            //std::cout << "face: " << getFace()->getId() << ", packetType: " << packetType << ", worker: " << worker << std::endl;
             int32_t m_iwId = getGlobalIwId();
 
             if(packetType>=0 and m_iwId >=0){
@@ -280,20 +288,34 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
 
                 ++nInPackets;
 
-                if(ret==false)
-                    this->enqMiss();
+#ifdef ETRI_DEBUG_COUNTERS
+                if(ret==false) 
+                    nEnqMiss[msg.face->getId()-face::FACEID_RESERVED_MAX] +=1;
+#endif
             }
         }
     }
 
 
+#ifdef ETRI_NFD_ORG_ARCH
 #ifdef _DEBUG
+  size_t nDropped = m_pcap.getNDropped();
+  if (nDropped - m_nDropped > 0)
+    NFD_LOG_FACE_DEBUG("Detected " << nDropped - m_nDropped << " dropped frame(s)");
+  m_nDropped = nDropped;
+#endif
+#endif
 
-    //size_t nDropped = m_pcap.getNDropped();
-    size_t nDropped=0, nIfDropped=0;
-    std::make_tuple(nDropped, nIfDropped) = m_pcap.getNDropped();
-    if (nDropped - m_nDropped > 0){
-        m_nDropped = nDropped;
+#ifdef ETRI_DEBUG_COUNTERS
+    size_t nDropped1=0, nIfDropped1=0;
+    std::make_tuple(nDropped1, nIfDropped1) = m_pcap.getNDropped();
+    //if( nDropped1 != 0 or nIfDropped1 != 0)
+     //   std::cout << "nDropped1: " << nDropped1 << ", nIfDropped1:" << nIfDropped1 << std::endl;
+    if (nDropped1 - nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0){
+        nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = nDropped1;
+    }
+    if (nIfDropped1 - nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0){
+        nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = nIfDropped1;
     }
 #endif
 

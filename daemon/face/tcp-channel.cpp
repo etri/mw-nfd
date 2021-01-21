@@ -87,17 +87,15 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
   }
 
 //added by ETRI(modori)
-#if 0
+#ifdef ETRI_NFD_ORG_ARCH
   auto clientSocket = make_shared<ip::tcp::socket>(getGlobalIoService());
 #else
 	int ifIndex = getIfIndex(remoteEndpoint.address().to_string().c_str());
 	if(ifIndex==0){
-#ifndef ETRI_NFD_ORG_ARCH
 		getGlobalLogger().info("TCP Connection Error {}.", remoteEndpoint.address().to_string() );
-#endif
 		return;
 	}
-
+	getGlobalLogger().info("TcpChannel::connect: ifIndex:{}/{}", ifIndex, remoteEndpoint.address().to_string() );
   auto clientSocket = make_shared<ip::tcp::socket>( *getGlobalIoService(ifIndex) );
 #endif
 

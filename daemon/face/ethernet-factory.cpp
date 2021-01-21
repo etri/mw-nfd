@@ -30,7 +30,6 @@
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include "common/global.hpp"
-//#include "common/safe-nfdc-cmd.hpp"
 #include <iostream>
 
 namespace nfd {

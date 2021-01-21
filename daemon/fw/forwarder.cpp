@@ -138,7 +138,7 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
     interest.setTag(make_shared<lp::IncomingFaceIdTag>(ingress.face.getId()));
     ++m_counters.nInInterests;
 
-#ifdef WITH_COUNTERS
+#ifdef ETRI_DEBUG_COUNTERS
     ++m_counters.nFaceCounters[ingress.face.getId()-face::FACEID_RESERVED_MAX][0];
 #endif
 
@@ -358,7 +358,7 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   ++m_counters.nOutInterests;
 
 
-#ifdef WITH_COUNTERS
+#ifdef ETRI_DEBUG_COUNTERS
     ++m_counters.nFaceCounters[egress.face.getId()-face::FACEID_RESERVED_MAX][1];
 #endif
 }
@@ -397,7 +397,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
   data.setTag(make_shared<lp::IncomingFaceIdTag>(ingress.face.getId()));
   ++m_counters.nInData;
 
-#ifdef WITH_COUNTERS
+#ifdef ETRI_DEBUG_COUNTERS
     ++m_counters.nFaceCounters[ingress.face.getId()-face::FACEID_RESERVED_MAX][2];
 #endif
 
@@ -806,7 +806,7 @@ Forwarder::onOutgoingData(const Data& data, const FaceEndpoint& egress)
     egress.face.sendData(data, egress.endpoint);
   ++m_counters.nOutData;
 
-#ifdef WITH_COUNTERS
+#ifdef ETRI_DEBUG_COUNTERS
     ++m_counters.nFaceCounters[egress.face.getId()-face::FACEID_RESERVED_MAX][3];
 #endif
 

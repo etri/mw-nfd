@@ -82,8 +82,6 @@ public:
   const ByteCounter& nInBytes;
   const ByteCounter& nOutBytes;
 
-  const PacketCounter& nEnqMiss;
-
 private:
   const LinkService::Counters& m_linkServiceCounters;
   const Transport::Counters& m_transportCounters;

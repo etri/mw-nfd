@@ -56,6 +56,7 @@ nfd::face::Face *face1=nullptr;
 
 namespace io = boost::iostreams;
 extern std::map<std::string, int32_t> g_inputWorkerList;
+extern  bool g_mwNfdCmdFlags[MW_NFD_WORKER];
 
 using namespace std;
 
@@ -63,9 +64,8 @@ namespace nfd {
 extern shared_ptr<FaceTable> g_faceTable;
 
 
-MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, const nfd::face::GenericLinkService::Options& options)
+MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, const nfd::face::GenericLinkService::Options& options, mw_nfd_cmd_handler& cmd)
     : m_keyChain(keyChain)
-  , m_logger(getGlobalLogger())
   , m_workerId(wid)
   , m_terminationSignalSet(*ios)
   , m_fibSignalSet(*ios)
@@ -77,13 +77,16 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 ,m_reassembler(options.reassemblerOptions)
     ,m_face(std::move(make_shared<ndn::UnixTransport>("/var/run/nfd.sock")), getGlobalIoService(), m_keyChain)
     ,m_faceMonitor(m_face)
+    ,m_mwNfdCmd(cmd)
 
     {
         // Disable automatic verification of parameters digest for decoded Interests.
     //    Interest::setAutoCheckParametersDigest(false);
         m_terminationSignalSet.add(SIGINT);
         m_terminationSignalSet.add(SIGTERM);
+#ifndef ETRI_NFD_ORG_ARCH
         m_terminationSignalSet.async_wait(bind(&MwNfd::terminate, this, _1, _2));
+#endif
         m_done = false;
         m_ios = ios;
 
@@ -124,16 +127,15 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 
         freeaddrinfo(servinfo);
 
-
+#ifndef ETRI_NFD_ORG_ARCH
         m_faceMonitor.onNotification.connect(bind(&MwNfd::onNotification, this, _1));
+#endif
         m_faceMonitor.start();
     }
 
-// It is necessary to explicitly define the destructor, because some member variables (e.g.,
-// unique_ptr<Forwarder>) are forward-declared, but implicitly declared destructor requires
-// complete types for all members when instantiated.
 MwNfd::~MwNfd() = default;
 
+#ifndef ETRI_NFD_ORG_ARCH
 void
     MwNfd::onNotification(const ndn::nfd::FaceEventNotification& notification)
     {
@@ -206,7 +208,7 @@ using ndn::nfd::CsFlagBit;
     if(numbytes>0){
 
         if(nfdc->parameters!=nullptr and m_workerId==0){
-            //m_logger.info("nfdc - MGR:{}, Verb:{}", MW_NFDC_MGR_FIELD[nfdc->mgr], MW_NFDC_VERB_FIELD[nfdc->verb]);
+            //getGlobalLogger().info("nfdc - MGR:{}, Verb:{}", MW_NFDC_MGR_FIELD[nfdc->mgr], MW_NFDC_VERB_FIELD[nfdc->verb]);
             //std::cout << *nfdc->parameters << std::endl;
         }
 
@@ -224,7 +226,7 @@ using ndn::nfd::CsFlagBit;
                 }
 
 				if(prefix.size() <=0){
-					m_logger.info("prefix.size({}) is {}", prefix.size());
+					getGlobalLogger().info("prefix.size({}) is {}", prefix.size());
                     nfdc->ret = MW_NFDC_CMD_NOK;
                     goto response;
 				}
@@ -233,7 +235,7 @@ using ndn::nfd::CsFlagBit;
                 if( nfdc->netName ){
                     fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
                     getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-					//m_logger.info("Worker[{}] added prefix into FIB with net-name", m_workerId);
+					//getGlobalLogger().info("Worker[{}] added prefix into FIB with net-name", m_workerId);
                     goto response;
                 }
 
@@ -247,9 +249,10 @@ using ndn::nfd::CsFlagBit;
                         goto response;
                     }
                 }
-					//m_logger.info("Worker[{}] added prefix into FIB({})", m_workerId, prefix.toUri());
+				getGlobalLogger().info("Worker[{}/{}] added prefix into FIB({}), nh: {}", m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
                 fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
-                getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+				if(entry!=nullptr)
+                	getFibTable().addOrUpdateNextHop(*entry, *face, cost);
 
             }else if(nfdc->verb == MW_NFDC_VERB_REMOVE){
                 const Name& prefix = nfdc->parameters->getName();
@@ -260,7 +263,15 @@ using ndn::nfd::CsFlagBit;
                     goto response;
                 }
                 fib::Entry* entry = m_forwarder->getFib().findExactMatch(prefix);
-                m_forwarder->getFib().removeNextHop(*entry, *face);
+				if(entry!=nullptr){
+					getGlobalLogger().info("Successfully removed Prefix({}) with NextHop({}) on Worker[{}/{}].", 
+						prefix.toUri(), face->getId(),
+						m_workerId,sched_getcpu()
+					);
+                	m_forwarder->getFib().removeNextHop(*entry, *face);
+				}else
+					getGlobalLogger().info("There Exist No Entry to be removed from FIB. Worker[{}/{}], prefix({}), nh({})", 
+						m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
             }else if(nfdc->verb == MW_NFDC_VERB_LIST){
             }
         }else if(nfdc->mgr == MW_NFDC_MGR_FACE){
@@ -269,13 +280,12 @@ using ndn::nfd::CsFlagBit;
                 Face* face = m_faceTable->get(faceId);
                 if(face!=nullptr){
                     cleanupOnFaceRemoval(
-                        m_forwarder->getNameTree(), 
-                        m_forwarder->getFib(), 
-                        m_forwarder->getPit(), 
-                        *face);
+                        m_forwarder->getNameTree(), m_forwarder->getFib(), 
+                        m_forwarder->getPit(), *face);
                 }else
-                    m_logger.info("None Face {}", faceId);
+                    getGlobalLogger().info("Face Destroy - None Face {} on CPU {}", faceId, sched_getcpu());
 
+				goto response;
             }
         }else if(nfdc->mgr == MW_NFDC_MGR_CS){
             nfd::cs::Cs &cs = m_forwarder->getCs();
@@ -297,7 +307,7 @@ using ndn::nfd::CsFlagBit;
                     nfdc->parameters->getCount() :
                     std::numeric_limits<size_t>::max();
                 size_t erased = 0;
-#if 1
+
                 cs.erase(nfdc->parameters->getName(), std::min(count, CsManager::ERASE_LIMIT), 
                         [&] (size_t nErased) {
 
@@ -318,7 +328,6 @@ using ndn::nfd::CsFlagBit;
                         );
 
                 nfdc->retval = erased;
-#endif
 
             }else if(nfdc->verb == MW_NFDC_VERB_INFO){
             }
@@ -373,7 +382,7 @@ void MwNfd::initialize(uint32_t input_workers)
 
   initializeManagement();
 
-	m_logger.info("The ForwardingWorker({}) is running with inputWorkers[mgmt+worker:{}]", m_workerId, input_workers);
+	getGlobalLogger().info("The ForwardingWorker({}) is running with inputWorkers[mgmt+worker:{}]", m_workerId, input_workers);
   m_inputWorkers = input_workers;
 
 }
@@ -445,25 +454,27 @@ void MwNfd::runWorker()
                 deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
                 for(i=0;i<deq;i++){
                     decodeNetPacketFromMq(items[i].buffer, items[i].face, items[i].endpoint);
-                    cnt = 0;
                 }
-                if(deq==0) cnt +=1;
+                cnt +=deq;
         }
 
         for(iw=0; iw < inputWorkers; iw+=2){
                 deq = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
                 for(i=0;i<deq;i++){
                     decodeNetPacketFromMq(items[i].buffer, items[i].face, items[i].endpoint);
-                    cnt = 0;
                 }
-                if(deq==0) cnt +=1;
+                cnt +=deq;
         }
 
-        if(cnt > 0 and cnt > 10000){
+        if(m_mwNfdCmd.get(m_workerId)==1){
+        //if(cnt > 100){
             m_ios->poll();
             handleNfdcCommand();
-            cnt=1;
+			getMainIoService().post(boost::bind(&mw_nfd_cmd_handler::clear, &m_mwNfdCmd, m_workerId));
+			cnt = 0;
         }
+
+		cnt +=1;
 
     }while(!m_done);
 
@@ -499,7 +510,7 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
         lp::Packet pkt(packet);
 
         if (!pkt.has<lp::FragmentField>()) {
-            m_logger.info("received IDLE packet: DROP");
+            getGlobalLogger().info("received IDLE packet: DROP");
             return;
         }   
 
@@ -533,14 +544,14 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
         }   
     } catch (const tlv::Error& e) {
         //++this->nInLpInvalid;
-        m_logger.info("received LPInvalid packet: DROP");
+        getGlobalLogger().info("received LPInvalid packet: DROP");
     }   
 }
 
 void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face* face)
 {
     if(face==nullptr){
-        m_logger.info("MwNfd({}):: IngressFace is NULL...");
+        getGlobalLogger().info("MwNfd({}):: IngressFace is NULL...");
         return;
     }
     auto interest = make_shared<Interest>(netPkt);
@@ -553,19 +564,19 @@ void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, cons
             interest->setTag(make_shared<lp::NextHopFaceIdTag>(firstPkt.get<lp::NextHopFaceIdField>()));
         }   
         else {
-            m_logger.info("received NextHopFaceId, but local fields disabled: DROP");
+            getGlobalLogger().info("received NextHopFaceId, but local fields disabled: DROP");
             return;
         }   
     }
 
     if (firstPkt.has<lp::CachePolicyField>()) {
         ++nInNetInvalid;
-        m_logger.info("received CachePolicy with Interest: DROP");
+        getGlobalLogger().info("received CachePolicy with Interest: DROP");
         return;
     }
 
     if (firstPkt.has<lp::IncomingFaceIdField>()) {
-        m_logger.info("received IncomingFaceId: IGNORE");
+        getGlobalLogger().info("received IncomingFaceId: IGNORE");
     }
 
     if (firstPkt.has<lp::CongestionMarkField>()) {
@@ -576,13 +587,13 @@ void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, cons
         if (options.allowSelfLearning) {
             interest->setTag(make_shared<lp::NonDiscoveryTag>(firstPkt.get<lp::NonDiscoveryField>()));
         } else {
-            m_logger.info("received NonDiscovery, but self-learning disabled: IGNORE");
+            getGlobalLogger().info("received NonDiscovery, but self-learning disabled: IGNORE");
         }
     }
 
     if (firstPkt.has<lp::PrefixAnnouncementField>()) {
         ++nInNetInvalid;
-        m_logger.info("received PrefixAnnouncement with Interest: DROP");
+        getGlobalLogger().info("received PrefixAnnouncement with Interest: DROP");
         return;
     }
 
@@ -598,7 +609,7 @@ void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const En
 {
 
     if(face==nullptr){
-        m_logger.info("MwNfd({}):: IngressFace is NULL...");
+        getGlobalLogger().info("MwNfd({}):: IngressFace is NULL...");
         return;
     }
     auto data = make_shared<Data>(netPkt);
@@ -608,13 +619,13 @@ void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const En
 
     if (firstPkt.has<lp::NackField>()) {
         ++nInNetInvalid;
-        m_logger.info("received Nack with Data: DROP");
+        getGlobalLogger().info("received Nack with Data: DROP");
         return;
     }
 
     if (firstPkt.has<lp::NextHopFaceIdField>()) {
         ++nInNetInvalid;
-        m_logger.info("received NextHopFaceId with Data: DROP");
+        getGlobalLogger().info("received NextHopFaceId with Data: DROP");
         return;
     }
 
@@ -626,7 +637,7 @@ void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const En
     }
 
     if (firstPkt.has<lp::IncomingFaceIdField>()) {
-        m_logger.info("received IncomingFaceId: IGNORE");
+        getGlobalLogger().info("received IncomingFaceId: IGNORE");
     }
 
     if (firstPkt.has<lp::CongestionMarkField>()) {
@@ -635,7 +646,7 @@ void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const En
 
     if (firstPkt.has<lp::NonDiscoveryField>()) {
         ++nInNetInvalid;
-        m_logger.info("received NonDiscovery with Data: DROP");
+        getGlobalLogger().info("received NonDiscovery with Data: DROP");
         return;
     }
 
@@ -643,13 +654,13 @@ void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const En
         if (options.allowSelfLearning) {
             data->setTag(make_shared<lp::PrefixAnnouncementTag>(firstPkt.get<lp::PrefixAnnouncementField>()));
         }   else {
-            m_logger.info("received PrefixAnnouncement, but self-learning disabled: IGNORE");
+            getGlobalLogger().info("received PrefixAnnouncement, but self-learning disabled: IGNORE");
         }   
     }
 
     if (firstPkt.has<lp::PitTokenField>()) {
         data->setTag(make_shared<lp::PitToken>(firstPkt.get<lp::PitTokenField>()));
-    	//m_logger.info("received PitToken...");
+    	//getGlobalLogger().info("received PitToken...");
     }
 
     m_forwarder->onIncomingData(FaceEndpoint(*face, endpointId), *data);
@@ -665,18 +676,18 @@ void MwNfd::decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const En
 
     if (firstPkt.has<lp::NextHopFaceIdField>()) {
         ++nInNetInvalid;
-        m_logger.info("received NextHopFaceId with Nack: DROP");
+        getGlobalLogger().info("received NextHopFaceId with Nack: DROP");
         return;
     }
 
     if (firstPkt.has<lp::CachePolicyField>()) {
         ++nInNetInvalid;
-        m_logger.info("received CachePolicy with Nack: DROP");
+        getGlobalLogger().info("received CachePolicy with Nack: DROP");
         return;
     }
 
     if (firstPkt.has<lp::IncomingFaceIdField>()) {
-        m_logger.info("received IncomingFaceId: IGNORE");
+        getGlobalLogger().info("received IncomingFaceId: IGNORE");
     }
 
     if (firstPkt.has<lp::CongestionMarkField>()) {
@@ -685,13 +696,13 @@ void MwNfd::decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const En
 
     if (firstPkt.has<lp::NonDiscoveryField>()) {
         ++nInNetInvalid;
-        m_logger.info("received NonDiscovery with Nack: DROP");
+        getGlobalLogger().info("received NonDiscovery with Nack: DROP");
         return;
     }
 
     if (firstPkt.has<lp::PrefixAnnouncementField>()) {
         ++nInNetInvalid;
-        m_logger.info("received PrefixAnnouncement with Nack: DROP");
+        getGlobalLogger().info("received PrefixAnnouncement with Nack: DROP");
         return;
     }
 
@@ -704,7 +715,7 @@ void MwNfd::decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const En
 
 bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool dpdk)
 {
-		m_logger.info("MW-NFD is setting the bulk fib: face0:{}/face1:{}, sharding:{}, with-DPDK:{}", faceId0, faceId1, sharding, dpdk);
+		getGlobalLogger().info("MW-NFD is setting the bulk fib: face0:{}/face1:{}, sharding:{}, with-DPDK:{}", faceId0, faceId1, sharding, dpdk);
 		FILE *fp;
 		char line[1024]={0,};
 		uint64_t cost = 0;
@@ -715,12 +726,11 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 		int32_t wid;//, ndnType;
         size_t fibs=0;
 
-#if 1
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
         char* ptr __attribute__((unused));
 
 		if (fp==NULL) {
-			m_logger.info("MW-NFD: bulk_fib_test: can't read bulk-fib-file:{}", getBulkFibFilePath());
+			getGlobalLogger().info("MW-NFD: bulk_fib_test: can't read bulk-fib-file:{}", getBulkFibFilePath());
             return false;
 		}
 
@@ -730,7 +740,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 		}
 		line_cnt -=1;
 		fclose(fp);
-#endif
+
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
 
 		while ( !feof(fp) ) {
@@ -742,7 +752,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 				Name prefix(line);
 
 				if(prefix.size() <=0){
-						m_logger.info("prefix.size({}) is {}", prefix.size());
+						getGlobalLogger().info("prefix.size({}) is {}", prefix.size());
 						ndx++;
 						continue;
 				}
@@ -770,21 +780,23 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
                 }
 
                 fib::Entry * entry = getFibTable().insert(prefix).first;
-                getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-                fibs += 1;
+				if( entry !=nullptr){
+					getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+					fibs += 1;
+				}
 
 				ndx++;
 				memset(line, '\0', sizeof(line));
 		}
 		fclose(fp);
-		m_logger.info("ForwardingWorker[{}] - Bulk FIB Insertion End(Fib's Entries:{})..." , m_workerId, getFibTable().size());
+		getGlobalLogger().info("ForwardingWorker[{}] - Bulk FIB Insertion End(Fib's Entries:{})..." , m_workerId, getFibTable().size());
 
         return true;
 }
 
 bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 {
-		m_logger.info("MW-NFD is setting the bulk fib: face0:{}/face1:{}, sharding:{}", faceId0, faceId1, sharding);
+		getGlobalLogger().info("MW-NFD is setting the bulk fib: face0:{}/face1:{}, sharding:{}", faceId0, faceId1, sharding);
 		FILE *fp;
 		char line[1024]={0,};
 		uint64_t cost = 0;
@@ -799,7 +811,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
 
 		if (fp==NULL) {
-			m_logger.info("MW-NFD: bulk_fib_test: can't read bulk-fib-file:{}", getBulkFibFilePath());
+			getGlobalLogger().info("MW-NFD: bulk_fib_test: can't read bulk-fib-file:{}", getBulkFibFilePath());
             return false;
 		}
 
@@ -821,7 +833,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 				Name prefix(line);
 
 				if(prefix.size() <=0){
-						m_logger.info("prefix.size({}) is {}", prefix.size());
+						getGlobalLogger().info("prefix.size({}) is {}", prefix.size());
 						ndx++;
 						continue;
 				}
@@ -844,14 +856,16 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
                 }
 
                 fib::Entry * entry = getFibTable().insert(prefix).first;
-                getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-                fibs += 1;
+				if(entry!=nullptr){
+                	getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+                	fibs += 1;
+				}
 
 				ndx++;
 				memset(line, '\0', sizeof(line));
 		}
 		fclose(fp);
-		m_logger.info("ForwardingWorker[{}] - Bulk FIB Insertion End(Fib's Entries:{})..." , m_workerId, getFibTable().size());
+		getGlobalLogger().info("ForwardingWorker[{}] - Bulk FIB Insertion End(Fib's Entries:{})..." , m_workerId, getFibTable().size());
 
         return true;
 }
@@ -864,5 +878,5 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
                 //m_bulkFibPort0 , m_bulkFibPort1 );
   }
 
-
+#endif
 } // namespace nfd

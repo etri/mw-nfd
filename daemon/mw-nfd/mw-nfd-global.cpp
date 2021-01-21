@@ -41,6 +41,7 @@ int8_t g_forwardingWorkers=0;
 std::shared_ptr<nfd::MwNfd> g_mwNfds[MW_NFD_WORKER];
 
 int g_sockMwNfdCommand[MW_NFD_WORKER];
+bool g_mwNfdCmdFlags[MW_NFD_WORKER];
 int nfdcSocket=0;
 
 namespace nfd {
@@ -147,6 +148,15 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared
 
         numbytes = sendto(nfdcSocket, buf, sizeof(mw_nfdc), 0,
                         (struct sockaddr*)&worker, sizeof(worker));
+
+        if( mgr == MW_NFDC_MGR_FACE and verb == MW_NFDC_VERB_DESTROYED ){
+			numbytes = recvfrom(i, buf, sizeof(mw_nfdc), 0,
+					(struct sockaddr*)&their, &addr_len);
+			if(numbytes){
+                //retval += nfdc->retval;
+                //ret = nfdc->ret;
+            }
+        }
 
         if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE){
 			numbytes = recvfrom(i, buf, sizeof(mw_nfdc), 0,
@@ -352,7 +362,9 @@ static size_t g_nteEntries;
 static size_t g_pitEntries;
 #endif
 
+#ifndef ETRI_NFD_ORG_ARCH
 static shared_ptr<spdlog::logger> g_logService=nullptr;
+#endif
 
 namespace ip = boost::asio::ip;
 
@@ -399,7 +411,9 @@ int32_t getIfIndex(const char *addr)
 	char netmask[NI_MAXHOST];
 
 	if (getifaddrs(&ifaddr) == -1) {
+#ifndef ETRI_NFD_ORG_ARCH
 		getGlobalLogger().info("getifaddrs Error--------------");
+#endif
 		return 0;
 	}
 
@@ -456,6 +470,7 @@ void setForwardingWorkers(int8_t cap)
     g_forwardingWorkers = cap;
 }
 
+#ifndef ETRI_NFD_ORG_ARCH
 spdlog::logger& getGlobalLogger()
 {
     return *g_logService;
@@ -472,6 +487,7 @@ shared_ptr<spdlog::logger> makeGlobalLogger(std::string path)
 
     return g_logService;
 }
+#endif
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -481,6 +497,7 @@ void *get_in_addr(struct sockaddr *sa)
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
+
 
 } // namespace mw-nfd
 

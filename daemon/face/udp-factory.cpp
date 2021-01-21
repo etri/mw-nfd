@@ -348,30 +348,36 @@ UdpFactory::createMulticastFace(const shared_ptr<const net::NetworkInterface>& n
                     ", endpoint already allocated to a UDP channel"));
   }
 
-  // modified by ETRI(modori)
-#if 0
-  ip::udp::socket rxSock(getGlobalIoService());
+	shared_ptr<Face> face;
+
+  try{
+#ifdef ETRI_NFD_ORG_ARCH
+	  // modified by ETRI(modori)
+	  ip::udp::socket rxSock(getGlobalIoService());
+	  MulticastUdpTransport::openRxSocket(rxSock, mcastEp, localAddress, netif);
+	  ip::udp::socket txSock(getGlobalIoService());
+	  MulticastUdpTransport::openTxSocket(txSock, udp::Endpoint(localAddress, 0), netif);
+
 #else
-  ip::udp::socket rxSock(*getGlobalIoService(netif->getIndex()));
+	  ip::udp::socket rxSock(*getGlobalIoService(netif->getIndex()));
+	  MulticastUdpTransport::openRxSocket(rxSock, mcastEp, localAddress, netif);
+
+	  ip::udp::socket txSock(*getGlobalIoService(netif->getIndex()));
+	  MulticastUdpTransport::openTxSocket(txSock, udp::Endpoint(localAddress, 0), netif);
 #endif
 
-  MulticastUdpTransport::openRxSocket(rxSock, mcastEp, localAddress, netif);
+	  GenericLinkService::Options options;
+	  options.allowCongestionMarking = m_wantCongestionMarking;
+	  auto linkService = make_unique<GenericLinkService>(options);
+	  auto transport = make_unique<MulticastUdpTransport>(mcastEp, std::move(rxSock), std::move(txSock),
+			  m_mcastConfig.linkType);
+	  //auto face = make_shared<Face>(std::move(linkService), std::move(transport));
+	  face = make_shared<Face>(std::move(linkService), std::move(transport));
+  }catch(const std::exception& e) {
+		//std::cout << "Exceptions Error Modori" << std::endl;
+		return nullptr;
+  }
 
-  // modified by ETRI(modori)
-#if 0
-  ip::udp::socket txSock(getGlobalIoService());
-#else
-  ip::udp::socket txSock(*getGlobalIoService(netif->getIndex()));
-#endif
-
-  MulticastUdpTransport::openTxSocket(txSock, udp::Endpoint(localAddress, 0), netif);
-
-  GenericLinkService::Options options;
-  options.allowCongestionMarking = m_wantCongestionMarking;
-  auto linkService = make_unique<GenericLinkService>(options);
-  auto transport = make_unique<MulticastUdpTransport>(mcastEp, std::move(rxSock), std::move(txSock),
-                                                      m_mcastConfig.linkType);
-  auto face = make_shared<Face>(std::move(linkService), std::move(transport));
 
   m_mcastFaces[localEp] = face;
   connectFaceClosedSignal(*face, [this, localEp] { m_mcastFaces.erase(localEp); });
@@ -435,13 +441,17 @@ UdpFactory::applyMcastConfigToNetif(const shared_ptr<const net::NetworkInterface
     return {};
   }
 
-  NFD_LOG_DEBUG("Creating multicast faces on " << netif->getName());
-  //std::cout << "Creating multicast faces on " << netif->getName() << std::endl;
+  NFD_LOG_DEBUG("111-Creating multicast faces on " << netif->getName());
 
   std::vector<shared_ptr<Face>> faces;
   for (const auto& addr : addrs) {
     auto face = this->createMulticastFace(netif, addr,
                                           addr.is_v4() ? m_mcastConfig.group : m_mcastConfig.groupV6);
+
+// added by ETRI(modori) on 20210113
+	if( face == nullptr )
+		continue;
+
     if (face->getId() == INVALID_FACEID) {
       // new face: register with forwarding
       this->addFace(face);

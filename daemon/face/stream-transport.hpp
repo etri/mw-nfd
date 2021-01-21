@@ -30,6 +30,7 @@
 #include "socket-utils.hpp"
 #include "common/global.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
+#include "mw-nfd/concurrentqueue.h"
 #include "common/city-hash.hpp"
 
 #include <queue>
@@ -104,6 +105,7 @@ protected:
 private:
   uint8_t m_receiveBuffer[ndn::MAX_NDN_PACKET_SIZE];
   size_t m_receiveBufferSize;
+
   std::queue<Block> m_sendQueue;
   size_t m_sendQueueBytes;
 };
@@ -119,7 +121,6 @@ StreamTransport<T>::StreamTransport(typename StreamTransport::protocol::socket&&
   // Therefore, protecting against send queue overflows is less critical than in other transport
   // types. Instead, we use the default threshold specified in the GenericLinkService options.
 
-    //std::cout << "stream: " << socket.remote_endpoint() << std::endl;
   startReceive();
 }
 
@@ -181,54 +182,29 @@ StreamTransport<T>::deferredClose()
   this->setState(TransportState::CLOSED);
 }
 
+template<class T>
+void
+StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
+{
+	NFD_LOG_FACE_TRACE(__func__);
+
+	//std::cout << __func__ << " on CPU " << sched_getcpu() << std::endl;
+	if (getState() != TransportState::UP){
+		return;
+	}
+
 #ifdef ETRI_NFD_ORG_ARCH
-template<class T>
-void
-StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
-{
-  NFD_LOG_FACE_TRACE(__func__);
-
-  if (getState() != TransportState::UP){
-    return;
-  }
-  bool wasQueueEmpty = m_sendQueue.empty();
-  m_sendQueue.push(packet);
-  m_sendQueueBytes += packet.size();
-
-  if (wasQueueEmpty){
-    sendFromQueue();
-  }
-
-}
+	bool wasQueueEmpty = m_sendQueue.empty();
+	m_sendQueue.push(packet);
+	m_sendQueueBytes += packet.size();
+	if (wasQueueEmpty){
+		sendFromQueue();
+	}
 #else
-template<class T>
-void
-StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
-{
-  NFD_LOG_FACE_TRACE(__func__);
-
-  if (getState() != TransportState::UP){
-    return;
-  }
-
-#if 0
-  // added by ETRI(modori) on 202012
-  bool wasQueueEmpty = m_sendQueue.empty();
-  m_sendQueue.push(packet);
-  m_sendQueueBytes += packet.size();
-
-  printf("S doSend on CPU %d, wasQueueEmpty: %d, m_sendQueue.size:%d\n", sched_getcpu(), wasQueueEmpty, m_sendQueue.size());
-  if (wasQueueEmpty){
-      sendFromQueue();
-  }
-#else
-  boost::asio::async_write(m_socket, boost::asio::buffer(packet),
-          [this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
-
+	m_socket.send(boost::asio::buffer(packet));
 #endif
 
 }
-#endif
 
 template<class T>
 void
@@ -238,52 +214,23 @@ StreamTransport<T>::sendFromQueue()
                            [this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
 template<class T>
 void
 StreamTransport<T>::handleSend(const boost::system::error_code& error,
                                size_t nBytesSent)
 {
-  if (error)
-    return processErrorCode(error);
+	if (error)
+		return processErrorCode(error);
 
-  NFD_LOG_FACE_TRACE("Successfully sent: " << nBytesSent << " bytes");
+	NFD_LOG_FACE_TRACE("Successfully sent: " << nBytesSent << " bytes");
 
-  BOOST_ASSERT(!m_sendQueue.empty());
-  BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
-  m_sendQueueBytes -= nBytesSent;
-  m_sendQueue.pop();
-
-  if (!m_sendQueue.empty())
-    sendFromQueue();
+	BOOST_ASSERT(!m_sendQueue.empty());
+	BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
+	m_sendQueueBytes -= nBytesSent;
+	m_sendQueue.pop();
+	if (!m_sendQueue.empty()) 
+		sendFromQueue();
 }
-
-#else
-
-template<class T>
-void
-StreamTransport<T>::handleSend(const boost::system::error_code& error,
-                               size_t nBytesSent)
-{
-  if (error)
-    return processErrorCode(error);
-
-  NFD_LOG_FACE_TRACE("Successfully sent: " << nBytesSent << " bytes");
-
-#if 0
-  // added by ETRI(modori) on 202012
-  BOOST_ASSERT(!m_sendQueue.empty());
-  BOOST_ASSERT(m_sendQueue.front().size() == nBytesSent);
-  m_sendQueueBytes -= nBytesSent;
-  m_sendQueue.pop();
-  printf("Successfully sent: %d, size:%d\n" , nBytesSent , m_sendQueue.size());
-
-  if (!m_sendQueue.empty())
-    sendFromQueue();
-#endif
-}
-
-#endif
 
 template<class T>
 void
@@ -344,12 +291,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 template<class T> void
 StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
-    if (error)
-        return processErrorCode(error);
-
-    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes");
-
-    m_receiveBufferSize += nBytesReceived;
     size_t offset = 0;
     bool isOk = true;
     int32_t packetType;
@@ -358,29 +299,38 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
     NDN_MSG msg;
     bool ret __attribute__((unused));
 
+    if (error)
+        return processErrorCode(error);
+
+    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes");
+
+    m_receiveBufferSize += nBytesReceived;
+
     while (m_receiveBufferSize - offset > 0) {
 
         // added by ETRI(modori) on 20200525
         Block element;
         std::tie(isOk, element) = Block::fromBuffer(m_receiveBuffer + offset, m_receiveBufferSize - offset);
 
-        if (!isOk) 
-            break;
+        if (!isOk) break;
 
         offset += element.size();
         BOOST_ASSERT(offset <= m_receiveBufferSize);
 
+
         std::tie(packetType, worker) = dissectNdnPacket( element.wire(), element.size() );
+
         if(worker==DCN_LOCALHOST_PREFIX){
             this->receive(element);
-        }else if(element.type()==lp::tlv::LpPacket and worker==DCN_LOCALHOST_PREFIX){
+        }else if(packetType==lp::tlv::LpPacket and worker==DCN_LOCALHOST_PREFIX){
             this->receive(element);
         }else{
+
+		//print_payload(element.wire(), element.size());
             if(packetType>=0 and worker >=0){
                 msg.buffer = make_shared<ndn::Buffer>( element.wire(), element.size() );
                 msg.endpoint = 0;
                 msg.type = 0; // Buffer type
-                //msg.faceId = getFace()->getId();
                 msg.face = const_cast<nfd::face::Face*>(getFace());
 
                 if(packetType==tlv::Interest)
@@ -388,11 +338,9 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                 else
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
 
-                if(ret==false)
-                    this->enqMiss();
-
+                //if(ret==false) this->enqMiss();
             }
-        }
+		}
     }
 
     if (!isOk && m_receiveBufferSize == ndn::MAX_NDN_PACKET_SIZE && offset == 0) {

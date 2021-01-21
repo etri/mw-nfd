@@ -41,7 +41,6 @@ FaceCounters::FaceCounters(const LinkService::Counters& linkServiceCounters,
   , nOutPackets(transportCounters.nOutPackets)
   , nInBytes(transportCounters.nInBytes)
   , nOutBytes(transportCounters.nOutBytes)
-  , nEnqMiss(transportCounters.nEnqMiss)
   , m_linkServiceCounters(linkServiceCounters)
   , m_transportCounters(transportCounters)
 {

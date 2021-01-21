@@ -27,13 +27,16 @@
 #include "core/common.hpp"
 #include "fw/forwarder-counters.hpp"
 #include "face/face.hpp"
-#include "common/network_v4.hpp"
+#include "network_v4.hpp"
 #include "table/pit-entry.hpp"
-#include "common/concurrentqueue.h"
+#include "concurrentqueue.h"
 #include "mw-nfd-worker.hpp"
 
+#ifndef ETRI_NFD_ORG_ARCH
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#endif
+
 #include <ndn-cxx/mgmt/nfd/control-parameters.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/multi_index_container.hpp>
@@ -147,6 +150,8 @@ namespace nfd {
     static const uint32_t MQ_ARRAY_MAX_SIZE = MW_NFD_WORKER*2;
     #define CAPACITY 2*1024
 
+	#define MW_NFD_CMD 10_ms
+
     struct NdnTraits : public moodycamel::ConcurrentQueueDefaultTraits
     {
                static const size_t BLOCK_SIZE = CAPACITY;
@@ -205,8 +210,10 @@ int8_t  getForwardingWorkers();
 void setFibSharding(bool);
 bool getFibSharding();
 
+#ifndef ETRI_NFD_ORG_ARCH
 spdlog::logger& getGlobalLogger();
 shared_ptr<spdlog::logger> makeGlobalLogger(std::string);
+#endif
 
 boost::asio::io_service*
 getGlobalIoService(int);
@@ -215,6 +222,7 @@ void setGlobalIoService(int, boost::asio::io_service*);
 int32_t getGlobalIwId();
 void setGlobalIwId(int32_t id);
 
+//void print_payload(const u_char *payload,int len);
 
 } // namespace mw-nfd
 

@@ -55,8 +55,6 @@ GenericLinkService::GenericLinkService(const GenericLinkService::Options& option
   m_reliability.onDroppedInterest.connect([this] (const auto& i) { this->notifyDroppedInterest(i); });
   nReassembling.observe(&m_reassembler);
 
-    // added by ETRI(modori) on 20201126
-//  for(int i=0;i<128;i++) m_lastSeqNo2[i]=-2;
 }
 
 void
@@ -223,12 +221,16 @@ lp::Sequence
 GenericLinkService::assignSequence(lp::Sequence val)
 {
     // modified by ETRI(modori) on 20201203
+#ifndef ETRI_NFD_ORG_ARCH 
   return m_lastSeqNo.fetch_add(val);
+#else
+  return 0;
+#endif
 }
 void
 GenericLinkService::assignSequence(lp::Packet& pkt)
 {
-  pkt.set<lp::SequenceField>(m_lastSeqNo.fetch_add(1));
+  pkt.set<lp::SequenceField>(++m_lastSeqNo);
 }
 
 // added by ETRI(modori) on 20201203
@@ -242,7 +244,8 @@ void
 GenericLinkService::assignSequences(std::vector<lp::Packet>& pkts)
 {
 // added by ETRI(modori) on 20201203
-#if 1
+// modified by ETRI(modori) on 20210106
+#ifndef ETRI_NFD_ORG_ARCH 
     lp::Sequence begin_seq = m_lastSeqNo.fetch_add(pkts.size());
     std::for_each(pkts.begin(), pkts.end(), [this, &begin_seq] (auto& pkt) { 
             

@@ -104,15 +104,20 @@ void Nfd::initialize()
   PrivilegeHelper::drop();
 
   m_netmon->onNetworkStateChanged.connect([this] {
-#if 1
     // delay stages, so if multiple events are triggered in short sequence,
     // only one auto-detection procedure is triggered
     m_reloadConfigEvent = getScheduler().schedule(5_s, [this] {
       NFD_LOG_INFO("Network change detected, reloading face section of the config file...");
       reloadConfigFileFaceSection();
     });
-#endif
   });
+
+#ifndef ETRI_NFD_ORG_ARCH
+    m_reloadConfigEvent = getScheduler().schedule(MW_NFD_CMD, [this] {
+      NFD_LOG_INFO("----> detected, reloading face section of the config file...");
+    });
+
+#endif
 
 }
 

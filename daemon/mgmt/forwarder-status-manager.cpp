@@ -29,6 +29,12 @@
 
 #include "mw-nfd/mw-nfd-global.hpp"
 
+#ifdef ETRI_DEBUG_COUNTERS
+size_t nEnqMiss[128];
+size_t nDropped[128];
+size_t nIfDropped[128];
+#endif
+
 namespace nfd {
 
 static const time::milliseconds STATUS_FRESHNESS(5000);
@@ -51,7 +57,7 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setStartTimestamp(m_startTimestamp);
   status.setCurrentTimestamp(time::system_clock::now());
 
-#if 1
+#ifndef ETRI_NFD_ORG_ARCH
   size_t nNameTree=0;
   size_t nFib=0;
   size_t nPit=0;
@@ -68,10 +74,11 @@ ForwarderStatusManager::collectGeneralStatus()
 
 
   int32_t workers = getForwardingWorkers();
-  uint64_t inInt[16]={0,};
-  uint64_t outInt[16]={0,};
-  uint64_t inData[16]={0,};
-  uint64_t outData[16]={0,};
+
+  uint64_t __attribute__((unused)) inInt[16]={0,};
+  uint64_t __attribute__((unused)) outInt[16]={0,};
+  uint64_t __attribute__((unused)) inData[16]={0,};
+  uint64_t __attribute__((unused)) outData[16]={0,};
 
   for(int32_t i=0;i<workers;i++){
 
@@ -95,8 +102,7 @@ ForwarderStatusManager::collectGeneralStatus()
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
 
 
-#ifdef WITH_COUNTERS
-    //getGlobalLogger().info("worker({}) - counters.nFaceCounters: ", worker->getWorkerId());
+#ifdef ETRI_DEBUG_COUNTERS
     for(int i=0;i<8;i++){
         if( counters.nFaceCounters[i][0] != 0 or counters.nFaceCounters[i][1] != 0 or counters.nFaceCounters[i][2] != 0 or counters.nFaceCounters[i][3] != 0)
         {
@@ -110,14 +116,24 @@ ForwarderStatusManager::collectGeneralStatus()
 
   }
 
-    for(int i=0;i<8;i++){
+#ifdef ETRI_DEBUG_COUNTERS
+    for(int i=0;i<128;i++){
         if( inInt[i]!=0 or outInt[i]!= 0 or inData[i]!=0 or outData[i]!=0){
             getGlobalLogger().info("Face({}) - Total nFaceCounters: {}/{}/{}/{}" , 
                     i+face::FACEID_RESERVED_MAX, 
                     inInt[i], outInt[i], inData[i], outData[i]
                     );
         }
+
+        if(nEnqMiss[i]!=0)
+            getGlobalLogger().info("Face({}) - nEnqueueMiss: {}" , i+face::FACEID_RESERVED_MAX, nEnqMiss[i]);
+
+        if(nDropped[i]!=0)
+            getGlobalLogger().info("Face({}) - nDrooped Packets: {}" , i+face::FACEID_RESERVED_MAX, nDropped[i]);
+        if(nDropped[i]!=0)
+            getGlobalLogger().info("Face({}) - nIfDrooped Packets: {}" , i+face::FACEID_RESERVED_MAX, nIfDropped[i]);
     }
+#endif
 
   status.setNNameTreeEntries(nNameTree);
   status.setNFibEntries(nFib);
