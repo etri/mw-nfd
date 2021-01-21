@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -75,7 +75,11 @@ makeLocalNfdTransport(const ConfigSection& config)
 {
   if (config.get_child_optional("face_system.unix")) {
     // default socket path should be the same as in UnixStreamFactory::processConfig
+#ifdef __linux__
+    auto path = config.get<std::string>("face_system.unix.path", "/run/nfd.sock");
+#else
     auto path = config.get<std::string>("face_system.unix.path", "/var/run/nfd.sock");
+#endif // __linux__
     return make_shared<ndn::UnixTransport>(path);
   }
   else if (config.get_child_optional("face_system.tcp") &&
@@ -169,8 +173,12 @@ Service::checkConfig(const ConfigSection& section, const std::string& filename)
   for (const auto& item : section) {
     const std::string& key = item.first;
     const ConfigSection& value = item.second;
-    if (key == CFG_LOCALHOST_SECURITY || key == CFG_LOCALHOP_SECURITY || key == CFG_PA_VALIDATION) {
-      hasLocalhop = key == CFG_LOCALHOP_SECURITY;
+    if (key == CFG_LOCALHOST_SECURITY || key == CFG_PA_VALIDATION) {
+      ndn::ValidatorConfig testValidator(m_face);
+      testValidator.load(value, filename);
+    }
+    else if (key == CFG_LOCALHOP_SECURITY) {
+      hasLocalhop = true;
       ndn::ValidatorConfig testValidator(m_face);
       testValidator.load(value, filename);
     }

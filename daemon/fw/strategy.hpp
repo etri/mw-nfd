@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -36,12 +36,12 @@
 namespace nfd {
 namespace fw {
 
-/** \brief represents a forwarding strategy
+/** \brief Represents a forwarding strategy
  */
 class Strategy : noncopyable
 {
 public: // registry
-  /** \brief register a strategy type
+  /** \brief Register a strategy type
    *  \tparam S subclass of Strategy
    *  \param strategyName strategy program name, must contain version
    *  \note It is permitted to register the same strategy type under multiple names,
@@ -60,7 +60,7 @@ public: // registry
     };
   }
 
-  /** \return whether a strategy instance can be created from \p instanceName
+  /** \return Whether a strategy instance can be created from \p instanceName
    *  \param instanceName strategy instance name, may contain version and parameters
    *  \note This function finds a strategy type using same rules as \p create ,
    *        but does not attempt to construct an instance.
@@ -68,7 +68,7 @@ public: // registry
   static bool
   canCreate(const Name& instanceName);
 
-  /** \return a strategy instance created from \p instanceName
+  /** \return A strategy instance created from \p instanceName
    *  \retval nullptr if !canCreate(instanceName)
    *  \throw std::invalid_argument strategy type constructor does not accept
    *                               specified version or parameters
@@ -76,12 +76,12 @@ public: // registry
   static unique_ptr<Strategy>
   create(const Name& instanceName, Forwarder& forwarder);
 
-  /** \return whether \p instanceNameA and \p instanceNameA will initiate same strategy type
+  /** \return Whether \p instanceNameA and \p instanceNameA will initiate same strategy type
    */
   static bool
   areSameType(const Name& instanceNameA, const Name& instanceNameB);
 
-  /** \return registered versioned strategy names
+  /** \return Registered versioned strategy names
    */
   static std::set<Name>
   listRegistered();
@@ -98,7 +98,7 @@ public: // constructor, destructor, strategy info
   ~Strategy();
 
 #ifdef DOXYGEN
-  /** \return strategy program name
+  /** \return Strategy program name
    *
    *  The strategy name is defined by the strategy program.
    *  It must end with a version component.
@@ -107,7 +107,7 @@ public: // constructor, destructor, strategy info
   getStrategyName();
 #endif
 
-  /** \return strategy instance name
+  /** \return Strategy instance name
    *
    *  The instance name is assigned during instantiation.
    *  It contains a version component, and may have extra parameter components.
@@ -118,7 +118,7 @@ public: // constructor, destructor, strategy info
     return m_name;
   }
 
-  /** \return whether the afterNewNextHop trigger should be invoked for this strategy.
+  /** \return Whether the afterNewNextHop trigger should be invoked for this strategy.
    */
   bool
   wantNewNextHopTrigger() const
@@ -127,9 +127,10 @@ public: // constructor, destructor, strategy info
   }
 
 public: // triggers
-  /** \brief trigger after Interest is received
+  /** \brief Trigger after Interest is received
    *
    *  The Interest:
+   *  - has not exceeded HopLimit
    *  - does not violate Scope
    *  - is not looped
    *  - cannot be satisfied by ContentStore
@@ -155,7 +156,7 @@ public: // triggers
   afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                        const shared_ptr<pit::Entry>& pitEntry) = 0;
 
-  /** \brief trigger before PIT entry is satisfied
+  /** \brief Trigger before PIT entry is satisfied
    *
    *  This trigger is invoked when an incoming Data satisfies more than one PIT entry.
    *  The strategy can collect measurements information, but cannot manipulate Data forwarding.
@@ -178,7 +179,7 @@ public: // triggers
   beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
                         const FaceEndpoint& ingress, const Data& data);
 
-  /** \brief trigger after a Data is matched in CS
+  /** \brief Trigger after a Data is matched in CS
    *
    *  In the base class this method sends \p data to \p ingress
    */
@@ -186,7 +187,7 @@ public: // triggers
   afterContentStoreHit(const shared_ptr<pit::Entry>& pitEntry,
                        const FaceEndpoint& ingress, const Data& data);
 
-  /** \brief trigger after Data is received
+  /** \brief Trigger after Data is received
    *
    *  This trigger is invoked when an incoming Data satisfies exactly one PIT entry,
    *  and gives the strategy full control over Data forwarding.
@@ -213,7 +214,7 @@ public: // triggers
   afterReceiveData(const shared_ptr<pit::Entry>& pitEntry,
                    const FaceEndpoint& ingress, const Data& data);
 
-  /** \brief trigger after Nack is received
+  /** \brief Trigger after Nack is received
    *
    *  This trigger is invoked when an incoming Nack is received in response to
    *  an forwarded Interest.
@@ -238,14 +239,14 @@ public: // triggers
   afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
                    const shared_ptr<pit::Entry>& pitEntry);
 
-  /** \brief trigger after Interest dropped for exceeding allowed retransmissions
+  /** \brief Trigger after Interest dropped (e.g., for exceeding allowed retransmissions)
    *
    *  In the base class this method does nothing.
    */
   virtual void
-  onDroppedInterest(const FaceEndpoint& egress, const Interest& interest);
+  onDroppedInterest(const Face& egress, const Interest& interest);
 
-  /** \brief trigger after new nexthop is added
+  /** \brief Trigger after new nexthop is added
    *
    *  The strategy should decide whether to send the buffered Interests to the new nexthop.
    *  In the base class, this method does nothing.
@@ -254,36 +255,37 @@ public: // triggers
   afterNewNextHop(const fib::NextHop& nextHop, const shared_ptr<pit::Entry>& pitEntry);
 
 protected: // actions
-  /** \brief send Interest to egress
-   *  \param pitEntry PIT entry
-   *  \param egress face through which to send out the Interest and destination endpoint
+  /** \brief Send an Interest packet.
+   *  \param pitEntry the PIT entry
+   *  \param egress face through which to send out the Interest
    *  \param interest the Interest packet
+   *  \return A pointer to the out-record created or nullptr if the Interest was dropped
    */
-  VIRTUAL_WITH_TESTS void
-  sendInterest(const shared_ptr<pit::Entry>& pitEntry,
-               const FaceEndpoint& egress, const Interest& interest);
+  VIRTUAL_WITH_TESTS pit::OutRecord*
+  sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress,
+               const Interest& interest);
 
-  /** \brief send \p data to \p egress
-   *  \param pitEntry PIT entry
+  /** \brief Send a Data packet.
+   *  \param pitEntry the PIT entry
    *  \param data the Data packet
-   *  \param egress face through which to send out the Data and destination endpoint
+   *  \param egress face through which to send out the Data
+   *  \return Whether the Data was sent (true) or dropped (false)
    */
-  VIRTUAL_WITH_TESTS void
-  sendData(const shared_ptr<pit::Entry>& pitEntry, const Data& data, const FaceEndpoint& egress);
+  VIRTUAL_WITH_TESTS bool
+  sendData(const shared_ptr<pit::Entry>& pitEntry, const Data& data, Face& egress);
 
-  /** \brief send \p data to all matched and qualified face-endpoint pairs
+  /** \brief Send a Data packet to all matched and qualified faces.
    *
-   *  A matched face is qualified if it is ad-hoc or it is NOT \p ingress
+   *  A matched face is qualified if it is ad-hoc or it is NOT \p inFace.
    *
-   *  \param pitEntry PIT entry
-   *  \param ingress face through which the Data comes from and endpoint of the sender
+   *  \param pitEntry the PIT entry
+   *  \param inFace face on which the Data arrived
    *  \param data the Data packet
    */
   VIRTUAL_WITH_TESTS void
-  sendDataToAll(const shared_ptr<pit::Entry>& pitEntry,
-                const FaceEndpoint& ingress, const Data& data);
+  sendDataToAll(const shared_ptr<pit::Entry>& pitEntry, const Face& inFace, const Data& data);
 
-  /** \brief schedule the PIT entry for immediate deletion
+  /** \brief Schedule the PIT entry for immediate deletion.
    *
    *  This helper function sets the PIT entry expiry time to zero.
    *  The strategy should invoke this function when it concludes that the Interest cannot
@@ -300,31 +302,33 @@ protected: // actions
     this->setExpiryTimer(pitEntry, 0_ms);
   }
 
-  /** \brief send Nack to egress
-   *  \param pitEntry PIT entry
-   *  \param egress face through which to send out the Nack and destination endpoint
-   *  \param header Nack header
+  /** \brief Send a Nack packet.
    *
-   *  The egress must have a PIT in-record, otherwise this method has no effect.
+   *  The egress face must have a PIT in-record, otherwise this method has no effect.
+   *
+   *  \param pitEntry the PIT entry
+   *  \param egress face through which to send out the Nack
+   *  \param header the Nack header
+   *  \return Whether the Nack was sent (true) or dropped (false)
    */
-  VIRTUAL_WITH_TESTS void
-  sendNack(const shared_ptr<pit::Entry>& pitEntry,
-           const FaceEndpoint& egress, const lp::NackHeader& header)
+  VIRTUAL_WITH_TESTS bool
+  sendNack(const shared_ptr<pit::Entry>& pitEntry, Face& egress,
+           const lp::NackHeader& header)
   {
-    m_forwarder.onOutgoingNack(pitEntry, egress, header);
+    return m_forwarder.onOutgoingNack(pitEntry, egress, header);
   }
 
-  /** \brief send Nack to every face-endpoint pair that has an in-record, except those in \p exceptFaceEndpoints
-   *  \param pitEntry PIT entry
-   *  \param header NACK header
-   *  \param exceptFaceEndpoints list of face-endpoint pairs that should be excluded from sending Nacks
-   *  \note This is not an action, but a helper that invokes the sendNack action.
+  /** \brief Send Nack to every face that has an in-record, except those in \p exceptFaces
+   *  \param pitEntry the PIT entry
+   *  \param header the Nack header
+   *  \param exceptFaces list of faces that should be excluded from sending Nacks
+   *  \note This is not an action, but a helper that invokes the sendNack() action.
    */
   void
   sendNacks(const shared_ptr<pit::Entry>& pitEntry, const lp::NackHeader& header,
-            std::initializer_list<FaceEndpoint> exceptFaceEndpoints = {});
+            std::initializer_list<const Face*> exceptFaces = {});
 
-  /** \brief Schedule the PIT entry to be erased after \p duration
+  /** \brief Schedule the PIT entry to be erased after \p duration.
    */
   void
   setExpiryTimer(const shared_ptr<pit::Entry>& pitEntry, time::milliseconds duration)
@@ -333,7 +337,7 @@ protected: // actions
   }
 
 protected: // accessors
-  /** \brief performs a FIB lookup, considering Link object if present
+  /** \brief Performs a FIB lookup, considering Link object if present.
    */
   const fib::Entry&
   lookupFib(const pit::Entry& pitEntry) const;
@@ -364,14 +368,14 @@ protected: // instance name
     PartialName parameters; ///< parameter components
   };
 
-  /** \brief parse a strategy instance name
+  /** \brief Parse a strategy instance name
    *  \param input strategy instance name, may contain version and parameters
    *  \throw std::invalid_argument input format is unacceptable
    */
   static ParsedInstanceName
   parseInstanceName(const Name& input);
 
-  /** \brief construct a strategy instance name
+  /** \brief Construct a strategy instance name
    *  \param input strategy instance name, may contain version and parameters
    *  \param strategyName strategy name with version but without parameters;
    *                      typically this should be \p getStrategyName()
@@ -384,7 +388,7 @@ protected: // instance name
   static Name
   makeInstanceName(const Name& input, const Name& strategyName);
 
-  /** \brief set strategy instance name
+  /** \brief Set strategy instance name
    *  \note This must be called by strategy subclass constructor.
    */
   void
@@ -394,7 +398,7 @@ protected: // instance name
   }
 
 PUBLIC_WITH_TESTS_ELSE_PROTECTED: // setter
-  /** \brief set whether the afterNewNextHop trigger should be invoked for this strategy
+  /** \brief Set whether the afterNewNextHop trigger should be invoked for this strategy
    */
   void
   enableNewNextHopTrigger(bool enabled)
@@ -419,7 +423,7 @@ protected: // accessors
 private: // instance fields
   Name m_name;
 
-  /** \brief reference to the forwarder
+  /** \brief Reference to the forwarder
    *
    *  Triggers can access forwarder indirectly via actions.
    */
@@ -433,7 +437,7 @@ private: // instance fields
 } // namespace fw
 } // namespace nfd
 
-/** \brief registers a strategy
+/** \brief Registers a strategy
  *
  *  This macro should appear once in .cpp of each strategy.
  */

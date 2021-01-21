@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -144,14 +144,15 @@ AccessStrategy::sendToLastNexthop(const FaceEndpoint& ingress, const Interest& i
   NFD_LOG_DEBUG(pitEntry->getInterest() << " interestTo " << mi.lastNexthop
                 << " last-nexthop rto=" << time::duration_cast<time::microseconds>(rto).count());
 
-  this->sendInterest(pitEntry, FaceEndpoint(*outFace, 0), interest);
+  if (!this->sendInterest(pitEntry, *outFace, interest)) {
+    return false;
+  }
 
   // schedule RTO timeout
   PitInfo* pi = pitEntry->insertStrategyInfo<PitInfo>().first;
   pi->rtoTimer = getScheduler().schedule(rto,
-    [this, pitWeak = weak_ptr<pit::Entry>(pitEntry), face = ingress.face.getId(),
-     endpoint = ingress.endpoint, lastNexthop = mi.lastNexthop] {
-      afterRtoTimeout(pitWeak, face, endpoint, lastNexthop);
+    [this, pitWeak = weak_ptr<pit::Entry>(pitEntry), face = ingress.face.getId(), nh = mi.lastNexthop] {
+      afterRtoTimeout(pitWeak, face, nh);
     });
 
   return true;
@@ -159,7 +160,7 @@ AccessStrategy::sendToLastNexthop(const FaceEndpoint& ingress, const Interest& i
 
 void
 AccessStrategy::afterRtoTimeout(const weak_ptr<pit::Entry>& pitWeak,
-                                FaceId inFaceId, EndpointId inEndpointId, FaceId firstOutFaceId)
+                                FaceId inFaceId, FaceId firstOutFaceId)
 {
   shared_ptr<pit::Entry> pitEntry = pitWeak.lock();
   // if PIT entry is gone, RTO timer should have been cancelled
@@ -199,8 +200,9 @@ AccessStrategy::multicast(const Face& inFace, const Interest& interest,
       continue;
     }
     NFD_LOG_DEBUG(pitEntry->getInterest() << " interestTo " << outFace.getId() << " multicast");
-    this->sendInterest(pitEntry, FaceEndpoint(outFace, 0), interest);
-    ++nSent;
+    if (this->sendInterest(pitEntry, outFace, interest)) {
+      ++nSent;
+    }
   }
   return nSent;
 }
@@ -253,15 +255,15 @@ AccessStrategy::updateMeasurements(const Face& inFace, const Data& data, time::n
 std::tuple<Name, AccessStrategy::MtInfo*>
 AccessStrategy::findPrefixMeasurements(const pit::Entry& pitEntry)
 {
-  measurements::Entry* me = this->getMeasurements().findLongestPrefixMatch(pitEntry);
+  auto me = this->getMeasurements().findLongestPrefixMatch(pitEntry);
   if (me == nullptr) {
     return std::make_tuple(Name(), nullptr);
   }
 
-  MtInfo* mi = me->getStrategyInfo<MtInfo>();
-  BOOST_ASSERT(mi != nullptr);
-  // XXX after runtime strategy change, it's possible that me exists but mi doesn't exist;
-  // this case needs another longest prefix match until mi is found
+  auto mi = me->getStrategyInfo<MtInfo>();
+  // TODO: after a runtime strategy change, it's possible that a measurements::Entry exists but
+  //       the corresponding MtInfo doesn't exist (mi == nullptr); this case needs another longest
+  //       prefix match until an MtInfo is found.
   return std::make_tuple(me->getName(), mi);
 }
 

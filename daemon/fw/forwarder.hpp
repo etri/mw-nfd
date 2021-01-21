@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -207,10 +207,11 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE: // pipelines
                     const Interest& interest, const Data& data);
 
   /** \brief outgoing Interest pipeline
+   *  \return A pointer to the out-record created or nullptr if the Interest was dropped
    */
-  VIRTUAL_WITH_TESTS void
+  VIRTUAL_WITH_TESTS pit::OutRecord*
   onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
-                     const FaceEndpoint& egress, const Interest& interest);
+                     Face& egress, const Interest& interest);
 
   /** \brief Interest finalize pipeline
    */
@@ -224,9 +225,10 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE: // pipelines
   onDataUnsolicited(const FaceEndpoint& ingress, const Data& data);
 
   /** \brief outgoing Data pipeline
+   *  \return Whether the Data was transmitted (true) or dropped (false)
    */
-  VIRTUAL_WITH_TESTS void
-  onOutgoingData(const Data& data, const FaceEndpoint& egress);
+  VIRTUAL_WITH_TESTS bool
+  onOutgoingData(const Data& data, Face& egress);
 
   /** \brief incoming Nack pipeline
    */
@@ -234,13 +236,14 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE: // pipelines
   onIncomingNack(const FaceEndpoint& ingress, const lp::Nack& nack);
 
   /** \brief outgoing Nack pipeline
+   *  \return Whether the Nack was transmitted (true) or dropped (false)
    */
-  VIRTUAL_WITH_TESTS void
+  VIRTUAL_WITH_TESTS bool
   onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
-                 const FaceEndpoint& egress, const lp::NackHeader& nack);
+                 Face& egress, const lp::NackHeader& nack);
 
   VIRTUAL_WITH_TESTS void
-  onDroppedInterest(const FaceEndpoint& egress, const Interest& interest);
+  onDroppedInterest(const Face& egress, const Interest& interest);
 
   VIRTUAL_WITH_TESTS void
   onNewNextHop(const Name& prefix, const fib::NextHop& nextHop);

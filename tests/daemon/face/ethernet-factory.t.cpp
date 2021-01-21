@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -151,6 +151,11 @@ BOOST_AUTO_TEST_CASE(McastNormal)
   parseConfig(CONFIG, false);
 
   BOOST_CHECK_EQUAL(this->countEtherMcastFaces(), netifs.size());
+  for (const auto& face : this->listEtherMcastFaces()) {
+    BOOST_REQUIRE(face->getChannel().lock());
+    // not universal, but for Ethernet, local URI of a mcast face matches URI of the associated channel
+    BOOST_CHECK_EQUAL(face->getLocalUri(), face->getChannel().lock()->getUri());
+  }
 }
 
 BOOST_AUTO_TEST_CASE(EnableDisableMcast)
@@ -334,7 +339,6 @@ BOOST_AUTO_TEST_CASE(BadListen)
   BOOST_CHECK_THROW(parseConfig(CONFIG, false), ConfigFile::Error);
 }
 
-BOOST_AUTO_TEST_CASE_EXPECTED_FAILURES(BadIdleTimeout, 2) // Bug #4489
 BOOST_AUTO_TEST_CASE(BadIdleTimeout)
 {
   // not a number

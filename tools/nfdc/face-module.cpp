@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -24,6 +24,7 @@
  */
 
 #include "face-module.hpp"
+#include "canonizer.hpp"
 #include "find-face.hpp"
 
 namespace nfd {
@@ -58,7 +59,7 @@ FaceModule::registerCommands(CommandParser& parser)
     .addArg("congestion-marking", ArgValueType::BOOLEAN, Required::NO, Positional::NO)
     .addArg("congestion-marking-interval", ArgValueType::UNSIGNED, Required::NO, Positional::NO)
     .addArg("default-congestion-threshold", ArgValueType::UNSIGNED, Required::NO, Positional::NO)
-    .addArg("mtu", ArgValueType::UNSIGNED, Required::NO, Positional::NO);
+    .addArg("mtu", ArgValueType::STRING, Required::NO, Positional::NO);
   parser.addCommand(defFaceCreate, &FaceModule::create);
 
   CommandDefinition defFaceDestroy("face", "destroy");
@@ -160,99 +161,96 @@ FaceModule::create(ExecuteContext& ctx)
   auto congestionMarking = ctx.args.getTribool("congestion-marking");
   auto baseCongestionMarkingIntervalMs = ctx.args.getOptional<uint64_t>("congestion-marking-interval");
   auto defaultCongestionThreshold = ctx.args.getOptional<uint64_t>("default-congestion-threshold");
-  auto mtu = ctx.args.getOptional<uint64_t>("mtu");
+  auto mtuArg = ctx.args.getOptional<std::string>("mtu");
 
-  FaceUri canonicalRemote;
+  // MTU is nominally a uint64_t, but can be the string value 'auto' to unset an override MTU
+  optional<uint64_t> mtu;
+  if (mtuArg == "auto") {
+    mtu = std::numeric_limits<uint64_t>::max();
+  }
+  else if (mtuArg) {
+    // boost::lexical_cast<uint64_t> will accept negative numbers
+    int64_t v = -1;
+    if (!boost::conversion::try_lexical_convert<int64_t>(*mtuArg, v) || v < 0) {
+      ctx.exitCode = 2;
+      ctx.err << "MTU must either be a non-negative integer or 'auto'\n";
+      return;
+    }
+
+    mtu = static_cast<uint64_t>(v);
+  }
+
+  optional<FaceUri> canonicalRemote;
   optional<FaceUri> canonicalLocal;
 
-  auto handleCanonizeError = [&] (const FaceUri& faceUri, const std::string& error) {
-    ctx.exitCode = 4;
-    ctx.err << "Error when canonizing '" << faceUri << "': " << error << '\n';
-  };
-
-  auto printPositiveResult = [&] (const std::string& actionSummary, const ControlParameters& resp) {
-    text::ItemAttributes ia;
-    ctx.out << actionSummary << ' '
-            << ia("id") << resp.getFaceId()
-            << ia("local") << resp.getLocalUri()
-            << ia("remote") << resp.getUri()
-            << ia("persistency") << resp.getFacePersistency();
-    printFaceParams(ctx.out, ia, resp);
-  };
-
-  auto updateFace = [&printPositiveResult] (ControlParameters respParams, ControlParameters resp) {
+  auto updateFace = [&] (ControlParameters respParams, ControlParameters resp) {
     // faces/update response does not have FaceUris, copy from faces/create response
     resp.setLocalUri(respParams.getLocalUri())
         .setUri(respParams.getUri());
-    printPositiveResult("face-updated", resp);
+    printSuccess(ctx.out, "face-updated", resp);
   };
 
   auto handle409 = [&] (const ControlResponse& resp) {
     ControlParameters respParams(resp.getBody());
-    if (respParams.getUri() != canonicalRemote.toString()) {
+    if (respParams.getUri() != canonicalRemote->toString()) {
       // we are conflicting with a different face, which is a general error
       return false;
     }
 
+    bool isChangingParams = false;
+    ControlParameters params;
+    params.setFaceId(respParams.getFaceId());
+
     if (mtu && (!respParams.hasMtu() || respParams.getMtu() != *mtu)) {
-      // Mtu cannot be changed with faces/update
-      return false;
+      isChangingParams = true;
+      params.setMtu(*mtu);
     }
-    else if (persistencyLessThan(respParams.getFacePersistency(), persistency)) {
-      // need to upgrade persistency
-      ControlParameters params;
-      params.setFaceId(respParams.getFaceId()).setFacePersistency(persistency);
-      if (!boost::logic::indeterminate(lpReliability)) {
-        params.setFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED, bool(lpReliability));
-      }
-      ctx.controller.start<ndn::nfd::FaceUpdateCommand>(
-          params,
-          bind(updateFace, respParams, _1),
-          ctx.makeCommandFailureHandler("upgrading face persistency"),
-          ctx.makeCommandOptions());
+
+    if (persistencyLessThan(respParams.getFacePersistency(), persistency)) {
+      isChangingParams = true;
+      params.setFacePersistency(persistency);
     }
-    else if ((!boost::logic::indeterminate(lpReliability) &&
-              lpReliability != respParams.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED)) ||
-             (!boost::logic::indeterminate(congestionMarking) &&
-              congestionMarking != respParams.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED)) ||
-             baseCongestionMarkingIntervalMs ||
-             defaultCongestionThreshold) {
-      ControlParameters params;
-      params.setFaceId(respParams.getFaceId());
 
-      if (!boost::logic::indeterminate(lpReliability) &&
-          lpReliability != respParams.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED)) {
-        params.setFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED, bool(lpReliability));
-      }
-      if (!boost::logic::indeterminate(congestionMarking) &&
-          congestionMarking != respParams.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED)) {
-        params.setFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED, bool(congestionMarking));
-      }
+    if (!boost::logic::indeterminate(lpReliability) &&
+        lpReliability != respParams.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED)) {
+      isChangingParams = true;
+      params.setFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED, bool(lpReliability));
+    }
 
-      if (baseCongestionMarkingIntervalMs) {
-        params.setBaseCongestionMarkingInterval(time::milliseconds(*baseCongestionMarkingIntervalMs));
-      }
+    if (!boost::logic::indeterminate(congestionMarking) &&
+        congestionMarking != respParams.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED)) {
+      isChangingParams = true;
+      params.setFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED, bool(congestionMarking));
+    }
 
-      if (defaultCongestionThreshold) {
-        params.setDefaultCongestionThreshold(*defaultCongestionThreshold);
-      }
+    if (baseCongestionMarkingIntervalMs) {
+      isChangingParams = true;
+      params.setBaseCongestionMarkingInterval(time::milliseconds(*baseCongestionMarkingIntervalMs));
+    }
 
+    if (defaultCongestionThreshold) {
+      isChangingParams = true;
+      params.setDefaultCongestionThreshold(*defaultCongestionThreshold);
+    }
+
+    if (isChangingParams) {
       ctx.controller.start<ndn::nfd::FaceUpdateCommand>(
-          params,
-          bind(updateFace, respParams, _1),
-          ctx.makeCommandFailureHandler("updating face"),
-          ctx.makeCommandOptions());
+        params,
+        bind(updateFace, respParams, _1),
+        ctx.makeCommandFailureHandler("updating face"),
+        ctx.makeCommandOptions());
     }
     else {
       // don't do anything
-      printPositiveResult("face-exists", respParams);
+      printSuccess(ctx.out, "face-exists", respParams);
     }
+
     return true;
   };
 
   auto doCreateFace = [&] {
     ControlParameters params;
-    params.setUri(canonicalRemote.toString());
+    params.setUri(canonicalRemote->toString());
     if (canonicalLocal) {
       params.setLocalUri(canonicalLocal->toString());
     }
@@ -275,7 +273,9 @@ FaceModule::create(ExecuteContext& ctx)
 
     ctx.controller.start<ndn::nfd::FaceCreateCommand>(
       params,
-      bind(printPositiveResult, "face-created", _1),
+      [&] (const ControlParameters& resp) {
+        printSuccess(ctx.out, "face-created", resp);
+      },
       [&] (const ControlResponse& resp) {
         if (resp.getCode() == 409 && handle409(resp)) {
           return;
@@ -285,24 +285,33 @@ FaceModule::create(ExecuteContext& ctx)
       ctx.makeCommandOptions());
   };
 
-  remoteUri.canonize(
-    [&] (const FaceUri& canonicalUri) {
-      canonicalRemote = canonicalUri;
-      if (localUri) {
-        localUri->canonize(
-          [&] (const FaceUri& canonicalUri) {
-            canonicalLocal = canonicalUri;
-            doCreateFace();
-          },
-          bind(handleCanonizeError, *localUri, _1),
-          ctx.face.getIoService(), ctx.getTimeout());
-      }
-      else {
+  std::string error;
+  std::tie(canonicalRemote, error) = canonize(ctx, remoteUri);
+  if (canonicalRemote) {
+    // RemoteUri canonization successful
+    if (localUri) {
+      std::tie(canonicalLocal, error) = canonize(ctx, *localUri);
+      if (canonicalLocal) {
+        // LocalUri canonization successful
         doCreateFace();
       }
-    },
-    bind(handleCanonizeError, remoteUri, _1),
-    ctx.face.getIoService(), ctx.getTimeout());
+      else {
+        // LocalUri canonization failure
+        auto canonizationError = canonizeErrorHelper(*localUri, error, "local FaceUri");
+        ctx.exitCode = static_cast<int>(canonizationError.first);
+        ctx.err << canonizationError.second << '\n';
+      }
+    }
+    else {
+      doCreateFace();
+    }
+  }
+  else {
+    // RemoteUri canonization failure
+    auto canonizationError = canonizeErrorHelper(remoteUri, error, "remote FaceUri");
+    ctx.exitCode = static_cast<int>(canonizationError.first);
+    ctx.err << canonizationError.second << '\n';
+  }
 
   ctx.face.processEvents();
 }
@@ -337,6 +346,7 @@ FaceModule::destroy(ExecuteContext& ctx)
   ctx.controller.start<ndn::nfd::FaceDestroyCommand>(
     ControlParameters().setFaceId(face.getFaceId()),
     [&] (const ControlParameters& resp) {
+      // We can't use printSuccess because some face attributes come from FaceStatus not ControlResponse
       ctx.out << "face-destroyed ";
       text::ItemAttributes ia;
       ctx.out << ia("id") << face.getFaceId()
@@ -513,6 +523,20 @@ FaceModule::formatItemText(std::ostream& os, const FaceStatus& item, bool wantMu
   os << '}';
 
   os << ia.end();
+}
+
+void
+FaceModule::printSuccess(std::ostream& os,
+                         const std::string& actionSummary,
+                         const ControlParameters& resp)
+{
+  text::ItemAttributes ia;
+  os << actionSummary << ' '
+     << ia("id") << resp.getFaceId()
+     << ia("local") << resp.getLocalUri()
+     << ia("remote") << resp.getUri()
+     << ia("persistency") << resp.getFacePersistency();
+  printFaceParams(os, ia, resp);
 }
 
 void

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -119,7 +119,8 @@ FaceManager::createFace(const ControlParameters& parameters,
     faceParams.defaultCongestionThreshold = parameters.getDefaultCongestionThreshold();
   }
   if (parameters.hasMtu()) {
-    faceParams.mtu = parameters.getMtu();
+    // The face system limits MTUs to ssize_t, but the management protocol uses uint64_t
+    faceParams.mtu = std::min<uint64_t>(std::numeric_limits<ssize_t>::max(), parameters.getMtu());
   }
   faceParams.wantLocalFields = parameters.hasFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED) &&
                                parameters.getFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED);
@@ -155,13 +156,10 @@ template<typename T>
 static void
 copyMtu(const Face& face, T& to)
 {
-  auto transport = face.getTransport();
-  BOOST_ASSERT(transport != nullptr);
-
-  if (transport->getMtu() > 0) {
-    to.setMtu(std::min(static_cast<size_t>(transport->getMtu()), ndn::MAX_NDN_PACKET_SIZE));
+  if (face.getMtu() >= 0) {
+    to.setMtu(std::min<size_t>(face.getMtu(), ndn::MAX_NDN_PACKET_SIZE));
   }
-  else if (transport->getMtu() == face::MTU_UNLIMITED) {
+  else if (face.getMtu() == face::MTU_UNLIMITED) {
     to.setMtu(ndn::MAX_NDN_PACKET_SIZE);
   }
 }
@@ -172,6 +170,7 @@ makeUpdateFaceResponse(const Face& face)
   ControlParameters params;
   params.setFaceId(face.getId())
         .setFacePersistency(face.getPersistency());
+  copyMtu(face, params);
 
   auto linkService = dynamic_cast<face::GenericLinkService*>(face.getLinkService());
   if (linkService != nullptr) {
@@ -192,8 +191,6 @@ makeCreateFaceResponse(const Face& face)
   ControlParameters params = makeUpdateFaceResponse(face);
   params.setUri(face.getRemoteUri().toString())
         .setLocalUri(face.getLocalUri().toString());
-
-  copyMtu(face, params);
 
   return params;
 }
@@ -249,6 +246,11 @@ updateLinkServiceOptions(Face& face, const ControlParameters& parameters)
     options.defaultCongestionThreshold = parameters.getDefaultCongestionThreshold();
   }
 
+  if (parameters.hasMtu()) {
+    // The face system limits MTUs to ssize_t, but the management protocol uses uint64_t
+    options.overrideMtu = std::min<uint64_t>(std::numeric_limits<ssize_t>::max(), parameters.getMtu());
+  }
+
   linkService->setOptions(options);
 }
 
@@ -295,6 +297,19 @@ FaceManager::updateFace(const Interest& interest,
       NFD_LOG_TRACE("cannot change face persistency to " << persistency);
       areParamsValid = false;
       response.setFacePersistency(persistency);
+    }
+  }
+
+  // check whether the requested MTU override is valid (if it's present)
+  if (parameters.hasMtu()) {
+    auto mtu = parameters.getMtu();
+    // The face system limits MTUs to ssize_t, but the management protocol uses uint64_t
+    auto actualMtu = std::min<uint64_t>(std::numeric_limits<ssize_t>::max(), mtu);
+    auto linkService = dynamic_cast<face::GenericLinkService*>(face->getLinkService());
+    if (linkService == nullptr || !linkService->canOverrideMtuTo(actualMtu)) {
+      NFD_LOG_TRACE("cannot override face MTU to " << mtu);
+      areParamsValid = false;
+      response.setMtu(mtu);
     }
   }
 

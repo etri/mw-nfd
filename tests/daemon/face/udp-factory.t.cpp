@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -300,6 +300,17 @@ BOOST_FIXTURE_TEST_CASE(EnableDisableMcast, UdpFactoryMcastFixture)
   BOOST_CHECK_EQUAL(this->listUdp4McastFaces().size(), netifsV4.size());
   BOOST_CHECK_EQUAL(this->listUdp6McastFaces().size(), netifsV6.size());
 
+  BOOST_REQUIRE_EQUAL(factory.getChannels().size(), 2);
+  for (const auto& face : this->listUdp4McastFaces()) {
+    BOOST_REQUIRE(face->getChannel().lock());
+    BOOST_CHECK_EQUAL(face->getChannel().lock()->getUri().getScheme(), "udp4");
+  }
+
+  for (const auto& face : this->listUdp6McastFaces()) {
+    BOOST_REQUIRE(face->getChannel().lock());
+    BOOST_CHECK_EQUAL(face->getChannel().lock()->getUri().getScheme(), "udp6");
+  }
+
   parseConfig(CONFIG_WITHOUT_MCAST, false);
   g_io.poll();
   BOOST_CHECK_EQUAL(this->listUdp4McastFaces().size(), 0);
@@ -579,7 +590,6 @@ BOOST_AUTO_TEST_CASE(BadListen)
   BOOST_CHECK_THROW(parseConfig(CONFIG, false), ConfigFile::Error);
 }
 
-BOOST_AUTO_TEST_CASE_EXPECTED_FAILURES(BadPort, 2) // Bug #4489
 BOOST_AUTO_TEST_CASE(BadPort)
 {
   // not a number
@@ -625,7 +635,6 @@ BOOST_AUTO_TEST_CASE(BadPort)
   BOOST_CHECK_THROW(parseConfig(CONFIG3, false), ConfigFile::Error);
 }
 
-BOOST_AUTO_TEST_CASE_EXPECTED_FAILURES(BadIdleTimeout, 2) // Bug #4489
 BOOST_AUTO_TEST_CASE(BadIdleTimeout)
 {
   // not a number
