@@ -57,7 +57,7 @@ NFD_LOG_INIT(EthernetTransport);
 
 EthernetTransport::EthernetTransport(const ndn::net::NetworkInterface& localEndpoint,
                                      const ethernet::Address& remoteEndpoint)
-#ifdef ETRI_NFD_ORG_ARG
+#ifdef ETRI_NFD_ORG_ARCH
 	: m_socket(getGlobalIoService())
 #else
   : m_socket(*getGlobalIoService(localEndpoint.getIndex()))

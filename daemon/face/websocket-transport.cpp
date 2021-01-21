@@ -92,11 +92,11 @@ WebSocketTransport::doSend(const Block& packet)
   NFD_LOG_FACE_TRACE("Successfully sent: " << packet.size() << " bytes");
 }
 
+#ifdef ETRI_NFD_ORG_ARCH
 void
 WebSocketTransport::receiveMessage(const std::string& msg)
 {
   NFD_LOG_FACE_TRACE("Received: " << msg.size() << " bytes");
-  std::cout << "WS-Received: " << msg.size() << " bytes" << std::endl;
 
   bool isOk = false;
   Block element;
@@ -106,6 +106,26 @@ WebSocketTransport::receiveMessage(const std::string& msg)
     return;
   }
 
+  this->receive(element);
+}
+
+
+#else
+void
+WebSocketTransport::receiveMessage(const std::string& msg)
+{
+  NFD_LOG_FACE_TRACE("Received: " << msg.size() << " bytes");
+  std::cout << "MW-NFD-Received: " << msg.size() << " bytes" << std::endl;
+
+  bool isOk = false;
+  Block element;
+  std::tie(isOk, element) = Block::fromBuffer(reinterpret_cast<const uint8_t*>(msg.data()), msg.size());
+  if (!isOk) {
+    NFD_LOG_FACE_WARN("Failed to parse message payload");
+    return;
+  }
+
+#if 0
   int32_t packetType;
   int32_t worker;
   std::tie(packetType, worker) = dissectNdnPacket( element.wire(), element.size() );
@@ -116,7 +136,6 @@ WebSocketTransport::receiveMessage(const std::string& msg)
       NDN_MSG msg;
       msg.buffer = make_shared<ndn::Buffer>(reinterpret_cast<const uint8_t*>(element.wire()), element.size());
       msg.endpoint = 0;//makeEndpointId(m_sender);
-      //msg.faceId = getFace()->getId();
       msg.face = const_cast<nfd::face::Face*>(getFace());
 
       if(packetType==tlv::Interest)
@@ -124,7 +143,10 @@ WebSocketTransport::receiveMessage(const std::string& msg)
       else
           nfd::g_dcnMoodyMQ[ m_iwId+1  ][worker]->try_enqueue(msg);
   }   
+#endif
+
 }
+#endif
 
 void
 WebSocketTransport::schedulePing()
