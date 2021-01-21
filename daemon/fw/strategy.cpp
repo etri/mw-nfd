@@ -199,21 +199,18 @@ Strategy::onDroppedInterest(const Face& egress, const Interest& interest)
     //added by ETRI(modori) 20200602
 #ifdef ETRI_NFD_ORG_ARCH
 pit::OutRecord*
-Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry,
-                       const Face& egress, const Interest& interest)
+Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
 {
   if (interest.getTag<lp::PitToken>() != nullptr) {
     Interest interest2 = interest; // make a copy to preserve tag on original packet
     interest2.removeTag<lp::PitToken>();
-
     return m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
   }
   return m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
 }
 #else
-void
-Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry,
-                       const FaceEndpoint& egress, const Interest& interest)
+pit::OutRecord*
+Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
 {
     auto b = make_shared<ndn::Buffer>(32);
     ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
@@ -228,15 +225,13 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry,
 
     interest2.setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
 
-    m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
-    return;
+    return m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
   }
 
 	interest.setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) )); 
 
-  m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
+  return m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
 }
-
 #endif
 
 void
@@ -289,7 +284,7 @@ Strategy::sendDataToAll(const shared_ptr<pit::Entry>& pitEntry,
   // remember pending downstreams
   for (const pit::InRecord& inRecord : pitEntry->getInRecords()) {
     if (inRecord.getExpiry() > now) {
-      if (inRecord.getFace().getId() == inFace.getId() &&
+      if (inRecord.getFace().getId() == ingress.getId() &&
           inRecord.getFace().getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) {
         continue;
       }
