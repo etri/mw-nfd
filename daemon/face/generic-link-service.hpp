@@ -244,6 +244,8 @@ private: // send path
   void
   assignSequence(lp::Packet& pkt, lp::Sequence);
 
+  void
+  assignSequence(lp::Packet& pkt);
   ndn::lp::Sequence 
   assignSequence(ndn::lp::Sequence);
 

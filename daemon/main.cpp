@@ -387,7 +387,8 @@ static void
 printLogModules(std::ostream& os)
 {
     const auto& modules = ndn::util::Logging::getLoggerNames();
-    std::copy(modules.begin(), modules.end(), ndn::make_ostream_joiner(os, "\n"));
+// ETRI
+//    std::copy(modules.begin(), modules.end(), ndn::make_ostream_joiner(os, "\n"));
     os << std::endl;
 }
 

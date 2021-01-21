@@ -359,7 +359,7 @@ Forwarder::onContentStoreHit(const FaceEndpoint& ingress, const shared_ptr<pit::
 
 pit::OutRecord*
 Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
-                              const Face& egress, const Interest& interest)
+                              Face& egress, const Interest& interest)
 {
   // drop if HopLimit == 0 but sending on non-local face
   if (interest.getHopLimit() == 0 && egress.getScope() == ndn::nfd::FACE_SCOPE_NON_LOCAL) {
@@ -372,11 +372,11 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   NFD_LOG_DEBUG("onOutgoingInterest out=" << egress.getId() << " interest=" << pitEntry->getName());
 
   // insert out-record
-  pitEntry->insertOrUpdateOutRecord(egress.face, interest);
+  pitEntry->insertOrUpdateOutRecord(egress, interest);
   auto it = pitEntry->insertOrUpdateOutRecord(egress, interest);
   BOOST_ASSERT(it != pitEntry->out_end());
 
-  egress.face.sendInterest(interest);
+  egress.sendInterest(interest);
   ++m_counters.nOutInterests;
 
 #ifdef ETRI_DEBUG_COUNTERS
@@ -594,7 +594,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 	// when more than one PIT entry is matched, trigger strategy: before satisfy Interest,
 	// and send Data to all matched out faces
 	else {
-		std::set<std::pair<Face*>> pendingDownstreams;
+		std::set<Face*> pendingDownstreams;
 		auto now = time::steady_clock::now();
 
 		for (const auto& pitEntry : pitMatches) {
@@ -806,7 +806,7 @@ Forwarder::onDataUnsolicited(const FaceEndpoint& ingress, const Data& data)
 }
 
 bool
-Forwarder::onOutgoingData(const Data& data, const Face& egress)
+Forwarder::onOutgoingData(const Data& data, Face& egress)
 {
   if (egress.getId() == face::INVALID_FACEID) {
     NFD_LOG_WARN("onOutgoingData out=(invalid) data=" << data.getName());
@@ -825,7 +825,7 @@ Forwarder::onOutgoingData(const Data& data, const Face& egress)
   }
 
   // send Data
-    egress.face.sendData(data);
+    egress.sendData(data);
   ++m_counters.nOutData;
 
 #ifdef ETRI_DEBUG_COUNTERS

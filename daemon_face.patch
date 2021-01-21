@@ -1,0 +1,1884 @@
+diff --git a/daemon/face/channel.hpp b/daemon/face/channel.hpp
+index 4b4b8c6c..ffd06d79 100644
+--- a/daemon/face/channel.hpp
++++ b/daemon/face/channel.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -38,7 +38,7 @@ namespace face {
+  *  A channel can listen on a local endpoint and initiate outgoing connection from a local endpoint.
+  *  A channel creates Face objects and retains shared ownership of them.
+  */
+-class Channel : noncopyable
++class Channel : public std::enable_shared_from_this<Channel>, noncopyable
+ {
+ public:
+   virtual
+diff --git a/daemon/face/datagram-transport.hpp b/daemon/face/datagram-transport.hpp
+index dfe8bee9..7798cc8f 100644
+--- a/daemon/face/datagram-transport.hpp
++++ b/daemon/face/datagram-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -69,7 +69,7 @@ protected:
+   doClose() override;
+ 
+   void
+-  doSend(const Block& packet, const EndpointId& endpoint) override;
++  doSend(const Block& packet) override;
+ 
+   void
+   handleSend(const boost::system::error_code& error, size_t nBytesSent);
+@@ -157,7 +157,7 @@ DatagramTransport<T, U>::doClose()
+ 
+ template<class T, class U>
+ void
+-DatagramTransport<T, U>::doSend(const Block& packet, const EndpointId&)
++DatagramTransport<T, U>::doSend(const Block& packet)
+ {
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+diff --git a/daemon/face/ethernet-channel.cpp b/daemon/face/ethernet-channel.cpp
+index 0104b197..512d0780 100644
+--- a/daemon/face/ethernet-channel.cpp
++++ b/daemon/face/ethernet-channel.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -201,12 +201,15 @@ EthernetChannel::createFace(const ethernet::Address& remoteEndpoint,
+   options.allowFragmentation = true;
+   options.allowReassembly = true;
+   options.reliabilityOptions.isEnabled = params.wantLpReliability;
++  if (params.mtu) {
++    options.overrideMtu = *params.mtu;
++  }
+ 
+   auto linkService = make_unique<GenericLinkService>(options);
+   auto transport = make_unique<UnicastEthernetTransport>(*m_localEndpoint, remoteEndpoint,
+-                                                         params.persistency, m_idleFaceTimeout,
+-                                                         params.mtu);
++                                                         params.persistency, m_idleFaceTimeout);
+   auto face = make_shared<Face>(std::move(linkService), std::move(transport));
++  face->setChannel(shared_from_this()); // use weak_from_this() in C++17
+ 
+   m_channelFaces[remoteEndpoint] = face;
+   connectFaceClosedSignal(*face, [this, remoteEndpoint] {
+diff --git a/daemon/face/ethernet-factory.cpp b/daemon/face/ethernet-factory.cpp
+index 4d4d2950..fec671fd 100644
+--- a/daemon/face/ethernet-factory.cpp
++++ b/daemon/face/ethernet-factory.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -197,10 +197,10 @@ EthernetFactory::doCreateFace(const CreateFaceRequest& req,
+     return;
+   }
+ 
+-  if (req.params.mtu && *req.params.mtu < Transport::MIN_MTU) {
++  if (req.params.mtu && *req.params.mtu < MIN_MTU) {
+     // The specified MTU must be greater than the minimum possible
+-    NFD_LOG_TRACE("createFace cannot create a face with an MTU less than " << Transport::MIN_MTU);
+-    onFailure(406, "MTU cannot be less than " + to_string(Transport::MIN_MTU));
++    NFD_LOG_TRACE("createFace: override MTU cannot be less than " << MIN_MTU);
++    onFailure(406, "Override MTU cannot be less than " + to_string(MIN_MTU));
+     return;
+   }
+ 
+@@ -257,6 +257,9 @@ EthernetFactory::createMulticastFace(const ndn::net::NetworkInterface& netif,
+   m_mcastFaces[key] = face;
+   connectFaceClosedSignal(*face, [this, key] { m_mcastFaces.erase(key); });
+ 
++  auto channelIt = m_channels.find(netif.getName());
++  face->setChannel(channelIt != m_channels.end() ? channelIt->second : nullptr);
++
+   return face;
+ }
+ 
+diff --git a/daemon/face/ethernet-transport.cpp b/daemon/face/ethernet-transport.cpp
+index 6b419bfe..e98a9a73 100644
+--- a/daemon/face/ethernet-transport.cpp
++++ b/daemon/face/ethernet-transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -58,11 +58,19 @@ EthernetTransport::EthernetTransport(const ndn::net::NetworkInterface& localEndp
+     NDN_THROW_NESTED(Error(e.what()));
+   }
+ 
+-  m_netifStateConn = localEndpoint.onStateChanged.connect(
+-    [=] (ndn::net::InterfaceState, ndn::net::InterfaceState newState) {
++  // Set initial transport state based upon the state of the underlying NetworkInterface
++  handleNetifStateChange(localEndpoint.getState());
++
++  m_netifStateChangedConn = localEndpoint.onStateChanged.connect(
++    [this] (ndn::net::InterfaceState, ndn::net::InterfaceState newState) {
+       handleNetifStateChange(newState);
+     });
+ 
++  m_netifMtuChangedConn = localEndpoint.onMtuChanged.connect(
++    [this] (uint32_t, uint32_t mtu) {
++      setMtu(mtu);
++    });
++
+   asyncRead();
+ }
+ 
+@@ -102,7 +110,7 @@ EthernetTransport::handleNetifStateChange(ndn::net::InterfaceState netifState)
+ }
+ 
+ void
+-EthernetTransport::doSend(const Block& packet, const EndpointId&)
++EthernetTransport::doSend(const Block& packet)
+ {
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+diff --git a/daemon/face/ethernet-transport.hpp b/daemon/face/ethernet-transport.hpp
+index 8258285c..8c929d1b 100644
+--- a/daemon/face/ethernet-transport.hpp
++++ b/daemon/face/ethernet-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -81,7 +81,7 @@ private:
+   handleNetifStateChange(ndn::net::InterfaceState netifState);
+ 
+   void
+-  doSend(const Block& packet, const EndpointId& endpoint) final;
++  doSend(const Block& packet) final;
+ 
+   /**
+    * @brief Sends the specified TLV block on the network wrapped in an Ethernet frame
+@@ -106,7 +106,8 @@ protected:
+   std::string m_interfaceName;
+ 
+ private:
+-  signal::ScopedConnection m_netifStateConn;
++  signal::ScopedConnection m_netifStateChangedConn;
++  signal::ScopedConnection m_netifMtuChangedConn;
+   bool m_hasRecentlyReceived;
+ #ifdef _DEBUG
+   /// number of frames dropped by the kernel, as reported by libpcap
+diff --git a/daemon/face/face-common.hpp b/daemon/face/face-common.hpp
+index f2333096..e2a05720 100644
+--- a/daemon/face/face-common.hpp
++++ b/daemon/face/face-common.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -54,6 +54,12 @@ const FaceId FACEID_NULL = 255;
+ /// upper bound of reserved FaceIds
+ const FaceId FACEID_RESERVED_MAX = 255;
+ 
++/** \brief Minimum MTU that may be set
++ *
++ *  This is done to ensure the NDNLPv2 fragmentation feature functions properly.
++ */
++const ssize_t MIN_MTU = 64;
++
+ /** \brief Identifies a remote endpoint on the link.
+  *
+  *  This ID is only meaningful in the context of the same Transport.
+diff --git a/daemon/face/face-counters.cpp b/daemon/face/face-counters.cpp
+index 52b94ac2..275783fa 100644
+--- a/daemon/face/face-counters.cpp
++++ b/daemon/face/face-counters.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -32,7 +32,7 @@ FaceCounters::FaceCounters(const LinkService::Counters& linkServiceCounters,
+                            const Transport::Counters& transportCounters)
+   : nInInterests(linkServiceCounters.nInInterests)
+   , nOutInterests(linkServiceCounters.nOutInterests)
+-  , nDroppedInterests(linkServiceCounters.nDroppedInterests)
++  , nInterestsExceededRetx(linkServiceCounters.nInterestsExceededRetx)
+   , nInData(linkServiceCounters.nInData)
+   , nOutData(linkServiceCounters.nOutData)
+   , nInNacks(linkServiceCounters.nInNacks)
+diff --git a/daemon/face/face-counters.hpp b/daemon/face/face-counters.hpp
+index 51af2d9b..aed0ba48 100644
+--- a/daemon/face/face-counters.hpp
++++ b/daemon/face/face-counters.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -70,18 +70,25 @@ public:
+ public:
+   const PacketCounter& nInInterests;
+   const PacketCounter& nOutInterests;
+-  const PacketCounter& nDroppedInterests;
++  const PacketCounter& nInterestsExceededRetx;
+   const PacketCounter& nInData;
+   const PacketCounter& nOutData;
+   const PacketCounter& nInNacks;
+   const PacketCounter& nOutNacks;
+-  PacketCounter nKeptInterests;
+ 
+   const PacketCounter& nInPackets;
+   const PacketCounter& nOutPackets;
+   const ByteCounter& nInBytes;
+   const ByteCounter& nOutBytes;
+ 
++  /** \brief count of incoming Interests dropped due to HopLimit == 0
++   */
++  PacketCounter nInHopLimitZero;
++
++  /** \brief count of outgoing Interests dropped due to HopLimit == 0 on non-local faces
++   */
++  PacketCounter nOutHopLimitZero;
++
+ private:
+   const LinkService::Counters& m_linkServiceCounters;
+   const Transport::Counters& m_transportCounters;
+diff --git a/daemon/face/face.hpp b/daemon/face/face.hpp
+index dc8c20d5..82288851 100644
+--- a/daemon/face/face.hpp
++++ b/daemon/face/face.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -34,6 +34,8 @@
+ namespace nfd {
+ namespace face {
+ 
++class Channel;
++
+ /** \brief indicates the state of a face
+  */
+ typedef TransportState FaceState;
+@@ -60,21 +62,33 @@ public:
+   Transport*
+   getTransport() const;
+ 
++  /** \brief Request that the face be closed
++   *
++   *  This operation is effective only if face is in the UP or DOWN state; otherwise, it has no effect.
++   *  The face will change state to CLOSING, and then perform a cleanup procedure.
++   *  When the cleanup is complete, the state will be changed to CLOSED, which may happen
++   *  synchronously or asynchronously.
++   *
++   *  \warning The face must not be deallocated until its state changes to CLOSED.
++   */
++  void
++  close();
++
+ public: // upper interface connected to forwarding
+-  /** \brief send Interest to \p endpointId
++  /** \brief send Interest
+    */
+   void
+-  sendInterest(const Interest& interest, const EndpointId& endpointId);
++  sendInterest(const Interest& interest);
+ 
+-  /** \brief send Data to \p endpointId
++  /** \brief send Data
+    */
+   void
+-  sendData(const Data& data, const EndpointId& endpointId);
++  sendData(const Data& data);
+ 
+-  /** \brief send Nack to \p endpointId
++  /** \brief send Nack
+    */
+   void
+-  sendNack(const lp::Nack& nack, const EndpointId& endpointId);
++  sendNack(const lp::Nack& nack);
+ 
+   /** \brief signals on Interest received
+    */
+@@ -92,7 +106,7 @@ public: // upper interface connected to forwarding
+    */
+   signal::Signal<LinkService, Interest>& onDroppedInterest;
+ 
+-public: // static properties
++public: // properties
+   /** \return face ID
+    */
+   FaceId
+@@ -134,7 +148,13 @@ public: // static properties
+   ndn::nfd::LinkType
+   getLinkType() const;
+ 
+-public: // dynamic properties
++  /** \brief Returns face effective MTU
++   *
++   *  This function is a wrapper. The effective MTU of a face is determined by the link service.
++   */
++  ssize_t
++  getMtu() const;
++
+   /** \return face state
+    */
+   FaceState
+@@ -150,27 +170,33 @@ public: // dynamic properties
+   time::steady_clock::TimePoint
+   getExpirationTime() const;
+ 
+-  /** \brief request the face to be closed
+-   *
+-   *  This operation is effective only if face is in UP or DOWN state,
+-   *  otherwise it has no effect.
+-   *  The face changes state to CLOSING, and performs cleanup procedure.
+-   *  The state will be changed to CLOSED when cleanup is complete, which may
+-   *  happen synchronously or asynchronously.
+-   *
+-   *  \warning the face must not be deallocated until its state changes to CLOSED
+-   */
+-  void
+-  close();
+-
+   const FaceCounters&
+   getCounters() const;
+ 
++  /**
++   * \brief Get channel on which face was created (unicast) or the associated channel (multicast)
++   */
++  weak_ptr<Channel>
++  getChannel() const
++  {
++    return m_channel;
++  }
++
++  /**
++   * \brief Set channel on which face was created (unicast) or the associated channel (multicast)
++   */
++  void
++  setChannel(weak_ptr<Channel> channel)
++  {
++    m_channel = std::move(channel);
++  }
++
+ private:
+   FaceId m_id;
+   unique_ptr<LinkService> m_service;
+   unique_ptr<Transport> m_transport;
+   FaceCounters m_counters;
++  weak_ptr<Channel> m_channel;
+ };
+ 
+ inline LinkService*
+@@ -186,21 +212,27 @@ Face::getTransport() const
+ }
+ 
+ inline void
+-Face::sendInterest(const Interest& interest, const EndpointId& endpointId)
++Face::close()
+ {
+-  m_service->sendInterest(interest, endpointId);
++  m_transport->close();
+ }
+ 
+ inline void
+-Face::sendData(const Data& data, const EndpointId& endpointId)
++Face::sendInterest(const Interest& interest)
+ {
+-  m_service->sendData(data, endpointId);
++  m_service->sendInterest(interest);
+ }
+ 
+ inline void
+-Face::sendNack(const lp::Nack& nack, const EndpointId& endpointId)
++Face::sendData(const Data& data)
+ {
+-  m_service->sendNack(nack, endpointId);
++  m_service->sendData(data);
++}
++
++inline void
++Face::sendNack(const lp::Nack& nack)
++{
++  m_service->sendNack(nack);
+ }
+ 
+ inline FaceId
+@@ -251,6 +283,12 @@ Face::getLinkType() const
+   return m_transport->getLinkType();
+ }
+ 
++inline ssize_t
++Face::getMtu() const
++{
++  return m_service->getEffectiveMtu();
++}
++
+ inline FaceState
+ Face::getState() const
+ {
+@@ -263,12 +301,6 @@ Face::getExpirationTime() const
+   return m_transport->getExpirationTime();
+ }
+ 
+-inline void
+-Face::close()
+-{
+-  m_transport->close();
+-}
+-
+ inline const FaceCounters&
+ Face::getCounters() const
+ {
+diff --git a/daemon/face/generic-link-service.cpp b/daemon/face/generic-link-service.cpp
+index 601c0418..819a91a6 100644
+--- a/daemon/face/generic-link-service.cpp
++++ b/daemon/face/generic-link-service.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -62,18 +62,38 @@ GenericLinkService::setOptions(const GenericLinkService::Options& options)
+   m_reliability.setOptions(m_options.reliabilityOptions);
+ }
+ 
++ssize_t
++GenericLinkService::getEffectiveMtu() const
++{
++  // Since MTU_UNLIMITED is negative, it will implicitly override any finite override MTU
++  return std::min(m_options.overrideMtu, getTransport()->getMtu());
++}
++
++bool
++GenericLinkService::canOverrideMtuTo(ssize_t mtu) const
++{
++  // Not allowed to override unlimited transport MTU
++  if (getTransport()->getMtu() == MTU_UNLIMITED) {
++    return false;
++  }
++
++  // Override MTU must be at least MIN_MTU (also implicitly forbids MTU_UNLIMITED and MTU_INVALID)
++  return mtu >= MIN_MTU;
++}
++
+ void
+-GenericLinkService::requestIdlePacket(const EndpointId& endpointId)
++GenericLinkService::requestIdlePacket()
+ {
+   // No need to request Acks to attach to this packet from LpReliability, as they are already
+   // attached in sendLpPacket
+-  this->sendLpPacket({}, endpointId);
++  NFD_LOG_FACE_TRACE("IDLE packet requested");
++  this->sendLpPacket({});
+ }
+ 
+ void
+-GenericLinkService::sendLpPacket(lp::Packet&& pkt, const EndpointId& endpointId)
++GenericLinkService::sendLpPacket(lp::Packet&& pkt)
+ {
+-  const ssize_t mtu = this->getTransport()->getMtu();
++  const ssize_t mtu = getEffectiveMtu();
+ 
+   if (m_options.reliabilityOptions.isEnabled) {
+     m_reliability.piggyback(pkt, mtu);
+@@ -89,38 +109,46 @@ GenericLinkService::sendLpPacket(lp::Packet&& pkt, const EndpointId& endpointId)
+     NFD_LOG_FACE_WARN("attempted to send packet over MTU limit");
+     return;
+   }
+-  this->sendPacket(block, endpointId);
++  this->sendPacket(block);
+ }
+ 
+ void
+-GenericLinkService::doSendInterest(const Interest& interest, const EndpointId& endpointId)
++GenericLinkService::doSendInterest(const Interest& interest)
+ {
+   lp::Packet lpPacket(interest.wireEncode());
+ 
+   encodeLpFields(interest, lpPacket);
+ 
+-  this->sendNetPacket(std::move(lpPacket), endpointId, true);
++  this->sendNetPacket(std::move(lpPacket), true);
+ }
+ 
+ void
+-GenericLinkService::doSendData(const Data& data, const EndpointId& endpointId)
++GenericLinkService::doSendData(const Data& data)
+ {
+   lp::Packet lpPacket(data.wireEncode());
+ 
+   encodeLpFields(data, lpPacket);
+ 
+-  this->sendNetPacket(std::move(lpPacket), endpointId, false);
++  this->sendNetPacket(std::move(lpPacket), false);
+ }
+ 
+ void
+-GenericLinkService::doSendNack(const lp::Nack& nack, const EndpointId& endpointId)
++GenericLinkService::doSendNack(const lp::Nack& nack)
+ {
+   lp::Packet lpPacket(nack.getInterest().wireEncode());
+   lpPacket.add<lp::NackField>(nack.getHeader());
+ 
+   encodeLpFields(nack, lpPacket);
+ 
+-  this->sendNetPacket(std::move(lpPacket), endpointId, false);
++  this->sendNetPacket(std::move(lpPacket), false);
++}
++
++void
++GenericLinkService::assignSequences(std::vector<lp::Packet>& pkts)
++{
++  std::for_each(pkts.begin(), pkts.end(), [this] (lp::Packet& pkt) {
++    pkt.set<lp::SequenceField>(++m_lastSeqNo);
++  });
+ }
+ 
+ void
+@@ -157,10 +185,10 @@ GenericLinkService::encodeLpFields(const ndn::PacketBase& netPkt, lp::Packet& lp
+ }
+ 
+ void
+-GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId, bool isInterest)
++GenericLinkService::sendNetPacket(lp::Packet&& pkt, bool isInterest)
+ {
+   std::vector<lp::Packet> frags;
+-  ssize_t mtu = this->getTransport()->getMtu();
++  ssize_t mtu = getEffectiveMtu();
+ 
+   // Make space for feature fields in fragments
+   if (m_options.reliabilityOptions.isEnabled && mtu != MTU_UNLIMITED) {
+@@ -171,7 +199,8 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId
+     mtu -= CONGESTION_MARK_SIZE;
+   }
+ 
+-  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu > 0);
++  // An MTU of 0 is allowed but will cause all packets to be dropped before transmission
++  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu >= 0);
+ 
+   if (m_options.allowFragmentation && mtu != MTU_UNLIMITED) {
+     bool isOk = false;
+@@ -198,8 +227,8 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId
+     BOOST_ASSERT(!frags.front().has<lp::FragCountField>());
+   }
+ 
+-  // Only assign sequences to fragments if packet contains more than 1 fragment
+-  if (frags.size() > 1) {
++  // Only assign sequences to fragments if reliability enabled or if packet contains >1 fragment
++  if (m_options.reliabilityOptions.isEnabled || frags.size() > 1) {
+     // Assign sequences to all fragments
+     this->assignSequences(frags);
+   }
+@@ -209,22 +238,10 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId
+   }
+ 
+   for (lp::Packet& frag : frags) {
+-    this->sendLpPacket(std::move(frag), endpointId);
++    this->sendLpPacket(std::move(frag));
+   }
+ }
+ 
+-void
+-GenericLinkService::assignSequence(lp::Packet& pkt)
+-{
+-  pkt.set<lp::SequenceField>(++m_lastSeqNo);
+-}
+-
+-void
+-GenericLinkService::assignSequences(std::vector<lp::Packet>& pkts)
+-{
+-  std::for_each(pkts.begin(), pkts.end(), [this] (auto& pkt) { this->assignSequence(pkt); });
+-}
+-
+ void
+ GenericLinkService::checkCongestionLevel(lp::Packet& pkt)
+ {
+@@ -277,7 +294,11 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
+     lp::Packet pkt(packet);
+ 
+     if (m_options.reliabilityOptions.isEnabled) {
+-      m_reliability.processIncomingPacket(pkt);
++      if (!m_reliability.processIncomingPacket(pkt)) {
++        NFD_LOG_FACE_TRACE("received duplicate fragment: DROP");
++        ++this->nDuplicateSequence;
++        return;
++      }
+     }
+ 
+     if (!pkt.has<lp::FragmentField>()) {
+diff --git a/daemon/face/generic-link-service.hpp b/daemon/face/generic-link-service.hpp
+index 31375557..7a1dd4f5 100644
+--- a/daemon/face/generic-link-service.hpp
++++ b/daemon/face/generic-link-service.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -81,6 +81,10 @@ public:
+    */
+   PacketCounter nRetxExhausted;
+ 
++  /** \brief count of LpPackets dropped due to duplicate Sequence numbers
++   */
++  PacketCounter nDuplicateSequence;
++
+   /** \brief count of outgoing LpPackets that were marked with congestion marks
+    */
+   PacketCounter nCongestionMarked;
+@@ -98,7 +102,6 @@ public:
+   class Options
+   {
+   public:
+-    constexpr
+     Options() noexcept
+     {
+     }
+@@ -151,6 +154,16 @@ public:
+     /** \brief enables self-learning forwarding support
+      */
+     bool allowSelfLearning = true;
++
++    /** \brief overrides MTU provided by Transport
++     *
++     *  This MTU value will be used instead of the MTU provided by the transport if it is less than
++     *  the transport MTU. However, it will not be utilized when the transport MTU is unlimited.
++     *
++     *  Acceptable values for the override MTU are values >= MIN_MTU, which can be validated before
++     *  being set with canOverrideMtuTo().
++     */
++    ssize_t overrideMtu = std::numeric_limits<ssize_t>::max();
+   };
+ 
+   /** \brief counters provided by GenericLinkService
+@@ -173,31 +186,40 @@ public:
+   const Counters&
+   getCounters() const OVERRIDE_WITH_TESTS_ELSE_FINAL;
+ 
++  ssize_t
++  getEffectiveMtu() const OVERRIDE_WITH_TESTS_ELSE_FINAL;
++
++  /** \brief Whether MTU can be overridden to the specified value
++   *
++   *  If the transport MTU is unlimited, then this will always return false.
++   */
++  bool
++  canOverrideMtuTo(ssize_t mtu) const;
++
+ PROTECTED_WITH_TESTS_ELSE_PRIVATE: // send path
+   /** \brief request an IDLE packet to transmit pending service fields
+    */
+   void
+-  requestIdlePacket(const EndpointId& endpointId);
++  requestIdlePacket();
+ 
+-  /** \brief send an LpPacket to \p endpointId
++  /** \brief send an LpPacket
+    */
+   void
+-  sendLpPacket(lp::Packet&& pkt, const EndpointId& endpointId);
++  sendLpPacket(lp::Packet&& pkt);
+ 
+-  /** \brief send Interest
+-   */
+   void
+-  doSendInterest(const Interest& interest, const EndpointId& endpointId) OVERRIDE_WITH_TESTS_ELSE_FINAL;
++  doSendInterest(const Interest& interest) OVERRIDE_WITH_TESTS_ELSE_FINAL;
+ 
+-  /** \brief send Data
+-   */
+   void
+-  doSendData(const Data& data, const EndpointId& endpointId) OVERRIDE_WITH_TESTS_ELSE_FINAL;
++  doSendData(const Data& data) OVERRIDE_WITH_TESTS_ELSE_FINAL;
+ 
+-  /** \brief send Nack
++  void
++  doSendNack(const ndn::lp::Nack& nack) OVERRIDE_WITH_TESTS_ELSE_FINAL;
++
++  /** \brief assign consecutive sequence numbers to LpPackets
+    */
+   void
+-  doSendNack(const ndn::lp::Nack& nack, const EndpointId& endpointId) OVERRIDE_WITH_TESTS_ELSE_FINAL;
++  assignSequences(std::vector<lp::Packet>& pkts);
+ 
+ private: // send path
+   /** \brief encode link protocol fields from tags onto an outgoing LpPacket
+@@ -209,21 +231,10 @@ private: // send path
+ 
+   /** \brief send a complete network layer packet
+    *  \param pkt LpPacket containing a complete network layer packet
+-   *  \param endpointId destination endpoint to which LpPacket will be sent
+    *  \param isInterest whether the network layer packet is an Interest
+    */
+   void
+-  sendNetPacket(lp::Packet&& pkt, const EndpointId& endpointId, bool isInterest);
+-
+-  /** \brief assign a sequence number to an LpPacket
+-   */
+-  void
+-  assignSequence(lp::Packet& pkt);
+-
+-  /** \brief assign consecutive sequence numbers to LpPackets
+-   */
+-  void
+-  assignSequences(std::vector<lp::Packet>& pkts);
++  sendNetPacket(lp::Packet&& pkt, bool isInterest);
+ 
+   /** \brief if the send queue is found to be congested, add a congestion mark to the packet
+    *         according to CoDel
+@@ -233,8 +244,6 @@ private: // send path
+   checkCongestionLevel(lp::Packet& pkt);
+ 
+ private: // receive path
+-  /** \brief receive Packet from Transport
+-   */
+   void
+   doReceivePacket(const Block& packet, const EndpointId& endpoint) OVERRIDE_WITH_TESTS_ELSE_FINAL;
+ 
+diff --git a/daemon/face/internal-transport.cpp b/daemon/face/internal-transport.cpp
+index e5d598ab..a477b14f 100644
+--- a/daemon/face/internal-transport.cpp
++++ b/daemon/face/internal-transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -55,7 +55,7 @@ InternalForwarderTransport::receivePacket(const Block& packet)
+ }
+ 
+ void
+-InternalForwarderTransport::doSend(const Block& packet, const EndpointId&)
++InternalForwarderTransport::doSend(const Block& packet)
+ {
+   NFD_LOG_FACE_TRACE("Sending to " << m_peer);
+ 
+diff --git a/daemon/face/internal-transport.hpp b/daemon/face/internal-transport.hpp
+index 71ae4d57..fbe4f061 100644
+--- a/daemon/face/internal-transport.hpp
++++ b/daemon/face/internal-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -71,7 +71,7 @@ protected:
+ 
+ private:
+   void
+-  doSend(const Block& packet, const EndpointId& endpoint) final;
++  doSend(const Block& packet) final;
+ 
+ private:
+   NFD_LOG_MEMBER_DECL();
+diff --git a/daemon/face/link-service.cpp b/daemon/face/link-service.cpp
+index a382ebea..6527dbd4 100644
+--- a/daemon/face/link-service.cpp
++++ b/daemon/face/link-service.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -52,36 +52,36 @@ LinkService::setFaceAndTransport(Face& face, Transport& transport)
+ }
+ 
+ void
+-LinkService::sendInterest(const Interest& interest, const EndpointId& endpoint)
++LinkService::sendInterest(const Interest& interest)
+ {
+   BOOST_ASSERT(m_transport != nullptr);
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+   ++this->nOutInterests;
+ 
+-  doSendInterest(interest, endpoint);
++  doSendInterest(interest);
+ }
+ 
+ void
+-LinkService::sendData(const Data& data, const EndpointId& endpoint)
++LinkService::sendData(const Data& data)
+ {
+   BOOST_ASSERT(m_transport != nullptr);
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+   ++this->nOutData;
+ 
+-  doSendData(data, endpoint);
++  doSendData(data);
+ }
+ 
+ void
+-LinkService::sendNack(const ndn::lp::Nack& nack, const EndpointId& endpoint)
++LinkService::sendNack(const ndn::lp::Nack& nack)
+ {
+   BOOST_ASSERT(m_transport != nullptr);
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+   ++this->nOutNacks;
+ 
+-  doSendNack(nack, endpoint);
++  doSendNack(nack);
+ }
+ 
+ void
+@@ -117,7 +117,7 @@ LinkService::receiveNack(const ndn::lp::Nack& nack, const EndpointId& endpoint)
+ void
+ LinkService::notifyDroppedInterest(const Interest& interest)
+ {
+-  ++this->nDroppedInterests;
++  ++this->nInterestsExceededRetx;
+   onDroppedInterest(interest);
+ }
+ 
+diff --git a/daemon/face/link-service.hpp b/daemon/face/link-service.hpp
+index 415c1858..c623622e 100644
+--- a/daemon/face/link-service.hpp
++++ b/daemon/face/link-service.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -50,7 +50,7 @@ public:
+ 
+   /** \brief count of Interests dropped by reliability system for exceeding allowed number of retx
+    */
+-  PacketCounter nDroppedInterests;
++  PacketCounter nInterestsExceededRetx;
+ 
+   /** \brief count of incoming Data packets
+    */
+@@ -109,24 +109,27 @@ public:
+   virtual const Counters&
+   getCounters() const;
+ 
++  virtual ssize_t
++  getEffectiveMtu() const;
++
+ public: // upper interface to be used by forwarding
+-  /** \brief Send Interest to \p endpoint
++  /** \brief Send Interest
+    *  \pre setTransport has been called
+    */
+   void
+-  sendInterest(const Interest& interest, const EndpointId& endpoint);
++  sendInterest(const Interest& interest);
+ 
+-  /** \brief Send Data to \p endpoint
++  /** \brief Send Data
+    *  \pre setTransport has been called
+    */
+   void
+-  sendData(const Data& data, const EndpointId& endpoint);
++  sendData(const Data& data);
+ 
+-  /** \brief Send Nack to \p endpoint
++  /** \brief Send Nack
+    *  \pre setTransport has been called
+    */
+   void
+-  sendNack(const ndn::lp::Nack& nack, const EndpointId& endpoint);
++  sendNack(const ndn::lp::Nack& nack);
+ 
+   /** \brief signals on Interest received
+    */
+@@ -167,30 +170,30 @@ protected: // upper interface to be invoked in subclass (receive path terminatio
+   receiveNack(const lp::Nack& nack, const EndpointId& endpoint);
+ 
+ protected: // lower interface to be invoked in subclass (send path termination)
+-  /** \brief send a lower-layer packet via Transport to \p endpoint
++  /** \brief send a lower-layer packet via Transport
+    */
+   void
+-  sendPacket(const Block& packet, const EndpointId& endpoint);
++  sendPacket(const Block& packet);
+ 
+ protected:
+   void
+   notifyDroppedInterest(const Interest& packet);
+ 
+ private: // upper interface to be overridden in subclass (send path entrypoint)
+-  /** \brief performs LinkService specific operations to send an Interest to \p endpoint
++  /** \brief performs LinkService specific operations to send an Interest
+    */
+   virtual void
+-  doSendInterest(const Interest& interest, const EndpointId& endpoint) = 0;
++  doSendInterest(const Interest& interest) = 0;
+ 
+-  /** \brief performs LinkService specific operations to send a Data to \p endpoint
++  /** \brief performs LinkService specific operations to send a Data
+    */
+   virtual void
+-  doSendData(const Data& data, const EndpointId& endpoint) = 0;
++  doSendData(const Data& data) = 0;
+ 
+-  /** \brief performs LinkService specific operations to send a Nack to \p endpoint
++  /** \brief performs LinkService specific operations to send a Nack
+    */
+   virtual void
+-  doSendNack(const lp::Nack& nack, const EndpointId& endpoint) = 0;
++  doSendNack(const lp::Nack& nack) = 0;
+ 
+ private: // lower interface to be overridden in subclass
+   virtual void
+@@ -225,6 +228,12 @@ LinkService::getCounters() const
+   return *this;
+ }
+ 
++inline ssize_t
++LinkService::getEffectiveMtu() const
++{
++  return m_transport->getMtu();
++}
++
+ inline void
+ LinkService::receivePacket(const Block& packet, const EndpointId& endpoint)
+ {
+@@ -232,9 +241,9 @@ LinkService::receivePacket(const Block& packet, const EndpointId& endpoint)
+ }
+ 
+ inline void
+-LinkService::sendPacket(const Block& packet, const EndpointId& endpoint)
++LinkService::sendPacket(const Block& packet)
+ {
+-  m_transport->send(packet, endpoint);
++  m_transport->send(packet);
+ }
+ 
+ std::ostream&
+diff --git a/daemon/face/lp-reliability.cpp b/daemon/face/lp-reliability.cpp
+index 310f78e8..f387add1 100644
+--- a/daemon/face/lp-reliability.cpp
++++ b/daemon/face/lp-reliability.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -31,6 +31,8 @@
+ namespace nfd {
+ namespace face {
+ 
++NFD_LOG_INIT(LpReliability);
++
+ LpReliability::LpReliability(const LpReliability::Options& options, GenericLinkService* linkService)
+   : m_options(options)
+   , m_linkService(linkService)
+@@ -71,6 +73,9 @@ LpReliability::handleOutgoing(std::vector<lp::Packet>& frags, lp::Packet&& pkt,
+   netPkt->unackedFrags.reserve(frags.size());
+ 
+   for (lp::Packet& frag : frags) {
++    // Non-IDLE packets are required to have assigned Sequence numbers with LpReliability enabled
++    BOOST_ASSERT(frag.has<lp::SequenceField>());
++
+     // Assign TxSequence number
+     lp::Sequence txSeq = assignTxSequence(frag);
+ 
+@@ -80,8 +85,13 @@ LpReliability::handleOutgoing(std::vector<lp::Packet>& frags, lp::Packet&& pkt,
+                                                  std::forward_as_tuple(txSeq),
+                                                  std::forward_as_tuple(frag));
+     unackedFragsIt->second.sendTime = sendTime;
+-    unackedFragsIt->second.rtoTimer = getScheduler().schedule(m_rttEst.getEstimatedRto(),
+-                                                              [=] { onLpPacketLost(txSeq); });
++    auto rto = m_rttEst.getEstimatedRto();
++    lp::Sequence seq = frag.get<lp::SequenceField>();
++    NFD_LOG_FACE_TRACE("transmitting seq=" << seq << ", txseq=" << txSeq << ", rto=" <<
++                       time::duration_cast<time::milliseconds>(rto).count() << "ms");
++    unackedFragsIt->second.rtoTimer = getScheduler().schedule(rto, [=] {
++      onLpPacketLost(txSeq, true);
++    });
+     unackedFragsIt->second.netPkt = netPkt;
+ 
+     if (m_unackedFrags.size() == 1) {
+@@ -93,18 +103,20 @@ LpReliability::handleOutgoing(std::vector<lp::Packet>& frags, lp::Packet&& pkt,
+   }
+ }
+ 
+-void
++bool
+ LpReliability::processIncomingPacket(const lp::Packet& pkt)
+ {
+   BOOST_ASSERT(m_options.isEnabled);
+ 
++  bool isDuplicate = false;
+   auto now = time::steady_clock::now();
+ 
+   // Extract and parse Acks
+-  for (lp::Sequence ackSeq : pkt.list<lp::AckField>()) {
+-    auto fragIt = m_unackedFrags.find(ackSeq);
++  for (lp::Sequence ackTxSeq : pkt.list<lp::AckField>()) {
++    auto fragIt = m_unackedFrags.find(ackTxSeq);
+     if (fragIt == m_unackedFrags.end()) {
+       // Ignore an Ack for an unknown TxSequence number
++      NFD_LOG_FACE_DEBUG("received ack for unknown txseq=" << ackTxSeq);
+       continue;
+     }
+     auto& frag = fragIt->second;
+@@ -113,12 +125,19 @@ LpReliability::processIncomingPacket(const lp::Packet& pkt)
+     frag.rtoTimer.cancel();
+ 
+     if (frag.retxCount == 0) {
++      NFD_LOG_FACE_TRACE("received ack for seq=" << frag.pkt.get<lp::SequenceField>() << ", txseq=" <<
++                         ackTxSeq << ", retx=0, rtt=" <<
++                         time::duration_cast<time::milliseconds>(now - frag.sendTime).count() << "ms");
+       // This sequence had no retransmissions, so use it to estimate the RTO
+       m_rttEst.addMeasurement(now - frag.sendTime);
+     }
++    else {
++      NFD_LOG_FACE_TRACE("received ack for seq=" << frag.pkt.get<lp::SequenceField>() << ", txseq=" <<
++                         ackTxSeq << ", retx=" << frag.retxCount);
++    }
+ 
+-    // Look for frags with TxSequence numbers < ackSeq (allowing for wraparound) and consider them
+-    // lost if a configurable number of Acks containing greater TxSequence numbers have been
++    // Look for frags with TxSequence numbers < ackTxSeq (allowing for wraparound) and consider
++    // them lost if a configurable number of Acks containing greater TxSequence numbers have been
+     // received.
+     auto lostLpPackets = findLostLpPackets(fragIt);
+ 
+@@ -135,8 +154,8 @@ LpReliability::processIncomingPacket(const lp::Packet& pkt)
+     // Resend or fail fragments considered lost. Potentially increment the start of the window.
+     for (lp::Sequence txSeq : lostLpPackets) {
+       if (removedLpPackets.find(txSeq) == removedLpPackets.end()) {
+-        auto removedThisTxSeq = onLpPacketLost(txSeq);
+-        for (auto removedTxSeq : removedThisTxSeq) {
++        auto removedTxSeqs = onLpPacketLost(txSeq, false);
++        for (auto removedTxSeq : removedTxSeqs) {
+           removedLpPackets.insert(removedTxSeq);
+         }
+       }
+@@ -145,9 +164,29 @@ LpReliability::processIncomingPacket(const lp::Packet& pkt)
+ 
+   // If packet has Fragment and TxSequence fields, extract TxSequence and add to AckQueue
+   if (pkt.has<lp::FragmentField>() && pkt.has<lp::TxSequenceField>()) {
++    NFD_LOG_FACE_TRACE("queueing ack for remote txseq=" << pkt.get<lp::TxSequenceField>());
+     m_ackQueue.push(pkt.get<lp::TxSequenceField>());
++
++    // Check for received frames with duplicate Sequences
++    if (pkt.has<lp::SequenceField>()) {
++      lp::Sequence pktSequence = pkt.get<lp::SequenceField>();
++      isDuplicate = m_recentRecvSeqs.count(pktSequence) > 0;
++      // Check for recent received Sequences to remove
++      auto now = time::steady_clock::now();
++      auto rto = m_rttEst.getEstimatedRto();
++      while (m_recentRecvSeqsQueue.size() > 0 &&
++             now > m_recentRecvSeqs[m_recentRecvSeqsQueue.front()] + rto) {
++        m_recentRecvSeqs.erase(m_recentRecvSeqsQueue.front());
++        m_recentRecvSeqsQueue.pop();
++      }
++      m_recentRecvSeqs.emplace(pktSequence, now);
++      m_recentRecvSeqsQueue.push(pktSequence);
++    }
++
+     startIdleAckTimer();
+   }
++
++  return !isDuplicate;
+ }
+ 
+ void
+@@ -164,7 +203,7 @@ LpReliability::piggyback(lp::Packet& pkt, ssize_t mtu)
+   remainingSpace -= pktSize;
+ 
+   while (!m_ackQueue.empty()) {
+-    lp::Sequence ackSeq = m_ackQueue.front();
++    lp::Sequence ackTxSeq = m_ackQueue.front();
+     // Ack size = Ack TLV-TYPE (3 octets) + TLV-LENGTH (1 octet) + lp::Sequence (8 octets)
+     const ssize_t ackSize = tlv::sizeOfVarNumber(lp::tlv::Ack) +
+                             tlv::sizeOfVarNumber(sizeof(lp::Sequence)) +
+@@ -174,7 +213,9 @@ LpReliability::piggyback(lp::Packet& pkt, ssize_t mtu)
+       break;
+     }
+ 
+-    pkt.add<lp::AckField>(ackSeq);
++    NFD_LOG_FACE_TRACE("piggybacking ack for remote txseq=" << ackTxSeq);
++
++    pkt.add<lp::AckField>(ackTxSeq);
+     m_ackQueue.pop();
+     remainingSpace -= ackSize;
+   }
+@@ -201,7 +242,7 @@ LpReliability::startIdleAckTimer()
+ 
+   m_idleAckTimer = getScheduler().schedule(m_options.idleAckTimerPeriod, [this] {
+     while (!m_ackQueue.empty()) {
+-      m_linkService->requestIdlePacket(0);
++      m_linkService->requestIdlePacket();
+     }
+   });
+ }
+@@ -222,6 +263,8 @@ LpReliability::findLostLpPackets(LpReliability::UnackedFrags::iterator ackIt)
+ 
+     auto& unackedFrag = it->second;
+     unackedFrag.nGreaterSeqAcks++;
++    NFD_LOG_FACE_TRACE("received ack=" << ackIt->first << " before=" << it->first <<
++                       ", before count=" << unackedFrag.nGreaterSeqAcks);
+ 
+     if (unackedFrag.nGreaterSeqAcks >= m_options.seqNumLossThreshold) {
+       lostLpPackets.push_back(it->first);
+@@ -232,7 +275,7 @@ LpReliability::findLostLpPackets(LpReliability::UnackedFrags::iterator ackIt)
+ }
+ 
+ std::vector<lp::Sequence>
+-LpReliability::onLpPacketLost(lp::Sequence txSeq)
++LpReliability::onLpPacketLost(lp::Sequence txSeq, bool isTimeout)
+ {
+   BOOST_ASSERT(m_unackedFrags.count(txSeq) > 0);
+   auto txSeqIt = m_unackedFrags.find(txSeq);
+@@ -241,9 +284,19 @@ LpReliability::onLpPacketLost(lp::Sequence txSeq)
+   txFrag.rtoTimer.cancel();
+   auto netPkt = txFrag.netPkt;
+   std::vector<lp::Sequence> removedThisTxSeq;
++  lp::Sequence seq = txFrag.pkt.get<lp::SequenceField>();
++
++  if (isTimeout) {
++    NFD_LOG_FACE_TRACE("rto timer expired for seq=" << seq << ", txseq=" << txSeq);
++  }
++  else { // lost due to out-of-order TxSeqs
++    NFD_LOG_FACE_TRACE("seq=" << seq << ", txseq=" << txSeq <<
++                       " considered lost from acks for more recent txseqs");
++  }
+ 
+   // Check if maximum number of retransmissions exceeded
+   if (txFrag.retxCount >= m_options.maxRetx) {
++    NFD_LOG_FACE_DEBUG("seq=" << seq << " exceeded allowed retransmissions: DROP");
+     // Delete all LpPackets of NetPkt from m_unackedFrags (except this one)
+     for (size_t i = 0; i < netPkt->unackedFrags.size(); i++) {
+       if (netPkt->unackedFrags[i] != txSeqIt) {
+@@ -263,6 +316,7 @@ LpReliability::onLpPacketLost(lp::Sequence txSeq)
+       onDroppedInterest(Interest(frag));
+     }
+ 
++    // Delete this LpPacket from m_unackedFrags
+     removedThisTxSeq.push_back(txSeqIt->first);
+     deleteUnackedFrag(txSeqIt);
+   }
+@@ -292,11 +346,17 @@ LpReliability::onLpPacketLost(lp::Sequence txSeq)
+     deleteUnackedFrag(txSeqIt);
+ 
+     // Retransmit fragment
+-    m_linkService->sendLpPacket(lp::Packet(newTxFrag.pkt), 0);
++    m_linkService->sendLpPacket(lp::Packet(newTxFrag.pkt));
++
++    auto rto = m_rttEst.getEstimatedRto();
++    NFD_LOG_FACE_TRACE("retransmitting seq=" << seq << ", txseq=" << newTxSeq << ", retx=" <<
++                       txFrag.retxCount << ", rto=" <<
++                       time::duration_cast<time::milliseconds>(rto).count() << "ms");
+ 
+     // Start RTO timer for this sequence
+-    newTxFrag.rtoTimer = getScheduler().schedule(m_rttEst.getEstimatedRto(),
+-                                                 [=] { onLpPacketLost(newTxSeq); });
++    newTxFrag.rtoTimer = getScheduler().schedule(rto, [=] {
++      onLpPacketLost(newTxSeq, true);
++    });
+   }
+ 
+   return removedThisTxSeq;
+@@ -362,5 +422,17 @@ LpReliability::NetPkt::NetPkt(lp::Packet&& pkt, bool isInterest)
+ {
+ }
+ 
++std::ostream&
++operator<<(std::ostream& os, const FaceLogHelper<LpReliability>& flh)
++{
++  if (flh.obj.getLinkService() == nullptr) {
++    os << "[id=0,local=unknown,remote=unknown] ";
++  }
++  else {
++    os << FaceLogHelper<LinkService>(*flh.obj.getLinkService());
++  }
++  return os;
++}
++
+ } // namespace face
+ } // namespace nfd
+diff --git a/daemon/face/lp-reliability.hpp b/daemon/face/lp-reliability.hpp
+index ca8f3607..1ea2b9a6 100644
+--- a/daemon/face/lp-reliability.hpp
++++ b/daemon/face/lp-reliability.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -26,7 +26,7 @@
+ #ifndef NFD_DAEMON_FACE_LP_RELIABILITY_HPP
+ #define NFD_DAEMON_FACE_LP_RELIABILITY_HPP
+ 
+-#include "core/common.hpp"
++#include "face-common.hpp"
+ 
+ #include <ndn-cxx/lp/packet.hpp>
+ #include <ndn-cxx/lp/sequence.hpp>
+@@ -93,8 +93,9 @@ public:
+ 
+   /** \brief extract and parse all Acks and add Ack for contained Fragment (if any) to AckQueue
+    *  \param pkt incoming LpPacket
++   *  \return whether incoming LpPacket is new and not a duplicate
+    */
+-  void
++  bool
+   processIncomingPacket(const lp::Packet& pkt);
+ 
+   /** \brief called by GenericLinkService to attach Acks onto an outgoing LpPacket
+@@ -139,7 +140,7 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
+    *  \return vector of the TxSequences of fragments removed due to a network packet being removed
+    */
+   std::vector<lp::Sequence>
+-  onLpPacketLost(lp::Sequence txSeq);
++  onLpPacketLost(lp::Sequence txSeq, bool isTimeout);
+ 
+   /** \brief remove the fragment with the given sequence number from the map of unacknowledged
+    *         fragments, as well as its associated network packet (if any)
+@@ -210,11 +211,16 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
+    */
+   UnackedFrags::iterator m_firstUnackedFrag;
+   std::queue<lp::Sequence> m_ackQueue;
++  std::map<lp::Sequence, time::steady_clock::TimePoint> m_recentRecvSeqs;
++  std::queue<lp::Sequence> m_recentRecvSeqsQueue;
+   lp::Sequence m_lastTxSeqNo;
+   scheduler::ScopedEventId m_idleAckTimer;
+   ndn::util::RttEstimator m_rttEst;
+ };
+ 
++std::ostream&
++operator<<(std::ostream& os, const FaceLogHelper<LpReliability>& flh);
++
+ } // namespace face
+ } // namespace nfd
+ 
+diff --git a/daemon/face/multicast-udp-transport.cpp b/daemon/face/multicast-udp-transport.cpp
+index 5017e7dc..0ea96874 100644
+--- a/daemon/face/multicast-udp-transport.cpp
++++ b/daemon/face/multicast-udp-transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -82,7 +82,7 @@ MulticastUdpTransport::getSendQueueLength()
+ }
+ 
+ void
+-MulticastUdpTransport::doSend(const Block& packet, const EndpointId&)
++MulticastUdpTransport::doSend(const Block& packet)
+ {
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+diff --git a/daemon/face/multicast-udp-transport.hpp b/daemon/face/multicast-udp-transport.hpp
+index c85df82d..3e17dc9a 100644
+--- a/daemon/face/multicast-udp-transport.hpp
++++ b/daemon/face/multicast-udp-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -84,7 +84,7 @@ public:
+ 
+ private:
+   void
+-  doSend(const Block& packet, const EndpointId& endpoint) final;
++  doSend(const Block& packet) final;
+ 
+   void
+   doClose() final;
+diff --git a/daemon/face/null-link-service.hpp b/daemon/face/null-link-service.hpp
+index 3823d9a2..2ae26ab8 100644
+--- a/daemon/face/null-link-service.hpp
++++ b/daemon/face/null-link-service.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -37,17 +37,17 @@ class NullLinkService final : public LinkService
+ {
+ private:
+   void
+-  doSendInterest(const Interest&, const EndpointId&) final
++  doSendInterest(const Interest&) final
+   {
+   }
+ 
+   void
+-  doSendData(const Data&, const EndpointId&) final
++  doSendData(const Data&) final
+   {
+   }
+ 
+   void
+-  doSendNack(const lp::Nack&, const EndpointId&) final
++  doSendNack(const lp::Nack&) final
+   {
+   }
+ 
+diff --git a/daemon/face/null-transport.hpp b/daemon/face/null-transport.hpp
+index 303b1e8e..dc4f3b82 100644
+--- a/daemon/face/null-transport.hpp
++++ b/daemon/face/null-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -51,7 +51,7 @@ protected:
+ 
+ private:
+   void
+-  doSend(const Block&, const EndpointId&) OVERRIDE_WITH_TESTS_ELSE_FINAL
++  doSend(const Block&) OVERRIDE_WITH_TESTS_ELSE_FINAL
+   {
+   }
+ };
+diff --git a/daemon/face/stream-transport.hpp b/daemon/face/stream-transport.hpp
+index 04941b53..a6fcb748 100644
+--- a/daemon/face/stream-transport.hpp
++++ b/daemon/face/stream-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -63,7 +63,7 @@ protected:
+   deferredClose();
+ 
+   void
+-  doSend(const Block& packet, const EndpointId& endpoint) override;
++  doSend(const Block& packet) override;
+ 
+   void
+   sendFromQueue();
+@@ -180,7 +180,7 @@ StreamTransport<T>::deferredClose()
+ 
+ template<class T>
+ void
+-StreamTransport<T>::doSend(const Block& packet, const EndpointId&)
++StreamTransport<T>::doSend(const Block& packet)
+ {
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+diff --git a/daemon/face/tcp-channel.cpp b/daemon/face/tcp-channel.cpp
+index cfbaed6b..6cf50c45 100644
+--- a/daemon/face/tcp-channel.cpp
++++ b/daemon/face/tcp-channel.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -129,6 +129,7 @@ TcpChannel::createFace(ip::tcp::socket&& socket,
+                                           socket.remote_endpoint().address());
+     auto transport = make_unique<TcpTransport>(std::move(socket), params.persistency, faceScope);
+     face = make_shared<Face>(std::move(linkService), std::move(transport));
++    face->setChannel(shared_from_this()); // use weak_from_this() in C++17
+ 
+     m_channelFaces[remoteEndpoint] = face;
+     connectFaceClosedSignal(*face, [this, remoteEndpoint] { m_channelFaces.erase(remoteEndpoint); });
+diff --git a/daemon/face/transport.cpp b/daemon/face/transport.cpp
+index 7b1bb185..467843e8 100644
+--- a/daemon/face/transport.cpp
++++ b/daemon/face/transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -31,8 +31,6 @@ namespace face {
+ 
+ NFD_LOG_INIT(Transport);
+ 
+-const ssize_t Transport::MIN_MTU;
+-
+ std::ostream&
+ operator<<(std::ostream& os, TransportState state)
+ {
+@@ -91,7 +89,7 @@ Transport::close()
+ }
+ 
+ void
+-Transport::send(const Block& packet, const EndpointId& endpoint)
++Transport::send(const Block& packet)
+ {
+   BOOST_ASSERT(packet.isValid());
+   BOOST_ASSERT(this->getMtu() == MTU_UNLIMITED ||
+@@ -108,7 +106,7 @@ Transport::send(const Block& packet, const EndpointId& endpoint)
+     this->nOutBytes += packet.size();
+   }
+ 
+-  this->doSend(packet, endpoint);
++  this->doSend(packet);
+ }
+ 
+ void
+@@ -124,6 +122,22 @@ Transport::receive(const Block& packet, const EndpointId& endpoint)
+   m_service->receivePacket(packet, endpoint);
+ }
+ 
++void
++Transport::setMtu(ssize_t mtu)
++{
++  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu >= 0);
++
++  if (mtu == m_mtu) {
++    return;
++  }
++
++  if (m_mtu != MTU_INVALID) {
++    NFD_LOG_FACE_INFO("setMtu " << m_mtu << " -> " << mtu);
++  }
++
++  m_mtu = mtu;
++}
++
+ bool
+ Transport::canChangePersistencyTo(ndn::nfd::FacePersistency newPersistency) const
+ {
+diff --git a/daemon/face/transport.hpp b/daemon/face/transport.hpp
+index dd6bb413..9fb9c03a 100644
+--- a/daemon/face/transport.hpp
++++ b/daemon/face/transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -165,12 +165,11 @@ public: // upper interface
+ 
+   /** \brief Send a link-layer packet
+    *  \param packet the packet to be sent, must be a valid and well-formed TLV block
+-   *  \param endpoint the destination endpoint
+    *  \note This operation has no effect if getState() is neither UP nor DOWN
+    *  \warning Behavior is undefined if packet size exceeds the MTU limit
+    */
+   void
+-  send(const Block& packet, const EndpointId& endpoint = 0);
++  send(const Block& packet);
+ 
+ public: // static properties
+   /** \return a FaceUri representing local endpoint
+@@ -333,18 +332,10 @@ protected: // to be overridden by subclass
+ private: // to be overridden by subclass
+   /** \brief performs Transport specific operations to send a packet
+    *  \param packet the packet to be sent, can be assumed to be valid and well-formed
+-   *  \param endpoint the destination endpoint
+    *  \pre transport state is either UP or DOWN
+    */
+   virtual void
+-  doSend(const Block& packet, const EndpointId& endpoint) = 0;
+-
+-public:
+-  /** \brief minimum MTU that may be set on a transport
+-   *
+-   *  This is done to ensure the NDNLPv2 fragmentation feature functions properly.
+-   */
+-  static constexpr ssize_t MIN_MTU = 64;
++  doSend(const Block& packet) = 0;
+ 
+ private:
+   Face* m_face;
+@@ -444,13 +435,6 @@ Transport::getMtu() const
+   return m_mtu;
+ }
+ 
+-inline void
+-Transport::setMtu(ssize_t mtu)
+-{
+-  BOOST_ASSERT(mtu == MTU_UNLIMITED || mtu > 0);
+-  m_mtu = mtu;
+-}
+-
+ inline ssize_t
+ Transport::getSendQueueCapacity() const
+ {
+diff --git a/daemon/face/udp-channel.cpp b/daemon/face/udp-channel.cpp
+index 5a237584..f2ccb9c2 100644
+--- a/daemon/face/udp-channel.cpp
++++ b/daemon/face/udp-channel.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -180,10 +180,15 @@ UdpChannel::createFace(const udp::Endpoint& remoteEndpoint,
+     options.defaultCongestionThreshold = *params.defaultCongestionThreshold;
+   }
+ 
++  if (params.mtu) {
++    options.overrideMtu = *params.mtu;
++  }
++
+   auto linkService = make_unique<GenericLinkService>(options);
+   auto transport = make_unique<UnicastUdpTransport>(std::move(socket), params.persistency,
+-                                                    m_idleFaceTimeout, params.mtu);
++                                                    m_idleFaceTimeout);
+   auto face = make_shared<Face>(std::move(linkService), std::move(transport));
++  face->setChannel(shared_from_this()); // use weak_from_this() in C++17
+ 
+   m_channelFaces[remoteEndpoint] = face;
+   connectFaceClosedSignal(*face, [this, remoteEndpoint] { m_channelFaces.erase(remoteEndpoint); });
+diff --git a/daemon/face/udp-factory.cpp b/daemon/face/udp-factory.cpp
+index 54b00b17..993f61aa 100644
+--- a/daemon/face/udp-factory.cpp
++++ b/daemon/face/udp-factory.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -268,10 +268,10 @@ UdpFactory::doCreateFace(const CreateFaceRequest& req,
+     return;
+   }
+ 
+-  if (req.params.mtu && *req.params.mtu < Transport::MIN_MTU) {
++  if (req.params.mtu && *req.params.mtu < MIN_MTU) {
+     // The specified MTU must be greater than the minimum possible
+-    NFD_LOG_TRACE("createFace cannot create a face with MTU less than " << Transport::MIN_MTU);
+-    onFailure(406, "MTU cannot be less than " + to_string(Transport::MIN_MTU));
++    NFD_LOG_TRACE("createFace: override MTU cannot be less than " << MIN_MTU);
++    onFailure(406, "Override MTU cannot be less than " + to_string(MIN_MTU));
+     return;
+   }
+ 
+@@ -362,6 +362,13 @@ UdpFactory::createMulticastFace(const shared_ptr<const net::NetworkInterface>& n
+   m_mcastFaces[localEp] = face;
+   connectFaceClosedSignal(*face, [this, localEp] { m_mcastFaces.erase(localEp); });
+ 
++  // Associate with the first available channel of the same protocol family
++  auto channelIt = std::find_if(m_channels.begin(), m_channels.end(),
++                                [isV4 = localEp.address().is_v4()] (const auto& it) {
++                                  return it.first.address().is_v4() == isV4;
++                                });
++  face->setChannel(channelIt != m_channels.end() ? channelIt->second : nullptr);
++
+   return face;
+ }
+ 
+diff --git a/daemon/face/unicast-ethernet-transport.cpp b/daemon/face/unicast-ethernet-transport.cpp
+index 97e5c4e3..33e80bd5 100644
+--- a/daemon/face/unicast-ethernet-transport.cpp
++++ b/daemon/face/unicast-ethernet-transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -36,8 +36,7 @@ NFD_LOG_INIT(UnicastEthernetTransport);
+ UnicastEthernetTransport::UnicastEthernetTransport(const ndn::net::NetworkInterface& localEndpoint,
+                                                    const ethernet::Address& remoteEndpoint,
+                                                    ndn::nfd::FacePersistency persistency,
+-                                                   time::nanoseconds idleTimeout,
+-                                                   optional<ssize_t> overrideMtu)
++                                                   time::nanoseconds idleTimeout)
+   : EthernetTransport(localEndpoint, remoteEndpoint)
+   , m_idleTimeout(idleTimeout)
+ {
+@@ -46,13 +45,7 @@ UnicastEthernetTransport::UnicastEthernetTransport(const ndn::net::NetworkInterf
+   this->setScope(ndn::nfd::FACE_SCOPE_NON_LOCAL);
+   this->setPersistency(persistency);
+   this->setLinkType(ndn::nfd::LINK_TYPE_POINT_TO_POINT);
+-
+-  if (overrideMtu) {
+-    this->setMtu(std::min<ssize_t>(localEndpoint.getMtu(), *overrideMtu));
+-  }
+-  else {
+-    this->setMtu(localEndpoint.getMtu());
+-  }
++  this->setMtu(localEndpoint.getMtu());
+ 
+   NFD_LOG_FACE_DEBUG("Creating transport");
+ 
+diff --git a/daemon/face/unicast-ethernet-transport.hpp b/daemon/face/unicast-ethernet-transport.hpp
+index 63d74e9f..49c9d482 100644
+--- a/daemon/face/unicast-ethernet-transport.hpp
++++ b/daemon/face/unicast-ethernet-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -43,8 +43,7 @@ public:
+   UnicastEthernetTransport(const ndn::net::NetworkInterface& localEndpoint,
+                            const ethernet::Address& remoteEndpoint,
+                            ndn::nfd::FacePersistency persistency,
+-                           time::nanoseconds idleTimeout,
+-                           optional<ssize_t> overrideMtu = {});
++                           time::nanoseconds idleTimeout);
+ 
+ protected:
+   bool
+diff --git a/daemon/face/unicast-udp-transport.cpp b/daemon/face/unicast-udp-transport.cpp
+index a81e1d01..140f691a 100644
+--- a/daemon/face/unicast-udp-transport.cpp
++++ b/daemon/face/unicast-udp-transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -41,8 +41,7 @@ NFD_LOG_MEMBER_INIT_SPECIALIZED((DatagramTransport<boost::asio::ip::udp, Unicast
+ 
+ UnicastUdpTransport::UnicastUdpTransport(protocol::socket&& socket,
+                                          ndn::nfd::FacePersistency persistency,
+-                                         time::nanoseconds idleTimeout,
+-                                         optional<ssize_t> overrideMtu)
++                                         time::nanoseconds idleTimeout)
+   : DatagramTransport(std::move(socket))
+   , m_idleTimeout(idleTimeout)
+ {
+@@ -51,14 +50,7 @@ UnicastUdpTransport::UnicastUdpTransport(protocol::socket&& socket,
+   this->setScope(ndn::nfd::FACE_SCOPE_NON_LOCAL);
+   this->setPersistency(persistency);
+   this->setLinkType(ndn::nfd::LINK_TYPE_POINT_TO_POINT);
+-
+-  if (overrideMtu) {
+-    this->setMtu(std::min(udp::computeMtu(m_socket.local_endpoint()), *overrideMtu));
+-  }
+-  else {
+-    this->setMtu(udp::computeMtu(m_socket.local_endpoint()));
+-  }
+-  BOOST_ASSERT(this->getMtu() >= MIN_MTU);
++  this->setMtu(udp::computeMtu(m_socket.local_endpoint()));
+ 
+   NFD_LOG_FACE_DEBUG("Creating transport");
+ 
+diff --git a/daemon/face/unicast-udp-transport.hpp b/daemon/face/unicast-udp-transport.hpp
+index fdadfb90..991d5611 100644
+--- a/daemon/face/unicast-udp-transport.hpp
++++ b/daemon/face/unicast-udp-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -41,8 +41,7 @@ class UnicastUdpTransport final : public DatagramTransport<boost::asio::ip::udp,
+ public:
+   UnicastUdpTransport(protocol::socket&& socket,
+                       ndn::nfd::FacePersistency persistency,
+-                      time::nanoseconds idleTimeout,
+-                      optional<ssize_t> overrideMtu = {});
++                      time::nanoseconds idleTimeout);
+ 
+ protected:
+   bool
+diff --git a/daemon/face/unix-stream-channel.cpp b/daemon/face/unix-stream-channel.cpp
+index b60ba788..760a264a 100644
+--- a/daemon/face/unix-stream-channel.cpp
++++ b/daemon/face/unix-stream-channel.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -137,6 +137,7 @@ UnixStreamChannel::handleAccept(const boost::system::error_code& error,
+   auto linkService = make_unique<GenericLinkService>(options);
+   auto transport = make_unique<UnixStreamTransport>(std::move(m_socket));
+   auto face = make_shared<Face>(std::move(linkService), std::move(transport));
++  face->setChannel(shared_from_this()); // use weak_from_this() in C++17
+ 
+   ++m_size;
+   connectFaceClosedSignal(*face, [this] { --m_size; });
+diff --git a/daemon/face/unix-stream-factory.cpp b/daemon/face/unix-stream-factory.cpp
+index faa406c1..f024dc64 100644
+--- a/daemon/face/unix-stream-factory.cpp
++++ b/daemon/face/unix-stream-factory.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -46,7 +46,8 @@ UnixStreamFactory::doProcessConfig(OptionalConfigSection configSection,
+ {
+   // unix
+   // {
+-  //   path /var/run/nfd.sock
++  //   path /run/nfd.sock        ; on Linux
++  //   path /var/run/nfd.sock    ; on other platforms
+   // }
+ 
+   m_wantCongestionMarking = context.generalConfig.wantCongestionMarking;
+@@ -58,7 +59,11 @@ UnixStreamFactory::doProcessConfig(OptionalConfigSection configSection,
+     return;
+   }
+ 
++#ifdef __linux__
++  std::string path = "/run/nfd.sock";
++#else
+   std::string path = "/var/run/nfd.sock";
++#endif // __linux__
+ 
+   for (const auto& pair : *configSection) {
+     const std::string& key = pair.first;
+diff --git a/daemon/face/websocket-channel.cpp b/daemon/face/websocket-channel.cpp
+index a2660c6a..13f6f38c 100644
+--- a/daemon/face/websocket-channel.cpp
++++ b/daemon/face/websocket-channel.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -126,6 +126,7 @@ WebSocketChannel::handleOpen(websocketpp::connection_hdl hdl)
+   auto linkService = make_unique<GenericLinkService>();
+   auto transport = make_unique<WebSocketTransport>(hdl, m_server, m_pingInterval);
+   auto face = make_shared<Face>(std::move(linkService), std::move(transport));
++  face->setChannel(shared_from_this()); // use weak_from_this() in C++17
+ 
+   BOOST_ASSERT(m_channelFaces.count(hdl) == 0);
+   m_channelFaces[hdl] = face;
+diff --git a/daemon/face/websocket-transport.cpp b/daemon/face/websocket-transport.cpp
+index bd45711a..3ac0023f 100644
+--- a/daemon/face/websocket-transport.cpp
++++ b/daemon/face/websocket-transport.cpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -78,7 +78,7 @@ WebSocketTransport::WebSocketTransport(websocketpp::connection_hdl hdl,
+ }
+ 
+ void
+-WebSocketTransport::doSend(const Block& packet, const EndpointId&)
++WebSocketTransport::doSend(const Block& packet)
+ {
+   NFD_LOG_FACE_TRACE(__func__);
+ 
+diff --git a/daemon/face/websocket-transport.hpp b/daemon/face/websocket-transport.hpp
+index 10f4b2a9..b71206a4 100644
+--- a/daemon/face/websocket-transport.hpp
++++ b/daemon/face/websocket-transport.hpp
+@@ -1,6 +1,6 @@
+ /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+ /*
+- * Copyright (c) 2014-2019,  Regents of the University of California,
++ * Copyright (c) 2014-2020,  Regents of the University of California,
+  *                           Arizona Board of Regents,
+  *                           Colorado State University,
+  *                           University Pierre & Marie Curie, Sorbonne University,
+@@ -83,7 +83,7 @@ protected:
+ 
+ private:
+   void
+-  doSend(const Block& packet, const EndpointId& endpoint) final;
++  doSend(const Block& packet) final;
+ 
+   void
+   schedulePing();
