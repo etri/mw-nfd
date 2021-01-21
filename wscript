@@ -26,7 +26,7 @@ NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
 from waflib import Context, Logs, Utils
 import os, subprocess
 
-VERSION = '0.7.0'
+VERSION = '0.7.1'
 APPNAME = 'mw-nfd'
 BUGREPORT = 'https://redmine.named-data.net/projects/nfd'
 URL = 'https://named-data.net/doc/NFD/'
@@ -34,36 +34,35 @@ GIT_TAG_PREFIX = 'MW-NFD-'
 
 def options(opt):
     opt.load(['compiler_cxx', 'gnu_dirs'])
-    opt.load(['default-compiler-flags', 'compiler-features',
+    opt.load(['default-compiler-flags',
               'coverage', 'pch', 'sanitizers', 'boost',
               'dependency-checker', 'unix-socket', 'websocket',
               'doxygen', 'sphinx_build'],
              tooldir=['.waf-tools'])
 
-    nfdopt = opt.add_option_group('NFD Options')
+    optgrp = opt.add_option_group('NFD Options')
 
-    opt.addUnixOptions(nfdopt)
-    opt.addDependencyOptions(nfdopt, 'libresolv')
-    opt.addDependencyOptions(nfdopt, 'librt')
-    opt.addDependencyOptions(nfdopt, 'libbpf')
-    opt.addDependencyOptions(nfdopt, 'libpcap')
-    nfdopt.add_option('--without-libpcap', action='store_true', default=False,
+    opt.addUnixOptions(optgrp)
+    opt.addDependencyOptions(optgrp, 'libresolv')
+    opt.addDependencyOptions(optgrp, 'librt')
+    opt.addDependencyOptions(optgrp, 'libpcap')
+    optgrp.add_option('--without-libpcap', action='store_true', default=False,
                       help='Disable libpcap (Ethernet face support will be disabled)')
-    nfdopt.add_option('--without-systemd', action='store_true', default=False,
+    optgrp.add_option('--without-systemd', action='store_true', default=False,
                       help='Disable systemd integration')
-    opt.addWebsocketOptions(nfdopt)
+    opt.addWebsocketOptions(optgrp)
 
-    nfdopt.add_option('--with-tests', action='store_true', default=False,
+    optgrp.add_option('--with-tests', action='store_true', default=False,
                       help='Build unit tests')
-    nfdopt.add_option('--with-other-tests', action='store_true', default=False,
+    optgrp.add_option('--with-other-tests', action='store_true', default=False,
                       help='Build other tests')
-    nfdopt.add_option('--with-counters', action='store_true', default=False,
+    optgrp.add_option('--with-counters', action='store_true', default=False,
                       help='face coutnering(NDN Net Packet) Mode')
-    nfdopt.add_option('--with-nfd-org-arch', action='store_true', default=False,
+    optgrp.add_option('--with-nfd-org-arch', action='store_true', default=False,
                       help='Support NFD original Arch Mode')
-    nfdopt.add_option('--with-dual-cs', action='store_true', default=False,
+    optgrp.add_option('--with-dual-cs', action='store_true', default=False,
                       help='Build dual content store')
-    nfdopt.add_option('--with-pittoken-hash', action='store_true', default=False,
+    optgrp.add_option('--with-pittoken-hash', action='store_true', default=False,
                       help='Build pittoken hash ')
 
 PRIVILEGE_CHECK_CODE = '''
@@ -115,9 +114,7 @@ def configure(conf):
         conf.check_cfg(package='libsystemd', args=['--cflags', '--libs'],
                        uselib_store='SYSTEMD', mandatory=False)
 
-
     conf.checkDependency(name='librt', lib='rt', mandatory=False)
-    conf.checkDependency(name='libbpf', lib='bpf', mandatory=False)
     conf.checkDependency(name='libresolv', lib='resolv', mandatory=False)
 
     conf.check_cxx(msg='Checking if privilege drop/elevation is supported', mandatory=False,
@@ -160,7 +157,6 @@ def configure(conf):
     conf.define_cond('ETRI_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
     conf.define_cond('WITH_DUAL_CS', conf.env.WITH_DUAL_CS)
     conf.define_cond('WITH_PITTOKEN_HASH', conf.env.WITH_PITTOKEN_HASH)
-
     conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/mw-nfd.conf' % conf.env.SYSCONFDIR)
     # The config header will contain all defines that were added using conf.define()
     # or conf.define_cond().  Everything that was added directly to conf.env.DEFINES
@@ -228,7 +224,8 @@ def build(bld):
         target='mw-nfd.conf.sample',
         install_path='${SYSCONFDIR}/ndn',
         IF_HAVE_LIBPCAP='' if bld.env.HAVE_LIBPCAP else '; ',
-        IF_HAVE_WEBSOCKET='' if bld.env.HAVE_WEBSOCKET else '; ')
+        IF_HAVE_WEBSOCKET='' if bld.env.HAVE_WEBSOCKET else '; ',
+        UNIX_SOCKET_PATH='/run/nfd.sock' if Utils.unversioned_sys_platform() == 'linux' else '/var/run/nfd.sock')
 
     bld.install_files('${SYSCONFDIR}/ndn', 'autoconfig.conf.sample')
 
