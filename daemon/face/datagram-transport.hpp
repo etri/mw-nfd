@@ -204,7 +204,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
 
 #else
 template<class T, class U>
-    void
+void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
         const boost::system::error_code& error)
 {
@@ -223,7 +223,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
 
     std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
 
-    if(packetType>0){
+    if(packetType>0 and worker>=0){
         NDN_MSG msg;
         msg.buffer = make_shared<ndn::Buffer>(buffer, nBytesReceived);
         msg.endpoint = makeEndpointId(m_sender);

@@ -86,17 +86,11 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
     return;
   }
 
-//added by ETRI(modori)
-#ifdef ETRI_NFD_ORG_ARCH
+#if defined(ETRI_NFD_ORG_ARCH)
   auto clientSocket = make_shared<ip::tcp::socket>(getGlobalIoService());
 #else
 	int ifIndex = getIfIndex(remoteEndpoint.address().to_string().c_str());
-	if(ifIndex==0){
-		getGlobalLogger().info("TCP Connection Error {}.", remoteEndpoint.address().to_string() );
-		return;
-	}
-	getGlobalLogger().info("TcpChannel::connect: ifIndex:{}/{}", ifIndex, remoteEndpoint.address().to_string() );
-  auto clientSocket = make_shared<ip::tcp::socket>( *getGlobalIoService(ifIndex) );
+	auto clientSocket = make_shared<ip::tcp::socket>( *getGlobalIoService(ifIndex) );
 #endif
 
   auto timeoutEvent = getScheduler().schedule(timeout, [=] {
@@ -109,7 +103,7 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
   });
 }
 
-// added by ETRI(modori)
+#if !defined(ETRI_NFD_ORG_ARCH)
 void
 TcpChannel::createFaceForMwNfd(ip::tcp::socket&& socket,
                        const FaceParams& params,
@@ -146,6 +140,7 @@ TcpChannel::createFaceForMwNfd(ip::tcp::socket&& socket,
     auto transport = make_unique<TcpTransport>(std::move(socket), params.persistency, faceScope);
 
     face = make_shared<Face>(std::move(linkService), std::move(transport));
+	face->setChannel(shared_from_this()); // use weak_from_this() in C++17
 
     m_channelFaces[remoteEndpoint] = face;
     connectFaceClosedSignal(*face, [this, remoteEndpoint] { m_channelFaces.erase(remoteEndpoint); });
@@ -164,6 +159,7 @@ TcpChannel::createFaceForMwNfd(ip::tcp::socket&& socket,
   // the face so that control responses and such can be sent.
   onFaceCreated(face);
 }
+#endif
 
 void
 TcpChannel::createFace(ip::tcp::socket&& socket,
@@ -200,6 +196,8 @@ TcpChannel::createFace(ip::tcp::socket&& socket,
 
     auto transport = make_unique<TcpTransport>(std::move(socket), params.persistency, faceScope);
     face = make_shared<Face>(std::move(linkService), std::move(transport));
+
+	face->setChannel(shared_from_this()); // use weak_from_this() in C++17
 
     m_channelFaces[remoteEndpoint] = face;
     connectFaceClosedSignal(*face, [this, remoteEndpoint] { m_channelFaces.erase(remoteEndpoint); });
@@ -246,6 +244,7 @@ TcpChannel::handleAccept(const boost::system::error_code& error,
   params.persistency = ndn::nfd::FACE_PERSISTENCY_ON_DEMAND;
 
   	createFace(std::move(m_socket), params, onFaceCreated);
+
   // prepare accepting the next connection
   accept(onFaceCreated, onAcceptFailed);
 }
@@ -272,7 +271,11 @@ TcpChannel::handleConnect(const boost::system::error_code& error,
 
   NFD_LOG_CHAN_TRACE("Connected to " << socket->remote_endpoint());
 
+#if defined(ETRI_NFD_ORG_ARCH)
+	createFace(std::move(*socket), params, onFaceCreated);
+#else
   createFaceForMwNfd(std::move(*socket), params, onFaceCreated);
+#endif
 }
 
 void

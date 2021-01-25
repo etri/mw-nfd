@@ -2,16 +2,6 @@
 #include "input-thread.hpp"
 #include "common/global.hpp"
 #include "mw-nfd-global.hpp"
-//#include "common/logger.hpp"
-//#include "face/protocol-factory.hpp"
-//#include "face/unicast-udp-transport.hpp"
-//#include <boost/chrono.hpp>
-//#include <boost/algorithm/string.hpp>
-//#include <boost/asio.hpp>
-
-//#include <boost/lexical_cast.hpp>
-//#include <ndn-cxx/transport/unix-transport.hpp>
-//#include <ifaddrs.h>
 
 #if defined(__linux__)
 #include <linux/sockios.h>
@@ -52,9 +42,7 @@ void InputThread::initialize(int32_t Id, const string ifname)
 
 void InputThread::run()
 {
-    //do{
-        getGlobalIoService().run();
-    //}while(1);
+	getGlobalIoService().run();
 }
 #endif
 

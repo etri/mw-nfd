@@ -345,7 +345,7 @@ printAddedFeatures(std::ostream& os)
     std::cout << "   +-- with ETRI-DEBUG-COUNTERS." << std::endl;
 #endif
 #ifdef ETRI_NFD_ORG_ARCH
-    std::cout << "   +-- with ETRI-NFD-ARCH." << std::endl;
+    std::cout << "   +-- with ETRI-NFD-ORG-ARCH." << std::endl;
 #endif
 #ifdef WITH_DUAL_CS
     std::cout << "   +-- with WITH-DUAL-CAS." << std::endl;

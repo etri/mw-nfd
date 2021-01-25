@@ -307,7 +307,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
     while (m_receiveBufferSize - offset > 0) {
 
-        // added by ETRI(modori) on 20200525
         Block element;
         std::tie(isOk, element) = Block::fromBuffer(m_receiveBuffer + offset, m_receiveBufferSize - offset);
 

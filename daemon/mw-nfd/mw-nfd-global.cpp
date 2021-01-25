@@ -376,15 +376,12 @@ boost::asio::io_service* getGlobalIoService(int idx)
 {
     if( idx < MAX_IO_CAPA ){
         if( g_ioServiceArray[idx] != nullptr ){
-            //getGlobalLogger().info("getGlobalIoService() got IOS of {}" , idx);
             return g_ioServiceArray[idx];
         }else{
-            //getGlobalLogger().info("getGlobalIoService() got 0-Main IOS of {}" , idx );
-            return &getMainIoService();
+            return &getGlobalIoService();
         }
     }
-    //getGlobalLogger().info("getGlobalIoService() got 1-Main IOS of {}", idx);
-    return &getMainIoService();
+    return &getGlobalIoService();
 }
 
 int32_t getGlobalIwId()
@@ -411,8 +408,8 @@ int32_t getIfIndex(const char *addr)
 	char netmask[NI_MAXHOST];
 
 	if (getifaddrs(&ifaddr) == -1) {
-#ifndef ETRI_NFD_ORG_ARCH
-		getGlobalLogger().info("getifaddrs Error--------------");
+#if !defined(ETRI_NFD_ORG_ARCH)
+		std::cout << "getifaddrs Error--------------: " << addr << std::endl;
 #endif
 		return 0;
 	}
@@ -443,8 +440,12 @@ int32_t getIfIndex(const char *addr)
 				return 0;
 			}
 
+			if( !strcmp(host, "127.0.0.1"))
+				return 0;
+
 			ip::network_v4 host_v4(ip::address_v4::from_string(host), 
 					ip::address_v4::from_string(netmask));
+
 
 			ip::network_v4 addr_v4(ip::address_v4::from_string(addr), 
 					ip::address_v4::from_string(netmask));

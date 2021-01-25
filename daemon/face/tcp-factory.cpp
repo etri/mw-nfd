@@ -120,11 +120,7 @@ TcpFactory::doProcessConfig(OptionalConfigSection configSection,
   providedSchemes.insert("tcp");
 
   if (enableV4) {
-//#ifdef ETRI_NFD_ORG_ARCH
     tcp::Endpoint endpoint(ip::tcp::v4(), port);
-//#else
-    //tcp::Endpoint endpoint( boost::asio::ip::address_v4::from_string("127.0.0.1"), port);
-//#endif
 
     auto v4Channel = this->createChannel(endpoint);
     if (wantListen && !v4Channel->isListening()) {

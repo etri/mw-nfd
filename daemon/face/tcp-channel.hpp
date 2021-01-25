@@ -95,10 +95,13 @@ public:
           time::nanoseconds timeout = 8_s);
 
 private:
+#if !defined(ETRI_NFD_ORG_ARCH)
   void
   createFaceForMwNfd(boost::asio::ip::tcp::socket&& socket,
              const FaceParams& params,
              const FaceCreatedCallback& onFaceCreated);
+#endif
+
   void
   createFace(boost::asio::ip::tcp::socket&& socket,
              const FaceParams& params,
