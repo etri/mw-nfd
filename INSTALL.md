@@ -10,7 +10,7 @@ MW-NFD is built against a continuous integration system and has been tested on t
 
 ## Prerequisites
 
-- The [ndn-cxx library(=0.7.0)](https://github.com/named-data/ndn-cxx/archive/ndn-cxx-0.7.0.zip) and its dependencies  
+- The [ndn-cxx library(=0.7.1)](https://github.com/named-data/ndn-cxx/archive/ndn-cxx-0.7.1.zip) and its dependencies  
 Refer to Getting started with [ndn-cxx](https://named-data.net/doc/ndn-cxx/current/INSTALL.html) for detailed installation and running instruction.
 
 - Fast C++ logging library  
