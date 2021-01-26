@@ -42,7 +42,7 @@ std::shared_ptr<nfd::MwNfd> g_mwNfds[MW_NFD_WORKER];
 
 int g_sockMwNfdCommand[MW_NFD_WORKER];
 bool g_mwNfdCmdFlags[MW_NFD_WORKER];
-int nfdcSocket=0;
+int g_nfdcSocket=0;
 
 namespace nfd {
 
@@ -140,34 +140,27 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared
     socklen_t addr_len;
     addr_len = sizeof their;
 
-	if(nfdcSocket==0)
-		nfdcSocket = socket(PF_INET, SOCK_DGRAM, 0);
+	if(g_nfdcSocket==0)
+		g_nfdcSocket = socket(PF_INET, SOCK_DGRAM, 0);
 
-    for(i=0;i<g_forwardingWorkers;i++){
-        worker.sin_port = htons(MW_NFDC_PORT+i);
+	for(i=0;i<g_forwardingWorkers;i++){
+		worker.sin_port = htons(MW_NFDC_PORT+i);
 
-        numbytes = sendto(nfdcSocket, buf, sizeof(mw_nfdc), 0,
-                        (struct sockaddr*)&worker, sizeof(worker));
+		numbytes = sendto(g_nfdcSocket, buf, sizeof(mw_nfdc), 0,
+				(struct sockaddr*)&worker, sizeof(worker));
 
-        //if( mgr == MW_NFDC_MGR_FACE and verb == MW_NFDC_VERB_DESTROYED ){
-			numbytes = recvfrom(i, buf, sizeof(mw_nfdc), 0,
-					(struct sockaddr*)&their, &addr_len);
-			if(numbytes){
-                retval += nfdc->retval;
-                ret = nfdc->ret;
-            }
-        //}
 #if 0
-        if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE){
-			numbytes = recvfrom(i, buf, sizeof(mw_nfdc), 0,
-					(struct sockaddr*)&their, &addr_len);
-			if(numbytes){
-                retval += nfdc->retval;
-                ret = nfdc->ret;
-            }
-        }
+		numbytes = recvfrom(g_nfdcSocket, buf, sizeof(mw_nfdc), 0,
+				(struct sockaddr*)&their, &addr_len);
+
+		std::cout << "cmd rcv: " << numbytes << ", bytes." << std::endl;
+		if(numbytes){
+			retval += nfdc->retval;
+			ret = nfdc->ret;
+		}
 #endif
-    }
+	}
+	std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
     if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)
         return retval;

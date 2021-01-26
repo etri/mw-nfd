@@ -84,6 +84,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
     //    Interest::setAutoCheckParametersDigest(false);
         m_terminationSignalSet.add(SIGINT);
         m_terminationSignalSet.add(SIGTERM);
+
 #ifndef ETRI_NFD_ORG_ARCH
         m_terminationSignalSet.async_wait(bind(&MwNfd::terminate, this, _1, _2));
 #endif
@@ -97,7 +98,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
         hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_flags = AI_PASSIVE; // use my IP
-
+		std::cout << "Port Nu: " << MW_NFDC_PORT+wid << std::endl;
         if ((rv = getaddrinfo(NULL, std::to_string(MW_NFDC_PORT+wid).c_str(), &hints, &servinfo)) != 0) {
             fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         }
@@ -120,6 +121,9 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
         }
 
         fcntl(m_sockNfdcCmd, F_SETFL, O_NONBLOCK); 
+		int opt=1;
+
+		setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
 
         if (p == NULL) {
             fprintf(stderr, "listener: failed to bind socket\n");
@@ -128,7 +132,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
         freeaddrinfo(servinfo);
 
 #ifndef ETRI_NFD_ORG_ARCH
-        m_faceMonitor.onNotification.connect(bind(&MwNfd::onNotification, this, _1));
+        //m_faceMonitor.onNotification.connect(bind(&MwNfd::onNotification, this, _1));
 #endif
         m_faceMonitor.start();
     }
@@ -193,19 +197,22 @@ using ndn::nfd::CsFlagBit;
 
     struct sockaddr_storage their_addr;
     char buf[1024]={0,};
-    int numbytes;
+    int numbytes=-2;
     socklen_t addr_len;
 
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
 
     addr_len = sizeof their_addr;
+            //std::cout << "recvfrom: " << numbytes << ", on CPU: " << sched_getcpu() << std::endl;
     if ((numbytes = recvfrom(m_sockNfdcCmd, buf, sizeof(mw_nfdc) , 0,
-                    (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-        //perror("recvfrom");
+			(struct sockaddr *)&their_addr, &addr_len)) == -1) 
+	{
         return;
     }
+            std::cout << "recvfrom: " << numbytes << ", on CPU: " << sched_getcpu() << std::endl;
 
     if(numbytes>0){
+            std::cout << "recvfrom: " << numbytes << ", on CPU: " << sched_getcpu() << std::endl;
 
         if(nfdc->parameters!=nullptr and m_workerId==0){
             //getGlobalLogger().info("nfdc - MGR:{}, Verb:{}", MW_NFDC_MGR_FIELD[nfdc->mgr], MW_NFDC_VERB_FIELD[nfdc->verb]);
