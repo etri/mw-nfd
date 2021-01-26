@@ -215,9 +215,14 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
     auto b = make_shared<ndn::Buffer>(32);
     ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
     pitToken->workerId = pitEntry->m_workerId;
+#if defined(ETRI_DUAL_CS)
     pitToken->CanBePrefix = interest.getCanBePrefix();
+#endif
     auto node = pitEntry->m_nameTreeEntry->getNode();
+
+#if defined(ETRI_PITTOKEN_HASH)
     pitToken->hashValue = node->hash;
+#endif
     
   if (interest.getTag<lp::PitToken>() != nullptr) {
     Interest interest2 = interest; // make a copy to preserve tag on original packet
