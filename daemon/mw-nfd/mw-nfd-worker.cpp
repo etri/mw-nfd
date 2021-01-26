@@ -465,11 +465,11 @@ void MwNfd::runWorker()
                 cnt +=deq;
         }
 
-        //if(m_mwNfdCmd.get(m_workerId)==1){
-        if(cnt > 100){
+        if(m_mwNfdCmd.get(m_workerId)==1){
+        //if(cnt > 100){
             m_ios->poll();
             handleNfdcCommand();
-			//getMainIoService().post(boost::bind(&mw_nfd_cmd_handler::clear, &m_mwNfdCmd, m_workerId));
+			getMainIoService().post(boost::bind(&mw_nfd_cmd_handler::clear, &m_mwNfdCmd, m_workerId));
 			cnt = 0;
         }
 
