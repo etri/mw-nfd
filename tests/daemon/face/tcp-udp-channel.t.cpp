@@ -29,6 +29,8 @@
 #include "test-ip.hpp"
 #include <boost/mpl/vector.hpp>
 
+#include <iostream>
+
 namespace nfd {
 namespace face {
 namespace tests {

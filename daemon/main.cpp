@@ -24,7 +24,6 @@
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio.hpp>
-//#include <boost/asio/detail/chrono.hpp>
 
 #include <atomic>
 #include <condition_variable>
@@ -163,9 +162,8 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 void mwNfdCmdHandler(const boost::system::error_code& /*e*/,
     boost::asio::deadline_timer* t)
 {
-	//std::cout << "mwNfdCmdHandler" << std::endl;
 	nfd::g_mwNfdCmd.set();
-    t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
+    t->expires_at(t->expires_at() + boost::posix_time::milliseconds(MW_NFD_CMD_TMR));
     t->async_wait(boost::bind(mwNfdCmdHandler,
           boost::asio::placeholders::error, t));
 }
@@ -208,8 +206,8 @@ public:
     setMainIoService(mainIo);
     boost::asio::io_service* ribIo = nullptr;
 
-#ifndef ETRI_NFD_ORG_ARCH
-	boost::asio::deadline_timer t(getMainIoService(), boost::posix_time::milliseconds(5));
+#if !defined(ETRI_NFD_ORG_ARCH)
+	boost::asio::deadline_timer t(getMainIoService(), boost::posix_time::milliseconds(MW_NFD_CMD_TMR));
   	t.async_wait(boost::bind(nfd::mwNfdCmdHandler, boost::asio::placeholders::error, &t));
 #endif
 

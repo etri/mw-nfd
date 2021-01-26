@@ -242,7 +242,7 @@ lp::Sequence
 GenericLinkService::assignSequence(lp::Sequence val)
 {
     // modified by ETRI(modori) on 20201203
-#ifndef ETRI_NFD_ORG_ARCH 
+#if !defined(ETRI_NFD_ORG_ARCH)
   return m_lastSeqNo.fetch_add(val);
 #else
   return 0;
@@ -264,12 +264,9 @@ GenericLinkService::assignSequence(lp::Packet& pkt, lp::Sequence seq)
 void
 GenericLinkService::assignSequences(std::vector<lp::Packet>& pkts)
 {
-// added by ETRI(modori) on 20201203
-// modified by ETRI(modori) on 20210106
-#ifndef ETRI_NFD_ORG_ARCH 
+#if !defined(ETRI_NFD_ORG_ARCH)
     lp::Sequence begin_seq = m_lastSeqNo.fetch_add(pkts.size());
     std::for_each(pkts.begin(), pkts.end(), [this, &begin_seq] (auto& pkt) { 
-            
             this->assignSequence(pkt, begin_seq++);
           
           });

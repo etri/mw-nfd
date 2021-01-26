@@ -150,7 +150,8 @@ namespace nfd {
     static const uint32_t MQ_ARRAY_MAX_SIZE = MW_NFD_WORKER*2;
     #define CAPACITY 2*1024
 
-	#define MW_NFD_CMD 10_ms
+// unit millisecond
+	#define MW_NFD_CMD_TMR 10
 
     struct NdnTraits : public moodycamel::ConcurrentQueueDefaultTraits
     {

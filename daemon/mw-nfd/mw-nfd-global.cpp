@@ -149,15 +149,15 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared
         numbytes = sendto(nfdcSocket, buf, sizeof(mw_nfdc), 0,
                         (struct sockaddr*)&worker, sizeof(worker));
 
-        if( mgr == MW_NFDC_MGR_FACE and verb == MW_NFDC_VERB_DESTROYED ){
+        //if( mgr == MW_NFDC_MGR_FACE and verb == MW_NFDC_VERB_DESTROYED ){
 			numbytes = recvfrom(i, buf, sizeof(mw_nfdc), 0,
 					(struct sockaddr*)&their, &addr_len);
 			if(numbytes){
-                //retval += nfdc->retval;
-                //ret = nfdc->ret;
+                retval += nfdc->retval;
+                ret = nfdc->ret;
             }
-        }
-
+        //}
+#if 0
         if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE){
 			numbytes = recvfrom(i, buf, sizeof(mw_nfdc), 0,
 					(struct sockaddr*)&their, &addr_len);
@@ -166,6 +166,7 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared
                 ret = nfdc->ret;
             }
         }
+#endif
     }
 
     if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)

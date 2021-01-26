@@ -318,7 +318,7 @@ PROTECTED_WITH_TESTS_ELSE_PRIVATE:
   LpFragmenter m_fragmenter;
   LpReassembler m_reassembler;
   LpReliability m_reliability;
-  // added by ETRI(modori) on 20201203
+
 #ifdef ETRI_NFD_ORG_ARCH
   lp::Sequence m_lastSeqNo;
 #else

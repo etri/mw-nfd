@@ -168,7 +168,6 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
   unique_ptr<StrategyChoiceManager> m_strategyChoiceManager;
 
   shared_ptr<ndn::net::NetworkMonitor> m_netmon;
-  scheduler::ScopedEventId m_reloadConfigEvent;
   int8_t m_workerId;
   boost::asio::signal_set m_terminationSignalSet;
   boost::asio::signal_set m_fibSignalSet;
