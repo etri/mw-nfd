@@ -436,101 +436,23 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 
 #ifdef ETRI_PITTOKEN_HASH  // NFD original + PitToken Hash
 
-			ST_PIT_TOKEN  *pitToken;
-			auto token = data.getTag<lp::PitToken>();
-			pit::DataMatchResult pitMatches;
-			if(token!=nullptr){
-				pitToken = (ST_PIT_TOKEN *)token->data();
-				NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
-				pitMatches = m_pit.findDataExactMatch(data, pitToken->hashValue);
-			}else {
-				NFD_LOG_DEBUG("PitToken is NULL");
-				pitMatches = m_pit.findAllDataMatches(data);
-			}
-
-			// PIT match
-			if (pitMatches.size() == 0) {
-				// goto Data unsolicited pipeline
-				this->onDataUnsolicited(ingress, data);
-				return;
-			}
-			
-			// CS insert
-			m_cs.insert(data);
-
-			// when only one PIT entry is matched, trigger strategy: after receive Data
-			if (pitMatches.size() == 1) {
-				auto& pitEntry = pitMatches.front();
-
-				NFD_LOG_DEBUG("onIncomingData 1 prefix matching =" << pitEntry->getName());
-
-				// set PIT expiry timer to now
-				this->setExpiryTimer(pitEntry, 0_ms);
-
-				// trigger strategy: after receive Data
-				this->dispatchToStrategy(*pitEntry,
-					[&] (fw::Strategy& strategy) { strategy.afterReceiveData(pitEntry, ingress, data); });
-
-				// mark PIT satisfied
-				pitEntry->isSatisfied = true;
-				pitEntry->dataFreshnessPeriod = data.getFreshnessPeriod();
-
-				// Dead Nonce List insert if necessary (for out-record of inFace)
-				this->insertDeadNonceList(*pitEntry, &ingress.face);
-
-				// delete PIT entry's out-record
-				pitEntry->deleteOutRecord(ingress.face);
-			}
-			// when more than one PIT entry is matched, trigger strategy: before satisfy Interest,
-			// and send Data to all matched out faces
-			else {
-				std::set<Face*> pendingDownstreams;
-				auto now = time::steady_clock::now();
-
-				for (const auto& pitEntry : pitMatches) {
-					NFD_LOG_DEBUG("onIncomingData n prefix matching =" << pitEntry->getName());
-
-					// remember pending downstreams
-					for (const pit::InRecord& inRecord : pitEntry->getInRecords()) {
-						if (inRecord.getExpiry() > now) {
-							pendingDownstreams.insert(&inRecord.getFace());
-						}
-					}
-
-					// set PIT expiry timer to now
-					this->setExpiryTimer(pitEntry, 0_ms);
-
-					// invoke PIT satisfy callback
-					this->dispatchToStrategy(*pitEntry,
-						[&] (fw::Strategy& strategy) { strategy.beforeSatisfyInterest(pitEntry, ingress, data); });
-
-					// mark PIT satisfied
-					pitEntry->isSatisfied = true;
-					pitEntry->dataFreshnessPeriod = data.getFreshnessPeriod();
-
-					// Dead Nonce List insert if necessary (for out-record of ingress face)
-					this->insertDeadNonceList(*pitEntry, &ingress.face);
-
-					// clear PIT entry's in and out records
-					pitEntry->clearInRecords();
-					pitEntry->deleteOutRecord(ingress.face);
-				}
-
-				// foreach pending downstream
-				for (const auto& pendingDownstream : pendingDownstreams) {
-					if (pendingDownstream->getId() == ingress.face.getId() &&
-							pendingDownstream->getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) {
-						continue;
-					}
-					// goto outgoing Data pipeline
-					this->onOutgoingData(data, *pendingDownstream);
-				}
-		}
+	ST_PIT_TOKEN  *pitToken;
+	auto token = data.getTag<lp::PitToken>();
+	pit::DataMatchResult pitMatches;
+	if(token!=nullptr){
+		pitToken = (ST_PIT_TOKEN *)token->data();
+		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
+		pitMatches = m_pit.findDataExactMatch(data, pitToken->hashValue);
+	}else {
+		NFD_LOG_DEBUG("PitToken is NULL");
+		pitMatches = m_pit.findAllDataMatches(data);
+	}
 
 #else    // NFD original code 
-
   // PIT match
   pit::DataMatchResult pitMatches = m_pit.findAllDataMatches(data);
+#endif
+
   if (pitMatches.size() == 0) {
     // goto Data unsolicited pipeline
     this->onDataUnsolicited(ingress, data);
@@ -608,7 +530,6 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 			this->onOutgoingData(data, *pendingDownstream);
 		}
 	}
-#endif
 
 #else   // ETRI_DUAL_CS mode
 
