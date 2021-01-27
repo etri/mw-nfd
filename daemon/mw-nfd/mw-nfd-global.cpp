@@ -44,7 +44,19 @@ int g_sockMwNfdCommand[MW_NFD_WORKER];
 bool g_mwNfdCmdFlags[MW_NFD_WORKER];
 int g_nfdcSocket=0;
 
+
 namespace nfd {
+
+bool g_commandRxFlag = false;
+bool getCommandRx()
+{
+	return g_commandRxFlag;
+}
+void setCommandRx(bool val)
+{
+	g_commandRxFlag = val;
+}
+
 
 int g_prefixLength4Distribution;
 bool g_bulkFibTest=false;
@@ -115,11 +127,10 @@ std::shared_ptr<nfd::MwNfd> getMwNfd(int8_t wid)
 size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared_ptr<ndn::Interest> interest, 
     std::shared_ptr<ndn::nfd::ControlParameters> parameters, bool netName)
 {
-    int i, numbytes;
+    int i,numbytes;
     char buf[128]={0,};
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
     struct sockaddr_in worker, their;
-    fd_set readfds;
     size_t retval=0;
     size_t ret=0;
 
@@ -134,33 +145,33 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared
     worker.sin_family = AF_INET;
     worker.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    FD_ZERO(&readfds);
-    std::map<int, int> retMap;
-
     socklen_t addr_len;
-    addr_len = sizeof their;
 
-	if(g_nfdcSocket==0)
-		g_nfdcSocket = socket(PF_INET, SOCK_DGRAM, 0);
+	if(g_nfdcSocket==0){
+		g_nfdcSocket = socket(AF_INET, SOCK_DGRAM, 0);
+	}
+
+	addr_len = sizeof worker;
+
+	setCommandRx(true);
 
 	for(i=0;i<g_forwardingWorkers;i++){
 		worker.sin_port = htons(MW_NFDC_PORT+i);
 
 		numbytes = sendto(g_nfdcSocket, buf, sizeof(mw_nfdc), 0,
-				(struct sockaddr*)&worker, sizeof(worker));
+				(struct sockaddr*)&worker, addr_len);
 
-#if 0
+#if 1
 		numbytes = recvfrom(g_nfdcSocket, buf, sizeof(mw_nfdc), 0,
 				(struct sockaddr*)&their, &addr_len);
 
-		std::cout << "cmd rcv: " << numbytes << ", bytes." << std::endl;
 		if(numbytes){
 			retval += nfdc->retval;
 			ret = nfdc->ret;
 		}
 #endif
 	}
-	std::this_thread::sleep_for(std::chrono::milliseconds(30));
+	setCommandRx(false);
 
     if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)
         return retval;

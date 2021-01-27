@@ -45,6 +45,12 @@
 #include <boost/iostreams/stream.hpp>
 #include <ndn-cxx/transport/unix-transport.hpp>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/microsec_time_clock.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/format.hpp>
+
 #include "face/lp-reassembler.hpp"
 #include "common/city-hash.hpp"
 
@@ -91,50 +97,29 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
         m_done = false;
         m_ios = ios;
 
-        struct addrinfo hints, *servinfo, *p;
-        int rv;
+	struct sockaddr_in servaddr;
 
-        memset(&hints, 0, sizeof hints);
-        hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
-        hints.ai_socktype = SOCK_DGRAM;
-        hints.ai_flags = AI_PASSIVE; // use my IP
-		std::cout << "Port Nu: " << MW_NFDC_PORT+wid << std::endl;
-        if ((rv = getaddrinfo(NULL, std::to_string(MW_NFDC_PORT+wid).c_str(), &hints, &servinfo)) != 0) {
-            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        }
-
-        // loop through all the results and bind to the first we can
-        for(p = servinfo; p != NULL; p = p->ai_next) {
-            if ((m_sockNfdcCmd = socket(p->ai_family, p->ai_socktype,
-                            p->ai_protocol)) == -1) {
-                perror("listener: socket");
-                continue;
-            }
-
-            if (bind(m_sockNfdcCmd, p->ai_addr, p->ai_addrlen) == -1) {
-                close(m_sockNfdcCmd);
-                perror("listener: bind");
-                continue;
-            }
-
-            break;
-        }
-
+	m_sockNfdcCmd = socket(AF_INET, SOCK_DGRAM, 0);
+	memset(&servaddr, 0, sizeof(servaddr));
+	servaddr.sin_family    = AF_INET; // IPv4 
+    servaddr.sin_addr.s_addr = INADDR_ANY; 
+    servaddr.sin_port = htons(MW_NFDC_PORT+wid); 
+	if ( bind(m_sockNfdcCmd, (const struct sockaddr *)&servaddr,  
+            sizeof(servaddr)) < 0 ) 
+    { 
+        perror("bind failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+      
         fcntl(m_sockNfdcCmd, F_SETFL, O_NONBLOCK); 
-		int opt=1;
 
-		setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
-
-        if (p == NULL) {
-            fprintf(stderr, "listener: failed to bind socket\n");
-        }
-
-        freeaddrinfo(servinfo);
+		//int opt=1;
+		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
 
 #ifndef ETRI_NFD_ORG_ARCH
         //m_faceMonitor.onNotification.connect(bind(&MwNfd::onNotification, this, _1));
+        //m_faceMonitor.start();
 #endif
-        m_faceMonitor.start();
     }
 
 MwNfd::~MwNfd() = default;
@@ -195,24 +180,23 @@ void MwNfd::handleNfdcCommand()
 {
 using ndn::nfd::CsFlagBit;
 
-    struct sockaddr_storage their_addr;
+    //struct sockaddr_storage their_addr;
+	struct sockaddr_un their_addr;
     char buf[1024]={0,};
     int numbytes=-2;
     socklen_t addr_len;
 
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
+            //std::cout << __func__ << std::endl;
 
     addr_len = sizeof their_addr;
-            //std::cout << "recvfrom: " << numbytes << ", on CPU: " << sched_getcpu() << std::endl;
     if ((numbytes = recvfrom(m_sockNfdcCmd, buf, sizeof(mw_nfdc) , 0,
 			(struct sockaddr *)&their_addr, &addr_len)) == -1) 
 	{
         return;
     }
-            std::cout << "recvfrom: " << numbytes << ", on CPU: " << sched_getcpu() << std::endl;
 
     if(numbytes>0){
-            std::cout << "recvfrom: " << numbytes << ", on CPU: " << sched_getcpu() << std::endl;
 
         if(nfdc->parameters!=nullptr and m_workerId==0){
             //getGlobalLogger().info("nfdc - MGR:{}, Verb:{}", MW_NFDC_MGR_FIELD[nfdc->mgr], MW_NFDC_VERB_FIELD[nfdc->verb]);
@@ -455,13 +439,19 @@ void MwNfd::runWorker()
 
     bulk_test_case_01();
 
+#if 0
+	using boost::format;
+	using ::boost::posix_time::ptime;
+	 using ::boost::posix_time::time_duration;
+	typedef ::boost::date_time::microsec_clock< ptime > msecc_t;
+	ptime t = msecc_t::universal_time();
+#endif
     do{
         for(iw=0; iw < inputWorkers; iw+=2){
                 deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
                 for(i=0;i<deq;i++){
                     decodeNetPacketFromMq(items[i].buffer, items[i].face, items[i].endpoint);
                 }
-                cnt +=deq;
         }
 
         for(iw=0; iw < inputWorkers; iw+=2){
@@ -469,17 +459,24 @@ void MwNfd::runWorker()
                 for(i=0;i<deq;i++){
                     decodeNetPacketFromMq(items[i].buffer, items[i].face, items[i].endpoint);
                 }
-                cnt +=deq;
         }
 
-        if(m_mwNfdCmd.get(m_workerId)==1){
-        //if(cnt > 100){
-            m_ios->poll();
+		if(getCommandRx()==true)
             handleNfdcCommand();
-			getMainIoService().post(boost::bind(&mw_nfd_cmd_handler::clear, &m_mwNfdCmd, m_workerId));
+
+        if(cnt > 133000){
+            m_ios->poll();
 			cnt = 0;
         }
 
+#if 0
+		ptime cur_time = boost::posix_time::from_time_t(::time(0));
+		time_duration td = cur_time - t ;
+		if( td.total_seconds()>=1){
+			std::cout <<  td << ", cnt: " << cnt << std::endl;
+			break;
+		}	
+#endif
 		cnt +=1;
 
     }while(!m_done);

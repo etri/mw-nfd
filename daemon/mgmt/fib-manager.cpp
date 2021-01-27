@@ -82,9 +82,7 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
     return done(ControlResponse(410, "Face not found"));
   }
 
-#ifndef ETRI_NFD_ORG_ARCH
-  // added by ETRI(modori) on 20200913
-  // modified by ETRI(modori) on 20201112
+#if !defined(ETRI_NFD_ORG_ARCH)
     if( !prefix.compare( 0, 1, "localhost") ){
       fib::Entry* entry = m_fib.insert(prefix).first;
       m_fib.addOrUpdateNextHop(*entry, *face, cost);

@@ -207,7 +207,7 @@ public:
     boost::asio::io_service* ribIo = nullptr;
 
 #if !defined(ETRI_NFD_ORG_ARCH)
-	boost::asio::deadline_timer t(getMainIoService(), boost::posix_time::milliseconds(MW_NFD_CMD_TMR));
+	boost::asio::deadline_timer t(getMainIoService(), boost::posix_time::milliseconds(1));
   	t.async_wait(boost::bind(nfd::mwNfdCmdHandler, boost::asio::placeholders::error, &t));
 #endif
 
@@ -554,7 +554,7 @@ int main(int argc, char** argv)
 
     getGlobalLogger().info("");;
     //getGlobalLogger().info(" *v* Running Multi-Worker NFD Archecture...");
-    std::cout << " *v* Running NFD Original Archecture..." << std::endl;
+    std::cout << " *v* Running MW-NFD Archecture..." << std::endl;
 	nfd::printAddedFeatures(std::cout);
 
     const std::string boostBuildInfo =
