@@ -436,46 +436,19 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 
 #ifdef ETRI_PITTOKEN_HASH  // NFD original + PitToken Hash
 
-		bool isLocalhost = ingress.face.getScope() == ndn::nfd::FACE_SCOPE_LOCAL;
-
-		if (!isLocalhost) {
-			std::shared_ptr<pit::Entry> pitEntry;
 			ST_PIT_TOKEN  *pitToken;
 			auto token = data.getTag<lp::PitToken>();
+			pit::DataMatchResult pitMatches;
 			if(token!=nullptr){
 				pitToken = (ST_PIT_TOKEN *)token->data();
 				NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
-				pitEntry = m_pit.findDataExactMatch(data, pitToken->hashValue);
+				pitMatches = m_pit.findDataExactMatch(data, pitToken->hashValue);
 			}else {
 				NFD_LOG_DEBUG("PitToken is NULL");
+				pitMatches = m_pit.findAllDataMatches(data);
 			}
 
-			m_cs.insert(data);
-			
-			NFD_LOG_DEBUG("onIncomingData PitToken Hash exact matching =" << pitEntry->getName());
-
-			// set PIT expiry timer to now
-			this->setExpiryTimer(pitEntry, 0_ms);
-
-			// trigger strategy: after receive Data
-			this->dispatchToStrategy(*pitEntry,
-				[&] (fw::Strategy& strategy) { strategy.afterReceiveData(pitEntry, ingress, data); });
-
-			// mark PIT satisfied
-			pitEntry->isSatisfied = true;
-			pitEntry->dataFreshnessPeriod = data.getFreshnessPeriod();
-
-			// Dead Nonce List insert if necessary (for out-record of ingress face)
-			this->insertDeadNonceList(*pitEntry, &ingress.face);
-
-			// delete PIT entry's out-record
-			pitEntry->deleteOutRecord(ingress.face);
-
-			return;
-		}  else {// local host case
-
 			// PIT match
-			pit::DataMatchResult pitMatches = m_pit.findAllDataMatches(data);
 			if (pitMatches.size() == 0) {
 				// goto Data unsolicited pipeline
 				this->onDataUnsolicited(ingress, data);
@@ -552,7 +525,6 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 					// goto outgoing Data pipeline
 					this->onOutgoingData(data, *pendingDownstream);
 				}
-			}
 		}
 
 #else    // NFD original code 
@@ -640,98 +612,91 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 
 #else   // ETRI_DUAL_CS mode
 
-		bool isCanBePrefix = 1;
-		bool isLocalhost = ingress.face.getScope() == ndn::nfd::FACE_SCOPE_LOCAL;
+	bool isCanBePrefix = 1;
 #ifdef ETRI_PITTOKEN_HASH  
-		size_t hashValue = 0;
+	size_t hashValue = 0;
 #endif
 
-		ST_PIT_TOKEN  *pitToken;
+	ST_PIT_TOKEN  *pitToken;
 
-		if (!isLocalhost) {
-			auto token = data.getTag<lp::PitToken>();
-			if(token!=nullptr){
-				pitToken = (ST_PIT_TOKEN *)token->data();
-				NFD_LOG_DEBUG("CanBePrefix: " << pitToken->CanBePrefix );
-				isCanBePrefix = pitToken->CanBePrefix;
+	auto token = data.getTag<lp::PitToken>();
+	if(token!=nullptr){
+		pitToken = (ST_PIT_TOKEN *)token->data();
+		NFD_LOG_DEBUG("CanBePrefix: " << pitToken->CanBePrefix );
+		isCanBePrefix = pitToken->CanBePrefix;
 #ifdef ETRI_PITTOKEN_HASH   // Dual_CS and PitToken hash exact match
-				NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
-				hashValue = pitToken->hashValue;
+		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
+		hashValue = pitToken->hashValue;
 #endif
-			}else {
-				NFD_LOG_DEBUG("PitToken is NULL");
-			}
-		}
+	}
+
+	pit::DataMatchResult pitMatches;
 
 	if(!isCanBePrefix) {  // DUAL_CS and exact match
-
-		std::shared_ptr<pit::Entry> pitEntry;
-
-		if (!isLocalhost) {
 #ifdef ETRI_PITTOKEN_HASH  
-			pitEntry = m_pit.findDataExactMatch(data, hashValue);
+		pitMatches = m_pit.findDataExactMatch(data, hashValue);
 #else
-			pitEntry = m_pit.findDataExactMatch(data);
+		pitMatches = m_pit.findDataExactMatch(data);
 #endif
-		} else {
-			pitEntry = m_pit.findDataExactMatch(data);
-		}
-
-		if(pitEntry == nullptr) {
-	  	NFD_LOG_DEBUG("onIncomingData --->  unsolicited name = " << data.getName());
-			this->onDataUnsolicited(ingress, data);
-			return;
-		}
-
-  	m_cs.insert(data);
-		
-    NFD_LOG_DEBUG("onIncomingData exact matching =" << pitEntry->getName());
-
-
-    // set PIT expiry timer to now
-    this->setExpiryTimer(pitEntry, 0_ms);
-
-    // trigger strategy: after receive Data
-    this->dispatchToStrategy(*pitEntry,
-      [&] (fw::Strategy& strategy) { strategy.afterReceiveData(pitEntry, ingress, data); });
-
-    // mark PIT satisfied
-    pitEntry->isSatisfied = true;
-    pitEntry->dataFreshnessPeriod = data.getFreshnessPeriod();
-
-    // Dead Nonce List insert if necessary (for out-record of ingress face)
-    this->insertDeadNonceList(*pitEntry, &ingress.face);
-
-    // delete PIT entry's out-record
-    pitEntry->deleteOutRecord(ingress.face);
-
-		return;
-
 	} else {  // DUAL_CS and prefix match
-
 		// PIT match
-		pit::DataMatchResult pitMatches = m_pit.findAllDataMatches(data);
-		if (pitMatches.size() == 0) {
-			// goto Data unsolicited pipeline
-			this->onDataUnsolicited(ingress, data);
-			return;
-		}
-		
-		// CS insert
-		m_cs.insert(data);
+		pitMatches = m_pit.findAllDataMatches(data);
+	}
 
-		// when only one PIT entry is matched, trigger strategy: after receive Data
-		if (pitMatches.size() == 1) {
-			auto& pitEntry = pitMatches.front();
+	if (pitMatches.size() == 0) {
+		// goto Data unsolicited pipeline
+		this->onDataUnsolicited(ingress, data);
+		return;
+	}
+	
+	// CS insert
+	m_cs.insert(data);
 
-			NFD_LOG_DEBUG("onIncomingData 1 prefix matching =" << pitEntry->getName());
+	// when only one PIT entry is matched, trigger strategy: after receive Data
+	if (pitMatches.size() == 1) {
+		auto& pitEntry = pitMatches.front();
+
+		NFD_LOG_DEBUG("onIncomingData 1 prefix matching =" << pitEntry->getName());
+
+		// set PIT expiry timer to now
+		this->setExpiryTimer(pitEntry, 0_ms);
+
+		// trigger strategy: after receive Data
+		this->dispatchToStrategy(*pitEntry,
+			[&] (fw::Strategy& strategy) { strategy.afterReceiveData(pitEntry, ingress, data); });
+
+		// mark PIT satisfied
+		pitEntry->isSatisfied = true;
+		pitEntry->dataFreshnessPeriod = data.getFreshnessPeriod();
+
+		// Dead Nonce List insert if necessary (for out-record of ingress face)
+		this->insertDeadNonceList(*pitEntry, &ingress.face);
+
+		// delete PIT entry's out-record
+		pitEntry->deleteOutRecord(ingress.face);
+	}
+	// when more than one PIT entry is matched, trigger strategy: before satisfy Interest,
+	// and send Data to all matched out faces
+	else {
+		std::set<Face*> pendingDownstreams;
+		auto now = time::steady_clock::now();
+
+		for (const auto& pitEntry : pitMatches) {
+			NFD_LOG_DEBUG("onIncomingData n prefix matching =" << pitEntry->getName());
+
+			// remember pending downstreams
+			for (const pit::InRecord& inRecord : pitEntry->getInRecords()) {
+				if (inRecord.getExpiry() > now) {
+					pendingDownstreams.insert(&inRecord.getFace());
+				}
+			}
 
 			// set PIT expiry timer to now
 			this->setExpiryTimer(pitEntry, 0_ms);
 
-			// trigger strategy: after receive Data
+			// invoke PIT satisfy callback
 			this->dispatchToStrategy(*pitEntry,
-				[&] (fw::Strategy& strategy) { strategy.afterReceiveData(pitEntry, ingress, data); });
+				[&] (fw::Strategy& strategy) { strategy.beforeSatisfyInterest(pitEntry, ingress, data); });
 
 			// mark PIT satisfied
 			pitEntry->isSatisfied = true;
@@ -740,56 +705,21 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 			// Dead Nonce List insert if necessary (for out-record of ingress face)
 			this->insertDeadNonceList(*pitEntry, &ingress.face);
 
-			// delete PIT entry's out-record
+			// clear PIT entry's in and out records
+			pitEntry->clearInRecords();
 			pitEntry->deleteOutRecord(ingress.face);
 		}
-		// when more than one PIT entry is matched, trigger strategy: before satisfy Interest,
-		// and send Data to all matched out faces
-		else {
-			std::set<Face*> pendingDownstreams;
-			auto now = time::steady_clock::now();
 
-			for (const auto& pitEntry : pitMatches) {
-				NFD_LOG_DEBUG("onIncomingData n prefix matching =" << pitEntry->getName());
-
-				// remember pending downstreams
-				for (const pit::InRecord& inRecord : pitEntry->getInRecords()) {
-					if (inRecord.getExpiry() > now) {
-						pendingDownstreams.insert(&inRecord.getFace());
-					}
-				}
-
-				// set PIT expiry timer to now
-				this->setExpiryTimer(pitEntry, 0_ms);
-
-				// invoke PIT satisfy callback
-				this->dispatchToStrategy(*pitEntry,
-					[&] (fw::Strategy& strategy) { strategy.beforeSatisfyInterest(pitEntry, ingress, data); });
-
-				// mark PIT satisfied
-				pitEntry->isSatisfied = true;
-				pitEntry->dataFreshnessPeriod = data.getFreshnessPeriod();
-
-				// Dead Nonce List insert if necessary (for out-record of ingress face)
-				this->insertDeadNonceList(*pitEntry, &ingress.face);
-
-				// clear PIT entry's in and out records
-				pitEntry->clearInRecords();
-				pitEntry->deleteOutRecord(ingress.face);
+		// foreach pending downstream
+		for (const auto& pendingDownstream : pendingDownstreams) {
+			if (pendingDownstream->getId() == ingress.face.getId() &&
+					pendingDownstream->getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) {
+				continue;
 			}
-
-			// foreach pending downstream
-			for (const auto& pendingDownstream : pendingDownstreams) {
-				if (pendingDownstream->getId() == ingress.face.getId() &&
-						pendingDownstream->getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) {
-					continue;
-				}
-				// goto outgoing Data pipeline
-				this->onOutgoingData(data, *pendingDownstream);
-			}
+			// goto outgoing Data pipeline
+			this->onOutgoingData(data, *pendingDownstream);
 		}
 	}
-
 #endif
 }
 

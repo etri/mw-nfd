@@ -311,7 +311,6 @@ BOOST_AUTO_TEST_CASE(ClearStrategyInfo)
   measurements.get("/A").insertStrategyInfo<PStrategyInfo>();
   measurements.get("/A/B").insertStrategyInfo<PStrategyInfo>();
   measurements.get("/A/C").insertStrategyInfo<PStrategyInfo>();
-
   BOOST_CHECK(sc.insert("/A/B", strategyNameP));
   // { '/'=>P, '/A/B'=>P }
   BOOST_CHECK(measurements.get("/").getStrategyInfo<PStrategyInfo>() != nullptr);

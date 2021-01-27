@@ -115,6 +115,8 @@ public:
 #endif
   }
 
+
+#ifndef ETRI_DUAL_CS
   /** \brief get number of stored packets
    */
   size_t
@@ -123,7 +125,13 @@ public:
     return m_table.size();
   }
 
-#ifdef ETRI_DUAL_CS
+#else
+  size_t
+  size() const
+  {
+    return m_tableExact.size();
+  }
+
   size_t
   sizeExact() const
   {
@@ -202,17 +210,33 @@ public: // enumeration
   using const_iterator = Table::const_iterator;
   using const_iterator_exact = TableExact::const_iterator;
 
+#ifndef ETRI_DUAL_CS
   const_iterator
   begin() const
   {
     return m_table.begin();
+	}
+#else
+  const_iterator_exact
+  begin() const
+  {
+    return m_tableExact.begin();
   }
+#endif
 
+#ifndef ETRI_DUAL_CS
   const_iterator
   end() const
   {
     return m_table.end();
   }
+#else
+  const_iterator_exact
+  end() const
+  {
+    return m_tableExact.end();
+	}
+#endif
 
 private:
   std::pair<const_iterator, const_iterator>

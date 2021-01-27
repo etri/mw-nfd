@@ -31,7 +31,7 @@ namespace nfd {
 namespace cs {
 namespace tests {
 
-#if 0
+#ifndef ETRI_DUAL_CS
 
 BOOST_AUTO_TEST_SUITE(Table)
 BOOST_AUTO_TEST_SUITE(TestCsPriorityFifo)
