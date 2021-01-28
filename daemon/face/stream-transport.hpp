@@ -202,7 +202,7 @@ StreamTransport<T>::doSend(const Block& packet)
 		sendFromQueue();
 	}
 #else
-	int rv = m_socket.send(boost::asio::buffer(packet));
+	m_socket.send(boost::asio::buffer(packet));
   //boost::asio::async_write(m_socket, boost::asio::buffer(packet),
                            //[this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
 #endif

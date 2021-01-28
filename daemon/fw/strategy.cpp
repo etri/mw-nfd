@@ -218,9 +218,9 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
 #if defined(ETRI_DUAL_CS)
     pitToken->CanBePrefix = interest.getCanBePrefix();
 #endif
-    auto node = pitEntry->m_nameTreeEntry->getNode();
 
 #if defined(ETRI_PITTOKEN_HASH)
+    auto node = pitEntry->m_nameTreeEntry->getNode();
     pitToken->hashValue = node->hash;
 #endif
     
