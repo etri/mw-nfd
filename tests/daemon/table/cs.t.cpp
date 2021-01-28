@@ -50,6 +50,7 @@ BOOST_AUTO_TEST_CASE(ExactName)
   CHECK_CS_FIND(2);
 }
 
+#ifndef ETRI_DUAL_CS
 BOOST_AUTO_TEST_CASE(ExactName_CanBePrefix)
 {
   insert(1, "/");
@@ -62,14 +63,17 @@ BOOST_AUTO_TEST_CASE(ExactName_CanBePrefix)
     .setCanBePrefix(true);
   CHECK_CS_FIND(2);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(FullName)
 {
   Name n1 = insert(1, "/A");
   Name n2 = insert(2, "/A");
 
+#ifndef ETRI_DUAL_CS
   startInterest(n1);
   CHECK_CS_FIND(1);
+#endif
 
   startInterest(n2);
   CHECK_CS_FIND(2);
@@ -80,13 +84,16 @@ BOOST_AUTO_TEST_CASE(FullName_EmptyDataName)
   Name n1 = insert(1, "/");
   Name n2 = insert(2, "/");
 
+#ifndef ETRI_DUAL_CS
   startInterest(n1);
   CHECK_CS_FIND(1);
+#endif
 
   startInterest(n2);
   CHECK_CS_FIND(2);
 }
 
+#ifndef ETRI_DUAL_CS
 BOOST_AUTO_TEST_CASE(PrefixName)
 {
   insert(1, "/A");
@@ -100,6 +107,7 @@ BOOST_AUTO_TEST_CASE(PrefixName)
     .setCanBePrefix(true);
   CHECK_CS_FIND(2);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(PrefixName_NoCanBePrefix)
 {
@@ -118,6 +126,7 @@ BOOST_AUTO_TEST_CASE(MustBeFresh)
 
   // lookup at exact same moment as insertion is not tested because this won't happen in reality
 
+#ifndef ETRI_DUAL_CS
   advanceClocks(500_ms); // @500ms
   startInterest("/A/3")
     .setCanBePrefix(true)
@@ -141,10 +150,32 @@ BOOST_AUTO_TEST_CASE(MustBeFresh)
     .setCanBePrefix(true)
     .setMustBeFresh(true);
   CHECK_CS_FIND(0);
+#else
+  advanceClocks(500_ms); // @500ms
+  startInterest("/A/3")
+    .setMustBeFresh(true);
+  CHECK_CS_FIND(3);
+
+  advanceClocks(1500_ms); // @2s
+  startInterest("/A/4")
+    .setMustBeFresh(true);
+  CHECK_CS_FIND(4);
+
+  advanceClocks(3500_s); // @3502s
+  startInterest("/A/4")
+    .setMustBeFresh(true);
+  CHECK_CS_FIND(4);
+
+  advanceClocks(3500_s); // @7002s
+  startInterest("/A/1")
+    .setMustBeFresh(true);
+  CHECK_CS_FIND(0);
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END() // Find
 
+#ifndef ETRI_DUAL_CS
 BOOST_AUTO_TEST_CASE(Erase)
 {
   insert(1, "/A/B/1");
@@ -176,6 +207,7 @@ BOOST_AUTO_TEST_CASE(Erase)
   BOOST_CHECK_EQUAL(erase("/F", 2), 0);
   BOOST_CHECK_EQUAL(cs.size(), 2);
 }
+#endif
 
 // When the capacity limit is set to zero, Data cannot be inserted;
 // this test case covers this situation.
@@ -245,11 +277,13 @@ BOOST_AUTO_TEST_CASE(Enumeration)
   Name nameABC("/A/B/C");
   Name nameD("/D");
 
+  BOOST_CHECK_EQUAL(cs.getLimit(), 10);
   BOOST_CHECK_EQUAL(cs.size(), 0);
   BOOST_CHECK(cs.begin() == cs.end());
 
   insert(123, nameABC);
   BOOST_CHECK_EQUAL(cs.size(), 1);
+
   BOOST_CHECK(cs.begin() != cs.end());
   BOOST_CHECK(cs.begin()->getName() == nameABC);
   BOOST_CHECK((*cs.begin()).getName() == nameABC);
@@ -270,6 +304,7 @@ BOOST_AUTO_TEST_CASE(Enumeration)
     actual.insert(csEntry.getName());
   }
   BOOST_CHECK_EQUAL_COLLECTIONS(actual.begin(), actual.end(), expected.begin(), expected.end());
+
 }
 
 BOOST_AUTO_TEST_SUITE_END() // TestCs

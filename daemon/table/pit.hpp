@@ -89,12 +89,12 @@ public:
   findPitEntry(uint64_t);
 
 #ifdef ETRI_DUAL_CS 
-  shared_ptr<Entry>
+  DataMatchResult
   findDataExactMatch(const Data& data) const;
 #endif
 
 #ifdef ETRI_PITTOKEN_HASH
-  shared_ptr<Entry>
+  DataMatchResult
   findDataExactMatch(const Data& data, size_t hash) const;
 #endif
 

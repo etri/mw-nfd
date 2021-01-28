@@ -43,40 +43,6 @@ NameTree::NameTree(size_t nBuckets)
 {
 }
 
-#ifdef ETRI_DUAL_CS
-Entry&
-NameTree::lookup(const Name& name, size_t prefixLen)
-{
-  NFD_LOG_TRACE("lookup(" << name << ", " << prefixLen << ')');
-  BOOST_ASSERT(prefixLen <= name.size());
-  BOOST_ASSERT(prefixLen <= getMaxDepth());
-
-  HashSequence hashes = computeHashes(name, prefixLen);
-  bool isNew = false;
-  const Node* target= nullptr;
-  const Node* child= nullptr;
-
-  for (size_t i = 0; i <= prefixLen; i++) {
-    const Node* node = nullptr;
-  	isNew = false;          
-    std::tie(node, isNew) = m_ht.insert(name, prefixLen -i, hashes);
-		if(i == 0) {
-			target = node;
-			if(prefixLen == 0) { // root
-				break;
-			}
-		} else {
-			child->entry.setParent(node->entry);	
-			if(!isNew) {
-				break;
-			}
-		}
-		child = node;
-  }
-  return target->entry; 
-} 
-
-#else 
 Entry&
 NameTree::lookup(const Name& name, size_t prefixLen)
 {
@@ -99,7 +65,6 @@ NameTree::lookup(const Name& name, size_t prefixLen)
   }
   return node->entry;
 }
-#endif
 
 #ifdef ETRI_PITTOKEN_HASH
 Entry*

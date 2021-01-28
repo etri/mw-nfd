@@ -81,9 +81,11 @@ Cs::insert(const Data& data, bool isUnsolicited)
 			entry.clearUnsolicited();
 		}
 		m_policy->afterRefresh(it);
+		NFD_LOG_DEBUG("insert -> afterRefresh" );
 	}
 	else {
 		m_policy->afterInsert(it);
+		NFD_LOG_DEBUG("insert -> afterInsert" );
 	}
 
 #else
@@ -127,12 +129,14 @@ Cs::insert(const Data& data, bool isUnsolicited)
 			if (entry.isUnsolicited() && !isUnsolicited) {
 				entry.clearUnsolicited();
 			}
-			m_policy->afterRefreshExact(it);
-			//NFD_LOG_DEBUG("insert -> afterRefresh" );
+			m_tableExact.erase(it);
+	  	std::tie(it, isNewEntry) = m_tableExact.emplace(data.shared_from_this(), isUnsolicited);
+			m_policy->afterInsertExact(it);
+			NFD_LOG_DEBUG("replace -> afterInsert" );
 		}
 		else {
 			m_policy->afterInsertExact(it);
-			//NFD_LOG_DEBUG("insert -> afterInsert" );
+			NFD_LOG_DEBUG("insert -> afterInsert" );
 		}
 	}
 #endif
@@ -159,22 +163,44 @@ Cs::findImplExact(const Interest& interest) const
     return m_tableExact.end();
   }
 
-  auto data = make_shared<Data>(interest.getName());
-  const Entry entry(data, false);
-  auto match = m_tableExact.find(entry);
+	const Name& interestName =interest.getName();
 
-  if (match == m_tableExact.end()) {
-    NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
-    return m_tableExact.end();
-  }
-  if (!match->canSatisfy(interest)) {
-    NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-canSatisfy");
-    return m_tableExact.end();
-  }
+	if(interestName.get(-1).isImplicitSha256Digest()) {
+		const Name& prefix = interestName.getPrefix(-1);
+  	NFD_LOG_DEBUG("findImplExact find name = " << prefix);
+  	auto data = make_shared<Data>(prefix);
+		const Entry entry(data, false);
+		auto match = m_tableExact.find(entry);
 
-  NFD_LOG_DEBUG("findImplExact " << interest.getName() << " matching ");
-  m_policy->beforeUseExact(match);
-  return match;
+		if (match == m_tableExact.end()) {
+			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
+			return m_tableExact.end();
+		}
+		if (!match->canSatisfy(interest)) {
+			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-canSatisfy");
+			return m_tableExact.end();
+  	}
+		NFD_LOG_DEBUG("findImplExact " << interest.getName() << " matching ");
+		m_policy->beforeUseExact(match);
+		return match;
+	} else {
+  	auto data = make_shared<Data>(interest.getName());
+		const Entry entry(data, false);
+		auto match = m_tableExact.find(entry);
+
+		if (match == m_tableExact.end()) {
+			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
+			return m_tableExact.end();
+		}
+		if (!match->canSatisfy(interest)) {
+			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-canSatisfy");
+			return m_tableExact.end();
+  	}
+		NFD_LOG_DEBUG("findImplExact " << interest.getName() << " matching ");
+		m_policy->beforeUseExact(match);
+		return match;
+	}
+
 }
 
 size_t
