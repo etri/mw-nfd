@@ -1,26 +1,20 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
- *                           Arizona Board of Regents,
- *                           Colorado State University,
- *                           University Pierre & Marie Curie, Sorbonne University,
- *                           Washington University in St. Louis,
- *                           Beijing Institute of Technology,
- *                           The University of Memphis.
+ * Copyright (c) 2019-2021,  HII of ETRI.
  *
- * This file is part of NFD (Named Data Networking Forwarding Daemon).
+ * This file is part of MW-NFD (Named Data Networking Forwarding Daemon).
  * See AUTHORS.md for complete list of NFD authors and contributors.
  *
- * NFD is free software: you can redistribute it and/or modify it under the terms
+ * MW-NFD is free software: you can redistribute it and/or modify it under the terms
  * of the GNU General Public License as published by the Free Software Foundation,
  * either version 3 of the License, or (at your option) any later version.
  *
- * NFD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * MW-NFD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
  * PURPOSE.  See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with
- * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
+ * MW-NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdlib.h>
@@ -44,17 +38,21 @@ int g_sockMwNfdCommand[MW_NFD_WORKER];
 bool g_mwNfdCmdFlags[MW_NFD_WORKER];
 int g_nfdcSocket=0;
 
-
 namespace nfd {
 
-bool g_commandRxFlag = false;
-bool getCommandRx()
+bool g_commandRxFlag[128];
+void resetCommandRx()
 {
-	return g_commandRxFlag;
+	for(int i=0;i<128;i++)
+		g_commandRxFlag[i]=false;
 }
-void setCommandRx(bool val)
+bool getCommandRx(size_t idx)
 {
-	g_commandRxFlag = val;
+	return g_commandRxFlag[idx];
+}
+void setCommandRx(size_t idx, bool val)
+{
+	g_commandRxFlag[idx] = val;
 }
 
 
@@ -124,28 +122,22 @@ std::shared_ptr<nfd::MwNfd> getMwNfd(int8_t wid)
 		return g_mwNfds[wid];
 }
 
-size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared_ptr<ndn::Interest> interest, 
-    std::shared_ptr<ndn::nfd::ControlParameters> parameters, bool netName)
+size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,// std::shared_ptr<ndn::Interest> interest, 
+    //std::shared_ptr<ndn::nfd::ControlParameters> parameters, bool netName)
+    ndn::nfd::ControlParameters parameters, bool netName)
 {
     int i,numbytes;
-    char buf[128]={0,};
+    char buf[MW_NFD_CMD_BUF_SIZE]={0,};
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
     struct sockaddr_in worker, their;
     size_t retval=0;
     size_t ret=0;
 
-    nfdc->mgr = mgr;
-    nfdc->verb = verb;
-    nfdc->ret = MW_NFDC_CMD_OK;
-    nfdc->netName = netName;
-    nfdc->interest = interest;
-    nfdc->parameters = parameters;
+	memset(&worker, 0, sizeof(worker));
+	worker.sin_family = AF_INET;
+	worker.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    memset(&worker, 0, sizeof(worker));
-    worker.sin_family = AF_INET;
-    worker.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-    socklen_t addr_len;
+	socklen_t addr_len;
 
 	if(g_nfdcSocket==0){
 		g_nfdcSocket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -153,30 +145,41 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb, std::shared
 
 	addr_len = sizeof worker;
 
-	setCommandRx(true);
+	auto params = make_shared<ndn::nfd::ControlParameters>(parameters);
 
 	for(i=0;i<g_forwardingWorkers;i++){
 		worker.sin_port = htons(MW_NFDC_PORT+i);
 
-		numbytes = sendto(g_nfdcSocket, buf, sizeof(mw_nfdc), 0,
+		nfdc->mgr = mgr;
+		nfdc->verb = verb;
+		nfdc->ret = MW_NFDC_CMD_OK;
+		nfdc->netName = netName;
+		nfdc->parameters = params;
+
+		numbytes = sendto(g_nfdcSocket, buf, sizeof(buf), 0,
 				(struct sockaddr*)&worker, addr_len);
 
-#if 1
-		numbytes = recvfrom(g_nfdcSocket, buf, sizeof(mw_nfdc), 0,
-				(struct sockaddr*)&their, &addr_len);
+		setCommandRx(i, true);
+		if( numbytes == sizeof(buf)){
+			memset(buf, '\0', sizeof(buf));
+			numbytes = 0;
+			numbytes = recvfrom(g_nfdcSocket, buf, sizeof(buf), 0,
+					(struct sockaddr*)&their, &addr_len);
 
-		if(numbytes){
-			retval += nfdc->retval;
-			ret = nfdc->ret;
-		}
-#endif
+			if(numbytes){
+				retval += nfdc->retval;
+				ret = nfdc->ret;
+			}
+		}else
+			getGlobalLogger().info("mgmt::Can't send worker:{} command", i);
+
+		setCommandRx(i, false);
 	}
-	setCommandRx(false);
 
-    if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)
-        return retval;
+	if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)
+		return retval;
 
-    return ret;
+	return ret;
 }
 
 int32_t computeWorkerId(const uint8_t *wire, size_t size)
@@ -286,7 +289,6 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 
         }while(pos!=end);  
 
-#if 1
             if(packetType != tlv::Interest and pitToken!=-1){
                 worker = pitToken; 
                 if(count>0)
@@ -300,11 +302,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
                         g_fragmentMap.erase(seq-index);
                 }
             }
-#endif
-
     }else{
-
-
         ret = tlv::readType(pos, end, packetType);  
         ret = tlv::readVarNumber(pos, end, length);  
 
@@ -313,11 +311,9 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
         if(type == tlv::Name){   
             worker=computeWorkerId(pos, length);  
         }  
-
     }
     return std::make_tuple(packetType, worker);
 }
-
 
 int get_interface_number_by_device_name(int socket_fd, std::string interface_name) {
     struct ifreq ifr;
@@ -357,17 +353,7 @@ void mq_allocation()
 
 thread_local int32_t g_iwId;
 
-#if 0
-static unique_ptr<ForwarderCounters> g_counters;
-
-static size_t g_fibEntries;
-static size_t g_csEntries;
-static size_t g_mtEntries;
-static size_t g_nteEntries;
-static size_t g_pitEntries;
-#endif
-
-#ifndef ETRI_NFD_ORG_ARCH
+#if !defined(ETRI_NFD_ORG_ARCH)
 static shared_ptr<spdlog::logger> g_logService=nullptr;
 #endif
 
@@ -476,7 +462,7 @@ void setForwardingWorkers(int8_t cap)
     g_forwardingWorkers = cap;
 }
 
-#ifndef ETRI_NFD_ORG_ARCH
+#if !defined(ETRI_NFD_ORG_ARCH)
 spdlog::logger& getGlobalLogger()
 {
     return *g_logService;
@@ -494,16 +480,6 @@ shared_ptr<spdlog::logger> makeGlobalLogger(std::string path)
     return g_logService;
 }
 #endif
-
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
 
 } // namespace mw-nfd
 

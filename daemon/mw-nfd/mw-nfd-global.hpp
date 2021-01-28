@@ -1,7 +1,7 @@
 
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2019-2021,  HII of ETRI,
+ * Copyright (c) 2019-2021,  HII of ETRI.
  *
  * This file is part of MW-NFD (Named Data Networking Multi-Worker Forwarding Daemon).
  * See README.md for complete list of NFD authors and contributors.
@@ -131,6 +131,7 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
     "Config",
     "Erase",
     "Status"
+    "Destroy",
 };
 #endif
 
@@ -152,6 +153,7 @@ namespace nfd {
 
 // unit millisecond
 	#define MW_NFD_CMD_TMR 10
+	#define MW_NFD_CMD_BUF_SIZE 128
 
     struct NdnTraits : public moodycamel::ConcurrentQueueDefaultTraits
     {
@@ -173,14 +175,14 @@ namespace nfd {
 	std::string getBulkFibFilePath();
 	bool getBulkFibTest();
 
-    size_t emitMwNfdcCommand(int, int, int,std::shared_ptr<ndn::Interest>, std::shared_ptr<ndn::nfd::ControlParameters>, bool);
+    size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters, bool);
 
     typedef struct st_ndn_msg {
         std::shared_ptr<ndn::Buffer> buffer;
         std::shared_ptr<ndn::Interest> interest;
         std::shared_ptr<ndn::Data> data;
         nfd::face::EndpointId endpoint;
-        nfd::face::Face *face;
+		size_t faceId;
         uint32_t iwId;
         uint32_t type; //Buffer(0), Interest(1), Data(2)
     }NDN_MSG;
@@ -223,11 +225,10 @@ void setGlobalIoService(int, boost::asio::io_service*);
 int32_t getGlobalIwId();
 void setGlobalIwId(int32_t id);
 
-bool getCommandRx();
-void setCommandRx(bool val);
-
-//void print_payload(const u_char *payload,int len);
+bool getCommandRx(size_t);
+void setCommandRx(size_t, bool val);
+void resetCommandRx();
 
 } // namespace mw-nfd
 
-#endif // NFD_DAEMON_COMMON_GLOBAL_HPP
+#endif // MW_NFD_DAEMON_COMMON_GLOBAL_HPP
