@@ -83,7 +83,7 @@ ignoreConfigSections(const std::string& filename, const std::string& sectionName
     }
 }
 
-nfd::mw_nfd_cmd_handler g_mwNfdCmd;
+//nfd::mw_nfd_cmd_handler g_mwNfdCmd;
 std::list<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_logFilePath;
@@ -159,15 +159,6 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 
 }
 
-void mwNfdCmdHandler(const boost::system::error_code& /*e*/,
-    boost::asio::deadline_timer* t)
-{
-	nfd::g_mwNfdCmd.set();
-    t->expires_at(t->expires_at() + boost::posix_time::milliseconds(MW_NFD_CMD_TMR));
-    t->async_wait(boost::bind(mwNfdCmdHandler,
-          boost::asio::placeholders::error, t));
-}
-
 #endif
 
 class NfdRunner : noncopyable
@@ -205,11 +196,6 @@ public:
     boost::asio::io_service* const mainIo = &getGlobalIoService();
     setMainIoService(mainIo);
     boost::asio::io_service* ribIo = nullptr;
-
-#if !defined(ETRI_NFD_ORG_ARCH)
-	boost::asio::deadline_timer t(getMainIoService(), boost::posix_time::milliseconds(1));
-  	t.async_wait(boost::bind(nfd::mwNfdCmdHandler, boost::asio::placeholders::error, &t));
-#endif
 
     // Mutex and conditional variable to implement synchronization between main and RIB manager
     // threads:
@@ -546,6 +532,7 @@ int main(int argc, char** argv)
 	CPU_SET(0, &mask);
 	sched_setaffinity(getpid(), sizeof(mask), &mask);
 
+	resetCommandRx();
 
     ConfigFile config(&ignoreConfigSections);
     config.addSectionHandler("mw-nfd", &onMwNfdConfig);
@@ -641,7 +628,7 @@ int main(int argc, char** argv)
 	for(auto core : g_dcnWorkerList){
 		coreId = core;
 
-		tg.create_thread( [ workerId, coreId, &cv, &m, &retval]{
+		tg.create_thread( [ workerId, coreId, &cv, &m, &retval, configFile]{
 
 				cpu_set_t cpuset;
 				CPU_ZERO(&cpuset);
@@ -659,7 +646,7 @@ int main(int argc, char** argv)
 
 				const nfd::face::GenericLinkService::Options options;
 				try{
-				auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options, g_mwNfdCmd);
+				auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options, configFile);
 				{
 				std::unique_lock<std::mutex> lock(m);
 				cv.wait(lock, [&retval] { return retval == 1; });

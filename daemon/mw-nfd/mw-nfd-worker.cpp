@@ -421,29 +421,29 @@ void MwNfd::bulk_test_case_01()
 		FaceId faceId0 = 0;
 		FaceId faceId1 = 0;
 
-			do{
-					FaceTable::const_iterator it;
-					FaceUri uri;
+		do{
+			FaceTable::const_iterator it;
+			FaceUri uri;
 
-					for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) {
+			for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) {
 
-							uri = it->getLocalUri();
+				uri = it->getLocalUri();
 
-							if( uri.getHost() == m_bulkFibPort0 ){
-									faceId0 = it->getId();
-							}
+				if( uri.getHost() == m_bulkFibPort0 ){
+					faceId0 = it->getId();
+				}
 
-							if( uri.getHost() == m_bulkFibPort1 ){
-									faceId1 = it->getId();
-							}
-					}
+				if( uri.getHost() == m_bulkFibPort1 ){
+					faceId1 = it->getId();
+				}
+			}
 
-					if( faceId0 != 0 and faceId1 != 0 ){
-							config_bulk_fib(faceId0, faceId1, getFibSharding());
-							done = true;
-					}
-					std::this_thread::sleep_for(std::chrono::milliseconds(200));
-			}while(!done);
+			if( faceId0 != 0 and faceId1 != 0 ){
+				config_bulk_fib(faceId0, faceId1, getFibSharding());
+				done = true;
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		}while(!done);
 	}
 }
 

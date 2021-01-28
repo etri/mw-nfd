@@ -114,7 +114,6 @@ void Nfd::initialize()
       reloadConfigFileFaceSection();
     });
   });
-
 }
 
 void

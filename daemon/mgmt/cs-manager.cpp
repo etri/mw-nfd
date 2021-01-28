@@ -125,7 +125,8 @@ CsManager::erase(const ControlParameters& parameters,
 // added by ETRI(modori) on 20200914
   size_t nTotalErased = 0;
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, nullptr, pa, false);
+  //nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, nullptr, pa, false);
+  nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
 
   body.setCount(nTotalErased);
   done(ControlResponse(200, "OK").setBody(body.wireEncode()));

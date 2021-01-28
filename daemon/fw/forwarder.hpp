@@ -56,6 +56,12 @@ class Forwarder
 public:
   explicit
   Forwarder(FaceTable& faceTable);
+
+/**
+ *
+ * \brief Main Class of MW-NFD's Forwarding Engine.
+ * 
+ */
   explicit
   Forwarder(FaceTable& faceTable, boost::asio::io_service& ios, uint8_t);
 

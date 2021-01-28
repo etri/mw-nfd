@@ -88,7 +88,8 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
       m_fib.addOrUpdateNextHop(*entry, *face, cost);
     }else{
         auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-        emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, nullptr, pa, getGlobalNetName());
+        //emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, nullptr, pa, getGlobalNetName());
+        emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, parameters, getGlobalNetName());
         setGlobalNetName(false);
     }
 #else
@@ -122,7 +123,8 @@ FibManager::removeNextHop(const Name& topPrefix, const Interest& interest,
 
 #ifndef ETRI_NFD_ORG_ARCH
    auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-   emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, nullptr, pa, false);
+   //emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, nullptr, pa, false);
+        emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, parameters, getGlobalNetName());
 #else
    fib::Entry* entry = m_fib.findExactMatch(parameters.getName());
    if (entry == nullptr) {

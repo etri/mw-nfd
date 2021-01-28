@@ -60,7 +60,8 @@ StrategyChoiceManager::setStrategy(ControlParameters parameters,
 
   // added by ETRI(modori) on 20200914
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, nullptr, pa, false);
+  //emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, nullptr, pa, false);
+  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
 
   NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
   bool hasEntry = false;
@@ -112,7 +113,8 @@ StrategyChoiceManager::unsetStrategy(ControlParameters parameters,
 
 #ifndef ETRI_NFD_ORG_ARCH
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_UNSET, nullptr, pa, false);
+  //emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_UNSET, nullptr, pa, false);
+  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
 #else
     m_table.erase(parameters.getName());
 #endif
