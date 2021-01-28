@@ -285,7 +285,7 @@ void EthernetTransport::handleRead(const boost::system::error_code& error)
                 else
                     msg.endpoint = 0;
 
-                msg.face = const_cast<nfd::face::Face*>(getFace());
+                msg.faceId = getFace()->getId();
 
                 if(packetType==tlv::Interest){
                     ret = nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);

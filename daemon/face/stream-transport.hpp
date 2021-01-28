@@ -139,6 +139,7 @@ template<class T>
 void
 StreamTransport<T>::doClose()
 {
+ 	getGlobalLogger().info("{}",__func__ );
   NFD_LOG_FACE_TRACE(__func__);
 
   if (m_socket.is_open()) {
@@ -171,6 +172,7 @@ template<class T>
 void
 StreamTransport<T>::deferredClose()
 {
+ 	getGlobalLogger().info("{}",__func__ );
   NFD_LOG_FACE_TRACE(__func__);
 
   resetSendQueue();
@@ -192,7 +194,7 @@ StreamTransport<T>::doSend(const Block& packet)
 		return;
 	}
 
-#ifdef ETRI_NFD_ORG_ARCH
+#if defined(ETRI_NFD_ORG_ARCH)
 	bool wasQueueEmpty = m_sendQueue.empty();
 	m_sendQueue.push(packet);
 	m_sendQueueBytes += packet.size();
@@ -200,7 +202,9 @@ StreamTransport<T>::doSend(const Block& packet)
 		sendFromQueue();
 	}
 #else
-	m_socket.send(boost::asio::buffer(packet));
+	int rv = m_socket.send(boost::asio::buffer(packet));
+  //boost::asio::async_write(m_socket, boost::asio::buffer(packet),
+                           //[this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
 #endif
 
 }
@@ -242,7 +246,7 @@ StreamTransport<T>::startReceive()
                          [this] (auto&&... args) { this->handleReceive(std::forward<decltype(args)>(args)...); });
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
+#if defined(ETRI_NFD_ORG_ARCH)
 template<class T> void
 StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
@@ -305,6 +309,8 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
     m_receiveBufferSize += nBytesReceived;
 
+	//getGlobalLogger().info("handleReceive :{}", nBytesReceived);
+
     while (m_receiveBufferSize - offset > 0) {
 
         Block element;
@@ -329,7 +335,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                 msg.buffer = make_shared<ndn::Buffer>( element.wire(), element.size() );
                 msg.endpoint = 0;
                 msg.type = 0; // Buffer type
-                msg.face = const_cast<nfd::face::Face*>(getFace());
+                msg.faceId = getFace()->getId();
 
                 if(packetType==tlv::Interest)
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
@@ -343,6 +349,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
     if (!isOk && m_receiveBufferSize == ndn::MAX_NDN_PACKET_SIZE && offset == 0) {
         NFD_LOG_FACE_ERROR("Failed to parse incoming packet or packet too large to process");
+        getGlobalLogger().info("Failed to parse incoming packet or packet too large to process");
         this->setState(TransportState::FAILED);
         doClose();
         return;

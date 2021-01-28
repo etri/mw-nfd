@@ -227,7 +227,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
         NDN_MSG msg;
         msg.buffer = make_shared<ndn::Buffer>(buffer, nBytesReceived);
         msg.endpoint = makeEndpointId(m_sender);
-        msg.face = const_cast<nfd::face::Face*>(getFace());
+        msg.faceId = getFace()->getId();
 
         if(packetType==tlv::Interest)
             ret=nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
