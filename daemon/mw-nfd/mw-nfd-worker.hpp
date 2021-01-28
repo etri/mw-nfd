@@ -101,17 +101,10 @@ public:
 
   void runWorker();
 
-  explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options, mw_nfd_cmd_handler &);
+  explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options, const std::string&);
 
-    void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
-            const shared_ptr<ndn::Interest> 
-            , const shared_ptr<ndn::Data>, 
-            //uint64_t faceId, 
-            const nfd::face::Face *face,
-            EndpointId ep, uint32_t);
     void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
-            const nfd::face::Face *face,
-            //uint64_t faceId, 
+            size_t faceId, 
             EndpointId ep);
 
 Fib& getFibTable();
@@ -134,8 +127,8 @@ private:
 
   void initializeManagement();
 
-  void decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId , const Face*);
-  void decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face*);
+  void decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId , const Face *);
+  void decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face *);
   void decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face*);
 
   void on_register_failed(){}
@@ -195,7 +188,9 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
 
     ndn::nfd::FaceMonitor m_faceMonitor;
 
-	mw_nfd_cmd_handler &m_mwNfdCmd;
+	const std::string& m_configFile;
+
+	//mw_nfd_cmd_handler &m_mwNfdCmd;
 };
 
 } // namespace nfd

@@ -43,6 +43,7 @@
 #include <ostream>
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/property_tree/info_parser.hpp>
 #include <ndn-cxx/transport/unix-transport.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -70,7 +71,7 @@ namespace nfd {
 extern shared_ptr<FaceTable> g_faceTable;
 
 
-MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, const nfd::face::GenericLinkService::Options& options, mw_nfd_cmd_handler& cmd)
+MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, const nfd::face::GenericLinkService::Options& options, const std::string& conf)
     : m_keyChain(keyChain)
   , m_workerId(wid)
   , m_terminationSignalSet(*ios)
@@ -83,7 +84,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 ,m_reassembler(options.reassemblerOptions)
     ,m_face(std::move(make_shared<ndn::UnixTransport>("/var/run/nfd.sock")), getGlobalIoService(), m_keyChain)
     ,m_faceMonitor(m_face)
-    ,m_mwNfdCmd(cmd)
+    ,m_configFile(conf)
 
     {
         // Disable automatic verification of parameters digest for decoded Interests.
@@ -94,11 +95,13 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 #ifndef ETRI_NFD_ORG_ARCH
         m_terminationSignalSet.async_wait(bind(&MwNfd::terminate, this, _1, _2));
 #endif
-        m_done = false;
+        //m_done = false;
         m_ios = ios;
 
+/*
+* It is necessary to support
+*/
 	struct sockaddr_in servaddr;
-
 	m_sockNfdcCmd = socket(AF_INET, SOCK_DGRAM, 0);
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family    = AF_INET; // IPv4 
@@ -116,7 +119,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 		//int opt=1;
 		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
 
-#ifndef ETRI_NFD_ORG_ARCH
+#if !defined(ETRI_NFD_ORG_ARCH)
         //m_faceMonitor.onNotification.connect(bind(&MwNfd::onNotification, this, _1));
         //m_faceMonitor.start();
 #endif
@@ -128,14 +131,16 @@ MwNfd::~MwNfd() = default;
 void
     MwNfd::onNotification(const ndn::nfd::FaceEventNotification& notification)
     {
+        if (notification.getKind() == ndn::nfd::FACE_EVENT_CREATED) {
+			//getGlobalLogger().info("worker:: onNotification::FACE_EVENT_CREATED: on CPU {}" , sched_getcpu() );
+		}
         if (notification.getKind() == ndn::nfd::FACE_EVENT_DESTROYED) {
             nfd::face::Face * face = m_faceTable->get(notification.getFaceId());
             if(face!=nullptr){
+			getGlobalLogger().info("worker:: onNotificationFACE_EVENT_DESTROYED: on CPU {}" , sched_getcpu() );
                 cleanupOnFaceRemoval(
-                    m_forwarder->getNameTree(), 
-                    m_forwarder->getFib(), 
-                    m_forwarder->getPit(), 
-                    *face);
+                    m_forwarder->getNameTree(), m_forwarder->getFib(), 
+                    m_forwarder->getPit(), *face);
             }
         }
     }
@@ -176,184 +181,175 @@ Measurements& MwNfd::getMeasurementsTable()
     return m_forwarder->getMeasurements();
 }
 
+/*
+* This Function handles MW-NFD's control commands sent from Management Module.
+*/
 void MwNfd::handleNfdcCommand()
 {
-using ndn::nfd::CsFlagBit;
+	using ndn::nfd::CsFlagBit;
 
-    //struct sockaddr_storage their_addr;
 	struct sockaddr_un their_addr;
-    char buf[1024]={0,};
+    char buf[MW_NFD_CMD_BUF_SIZE]={0,};
     int numbytes=-2;
     socklen_t addr_len;
 
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
-            //std::cout << __func__ << std::endl;
 
     addr_len = sizeof their_addr;
-    if ((numbytes = recvfrom(m_sockNfdcCmd, buf, sizeof(mw_nfdc) , 0,
-			(struct sockaddr *)&their_addr, &addr_len)) == -1) 
-	{
+    numbytes = recvfrom(m_sockNfdcCmd, buf, sizeof(buf) , 0,
+			(struct sockaddr *)&their_addr, &addr_len);
+
+    if (numbytes <= 0) {
         return;
-    }
+	}
 
-    if(numbytes>0){
+	if(nfdc->mgr == MW_NFDC_MGR_FIB){
 
-        if(nfdc->parameters!=nullptr and m_workerId==0){
-            //getGlobalLogger().info("nfdc - MGR:{}, Verb:{}", MW_NFDC_MGR_FIELD[nfdc->mgr], MW_NFDC_VERB_FIELD[nfdc->verb]);
-            //std::cout << *nfdc->parameters << std::endl;
-        }
+		if(nfdc->verb == MW_NFDC_VERB_ADD){
 
-        if(nfdc->mgr == MW_NFDC_MGR_FIB){
+			const Name& prefix = nfdc->parameters->getName();
+			FaceId faceId = nfdc->parameters->getFaceId();
+			uint64_t cost = nfdc->parameters->getCost();
+			Face* face = m_faceTable->get(faceId);
+			if (face == nullptr) {
+				nfdc->ret = MW_NFDC_CMD_NOK;
+				goto response;
+			}
 
-            if(nfdc->verb == MW_NFDC_VERB_ADD){
+			if(prefix.size() <=0){
+				getGlobalLogger().info("prefix.size({}) is {}", prefix.size());
+				nfdc->ret = MW_NFDC_CMD_NOK;
+				goto response;
+			}
 
-                const Name& prefix = nfdc->parameters->getName();
-                FaceId faceId = nfdc->parameters->getFaceId();
-                uint64_t cost = nfdc->parameters->getCost();
-                Face* face = m_faceTable->get(faceId);
-                if (face == nullptr) {
-                    nfdc->ret = MW_NFDC_CMD_NOK;
-                    goto response;
-                }
+			// for network name parameter
+			if( nfdc->netName ){
+				fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
+				getFibTable().addOrUpdateNextHop(*entry, *face, cost);
+				//getGlobalLogger().info("Worker[{}] added prefix into FIB with net-name", m_workerId);
+				goto response;
+			}
 
-				if(prefix.size() <=0){
-					getGlobalLogger().info("prefix.size({}) is {}", prefix.size());
-                    nfdc->ret = MW_NFDC_CMD_NOK;
-                    goto response;
+			if(prefix.size() >= getPrefixLength4Distribution() and getFibSharding() ){
+				auto block = prefix.wireEncode();
+				int32_t wid;//, ndnType;
+				wid = computeWorkerId(block.wire(), block.size());
+				if(wid!=m_workerId){
+					nfdc->ret = MW_NFDC_CMD_NOK;
+					goto response;
 				}
+			}
+			getGlobalLogger().info("Worker[Id:{}/CPU:{}] added prefix into FIB({}), nh: {}", m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
+			fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
+			if(entry!=nullptr)
+				getFibTable().addOrUpdateNextHop(*entry, *face, cost);
 
-                // for network name parameter
-                if( nfdc->netName ){
-                    fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
-                    getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-					//getGlobalLogger().info("Worker[{}] added prefix into FIB with net-name", m_workerId);
-                    goto response;
-                }
-
-                if(prefix.size() >= getPrefixLength4Distribution() and getFibSharding() ){
-				    auto block = prefix.wireEncode();
-                    int32_t wid;//, ndnType;
-                    //std::tie(ndnType, wid) = dissectNdnPacket(prefix.wireEncode().wire(), prefix.wireEncode().size());
-                    wid = computeWorkerId(block.wire(), block.size());
-                    if(wid!=m_workerId){
-                        nfdc->ret = MW_NFDC_CMD_NOK;
-                        goto response;
-                    }
-                }
-				getGlobalLogger().info("Worker[{}/{}] added prefix into FIB({}), nh: {}", m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
-                fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
-				if(entry!=nullptr)
-                	getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-
-            }else if(nfdc->verb == MW_NFDC_VERB_REMOVE){
-                const Name& prefix = nfdc->parameters->getName();
-                FaceId faceId = nfdc->parameters->getFaceId();
-                Face* face = m_faceTable->get(faceId);
-                if (face == nullptr) {
-                    nfdc->ret = MW_NFDC_CMD_NOK;
-                    goto response;
-                }
-                fib::Entry* entry = m_forwarder->getFib().findExactMatch(prefix);
-				if(entry!=nullptr){
-					getGlobalLogger().info("Successfully removed Prefix({}) with NextHop({}) on Worker[{}/{}].", 
+		}else if(nfdc->verb == MW_NFDC_VERB_REMOVE){
+			const Name& prefix = nfdc->parameters->getName();
+			FaceId faceId = nfdc->parameters->getFaceId();
+			Face* face = m_faceTable->get(faceId);
+			if (face == nullptr) {
+				nfdc->ret = MW_NFDC_CMD_NOK;
+				goto response;
+			}
+			fib::Entry* entry = m_forwarder->getFib().findExactMatch(prefix);
+			if(entry!=nullptr){
+				getGlobalLogger().info("Successfully removed Prefix({}) with NextHop({}) on Worker[{}/{}].", 
 						prefix.toUri(), face->getId(),
 						m_workerId,sched_getcpu()
-					);
-                	m_forwarder->getFib().removeNextHop(*entry, *face);
-				}else
-					getGlobalLogger().info("There Exist No Entry to be removed from FIB. Worker[{}/{}], prefix({}), nh({})", 
+						);
+				m_forwarder->getFib().removeNextHop(*entry, *face);
+			}else
+				getGlobalLogger().info("There Exist No Entry to be removed from FIB. Worker[{}/{}], prefix({}), nh({})", 
 						m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
-            }else if(nfdc->verb == MW_NFDC_VERB_LIST){
-            }
-        }else if(nfdc->mgr == MW_NFDC_MGR_FACE){
-            if(nfdc->verb == MW_NFDC_VERB_DESTROYED){
-                FaceId faceId = nfdc->parameters->getFaceId();
-                Face* face = m_faceTable->get(faceId);
-                if(face!=nullptr){
-                    cleanupOnFaceRemoval(
-                        m_forwarder->getNameTree(), m_forwarder->getFib(), 
-                        m_forwarder->getPit(), *face);
-                }else
-                    getGlobalLogger().info("Face Destroy - None Face {} on CPU {}", faceId, sched_getcpu());
+		}else if(nfdc->verb == MW_NFDC_VERB_LIST){
+		}
+	}else if(nfdc->mgr == MW_NFDC_MGR_FACE){
+		if(nfdc->verb == MW_NFDC_VERB_DESTROYED){
+			FaceId faceId = nfdc->parameters->getFaceId();
+			Face* face1 = m_faceTable->get(faceId);
+			if(face1!=nullptr){
+				cleanupOnFaceRemoval( m_forwarder->getNameTree(), m_forwarder->getFib(), m_forwarder->getPit(), *face1);
+				getGlobalLogger().info("Worker[Id:{}/CPU:{}] removed Face({})", m_workerId,sched_getcpu(), face1->getId());
+			}else{
+				getGlobalLogger().info("Face Destroy - None Face {} on CPU {}", faceId, sched_getcpu());
+			}
 
-            }
-        }else if(nfdc->mgr == MW_NFDC_MGR_CS){
-            nfd::cs::Cs &cs = m_forwarder->getCs();
-            if(nfdc->verb == MW_NFDC_VERB_CONFIG){
-                if (nfdc->parameters->hasCapacity()) {
-                    cs.setLimit(nfdc->parameters->getCapacity());
-                }
+		}
+	}else if(nfdc->mgr == MW_NFDC_MGR_CS){
+		nfd::cs::Cs &cs = m_forwarder->getCs();
+		if(nfdc->verb == MW_NFDC_VERB_CONFIG){
+			if (nfdc->parameters->hasCapacity()) {
+				cs.setLimit(nfdc->parameters->getCapacity());
+			}
 
-                if (nfdc->parameters->hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
-                    cs.enableAdmit(nfdc->parameters->getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
-                }
+			if (nfdc->parameters->hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
+				cs.enableAdmit(nfdc->parameters->getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
+			}
 
-                if (nfdc->parameters->hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
-                    cs.enableServe(nfdc->parameters->getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
-                }
+			if (nfdc->parameters->hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
+				cs.enableServe(nfdc->parameters->getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
+			}
 
-            }else if(nfdc->verb == MW_NFDC_VERB_ERASE){
-                size_t count = nfdc->parameters->hasCount() ?
-                    nfdc->parameters->getCount() :
-                    std::numeric_limits<size_t>::max();
-                size_t erased = 0;
+		}else if(nfdc->verb == MW_NFDC_VERB_ERASE){
+			size_t count = nfdc->parameters->hasCount() ?
+				nfdc->parameters->getCount() :
+				std::numeric_limits<size_t>::max();
+			size_t erased = 0;
 
-                cs.erase(nfdc->parameters->getName(), std::min(count, CsManager::ERASE_LIMIT), 
-                        [&] (size_t nErased) {
+			cs.erase(nfdc->parameters->getName(), std::min(count, CsManager::ERASE_LIMIT), 
+					[&] (size_t nErased) {
 
-                        erased = nErased;
-                        if (nErased == CsManager::ERASE_LIMIT && count > CsManager::ERASE_LIMIT) {
-                        cs.find(Interest(nfdc->parameters->getName()).setCanBePrefix(true),
-                                [=] (const Interest&, const Data&) mutable {
-                                //done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-                                },
-                                [=] (const Interest&) {
-                                //done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-                                });
-                        }
-                        else {
-                        //done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-                        }
-                        }
-                        );
+					erased = nErased;
+					if (nErased == CsManager::ERASE_LIMIT && count > CsManager::ERASE_LIMIT) {
+					cs.find(Interest(nfdc->parameters->getName()).setCanBePrefix(true),
+							[=] (const Interest&, const Data&) mutable {
+							//done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+							},
+							[=] (const Interest&) {
+							//done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+							});
+					}
+					else {
+					//done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+					}
+					}
+					);
 
-                nfdc->retval = erased;
+			nfdc->retval = erased;
 
-            }else if(nfdc->verb == MW_NFDC_VERB_INFO){
-            }
-        }else if(nfdc->mgr == MW_NFDC_MGR_STRATEGY){
-            StrategyChoice& sc = m_forwarder->getStrategyChoice();
-            const Name& prefix = nfdc->parameters->getName();
-            const Name& strategy = nfdc->parameters->getStrategy();
+		}else if(nfdc->verb == MW_NFDC_VERB_INFO){
+		}
+	}else if(nfdc->mgr == MW_NFDC_MGR_STRATEGY){
+		StrategyChoice& sc = m_forwarder->getStrategyChoice();
+		const Name& prefix = nfdc->parameters->getName();
+		const Name& strategy = nfdc->parameters->getStrategy();
 
-            switch(nfdc->verb){
-                case MW_NFDC_VERB_SET:
-                    {
-                        StrategyChoice::InsertResult res = sc.insert(prefix, strategy);
-                    }
-                    break;
-                case MW_NFDC_VERB_UNSET:
-                    sc.erase(nfdc->parameters->getName());
-                    break;
-                case MW_NFDC_VERB_LIST:
-                    break;
-                default:
-                    break;
-            }
-        }else{
-            nfdc->ret = MW_NFDC_CMD_NOK;
-        }
-
-    }else
-        nfdc->ret = MW_NFDC_CMD_NOK;
+		switch(nfdc->verb){
+			case MW_NFDC_VERB_SET:
+				{
+					StrategyChoice::InsertResult res = sc.insert(prefix, strategy);
+				}
+				break;
+			case MW_NFDC_VERB_UNSET:
+				sc.erase(nfdc->parameters->getName());
+				break;
+			case MW_NFDC_VERB_LIST:
+				break;
+			default:
+				break;
+		}
+	}else{
+		nfdc->ret = MW_NFDC_CMD_NOK;
+	}
 
 response:
-    sendto(m_sockNfdcCmd, buf, sizeof(mw_nfdc), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
-
+	sendto(m_sockNfdcCmd, buf, sizeof(buf), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
 }
 
 void MwNfd::terminate(const boost::system::error_code& error, int signalNo)
 {
+	getGlobalLogger().info("The ForwardingWorker({}) terminate:: Global faceTable is nullptr", m_workerId);
     close(m_sockNfdcCmd);
     m_done=true;
 }
@@ -380,15 +376,42 @@ void MwNfd::initialize(uint32_t input_workers)
 void
 MwNfd::initializeManagement()
 {
-  StrategyChoice& sc = m_forwarder->getStrategyChoice();
-  if (!sc.insert("/", "/localhost/nfd/strategy/best-route")) {
-  }
-  if (!sc.insert("/localhost", "/localhost/nfd/strategy/multicast")) {
-  }
-  if (!sc.insert("/localhost/nfd", "/localhost/nfd/strategy/best-route")) {
-  }
-  if (!sc.insert("/ndn/broadcast", "/localhost/nfd/strategy/multicast")) {
-  }
+	getGlobalLogger().info("Config File: {} on CPU {}", m_configFile, sched_getcpu());
+
+	ConfigSection config;
+	boost::property_tree::read_info(m_configFile, config);
+	StrategyChoice& strategy_choice = m_forwarder->getStrategyChoice();
+
+	auto scs = config.get_child("tables.strategy_choice");
+	for (const auto& prefixAndStrategy : scs) {
+		Name prefix(prefixAndStrategy.first);
+		Name strategy(prefixAndStrategy.second.get_value<std::string>());
+		strategy_choice.insert(prefix, strategy);
+		getGlobalLogger().info("tables.strategy_choice: {} : {}" , prefix.toUri(), strategy.toUri() );
+	}
+	auto network_region = config.get_child("tables.network_region");
+
+	auto& nrt = m_forwarder->getNetworkRegionTable();
+	nrt.clear();
+	for (const auto& pair : network_region) {
+		nrt.insert(Name(pair.first));
+		getGlobalLogger().info("tables.network_region: {}" , pair.first );
+	}
+
+	auto sCsMaxPackets = config.get_child_optional("tables.cs_max_packets");
+	auto nCsMaxPackets = sCsMaxPackets->get_value<std::size_t>();
+
+	auto&& policyName = config.get<std::string>("tables.cs_policy", "lru");
+	getGlobalLogger().info("tables.cs_policy: {} : nCsMaxPackets:{}" , policyName ,nCsMaxPackets);
+	unique_ptr<cs::Policy> csPolicy;
+	csPolicy = cs::Policy::create(policyName);
+
+	m_forwarder->getCs().setLimit(nCsMaxPackets);
+	//cs.setLimit(nCsMaxPackets);
+	if (m_forwarder->getCs().size() == 0 && csPolicy != nullptr) {
+		m_forwarder->getCs().setPolicy(std::move(csPolicy));
+	}
+
 }
 
 void MwNfd::bulk_test_case_01()
@@ -431,81 +454,52 @@ void MwNfd::runWorker()
     NDN_MSG msg;
 
     NDN_MSG items[DEQUEUE_BULK_MAX];
-    int deq=0;
+    int deq=0, idx;
     size_t cnt=0;
-    int i;
 
     int32_t inputWorkers = m_inputWorkers *2;
 
     bulk_test_case_01();
 
-#if 0
-	using boost::format;
-	using ::boost::posix_time::ptime;
-	 using ::boost::posix_time::time_duration;
-	typedef ::boost::date_time::microsec_clock< ptime > msecc_t;
-	ptime t = msecc_t::universal_time();
-#endif
     do{
-        for(iw=0; iw < inputWorkers; iw+=2){
-                deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
-                for(i=0;i<deq;i++){
-                    decodeNetPacketFromMq(items[i].buffer, items[i].face, items[i].endpoint);
-                }
-        }
-
-        for(iw=0; iw < inputWorkers; iw+=2){
-                deq = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
-                for(i=0;i<deq;i++){
-                    decodeNetPacketFromMq(items[i].buffer, items[i].face, items[i].endpoint);
-                }
-        }
-
-		if(getCommandRx()==true)
+		if(getCommandRx(m_workerId)==true){
             handleNfdcCommand();
+		}
+
+		for(iw=0; iw < inputWorkers; iw+=2){
+			deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
+			for(idx=0;idx<deq;idx++){
+				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
+			}
+		}
+
+		for(iw=0; iw < inputWorkers; iw+=2){
+			deq = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
+			for(idx=0;idx<deq;idx++){
+				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
+			}
+		}
 
         if(cnt > 133000){
             m_ios->poll();
 			cnt = 0;
         }
 
-#if 0
-		ptime cur_time = boost::posix_time::from_time_t(::time(0));
-		time_duration td = cur_time - t ;
-		if( td.total_seconds()>=1){
-			std::cout <<  td << ", cnt: " << cnt << std::endl;
-			break;
-		}	
-#endif
 		cnt +=1;
 
     }while(!m_done);
 
 }
 
-void MwNfd::decodeNetPacketFromMq( const shared_ptr<ndn::Buffer> buffer,
-        const shared_ptr<ndn::Interest> interest, 
-        const shared_ptr<ndn::Data> data, 
-        const nfd::face::Face *face,
-        EndpointId endpoint,
-        uint32_t type)
-{
-    if(type==0){
-        decodeNetPacketFromMq(buffer, face, endpoint);
-    }else if(type==1){
-        m_forwarder->onIncomingInterest(FaceEndpoint(*face, endpoint), *interest, m_workerId);
-        ++nInInterests;
-    }else if(type==2){
-        m_forwarder->onIncomingData(FaceEndpoint(*face, endpoint), *data);
-        ++nInDatas;
-    }else{
-        std::cout << "Error: Unknown Msg Type: " << type << std::endl;
-    }
-}
-
 void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
-        const nfd::face::Face *face, EndpointId endpoint)
+		size_t faceId,
+		EndpointId endpoint)
 {
+    nfd::face::Face *face = m_faceTable->get(faceId);
+	if(face==nullptr){
+		getGlobalLogger().info("There is no face Entry with {} on CPU {}", faceId, sched_getcpu());
+		return;
+	}
 
     Block packet(buffer->data(), buffer->size()) ;
 
@@ -551,17 +545,12 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
     }   
 }
 
-void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face* face)
+void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face * face)
 {
-    if(face==nullptr){
-        getGlobalLogger().info("MwNfd({}):: IngressFace is NULL...");
-        return;
-    }
     auto interest = make_shared<Interest>(netPkt);
 
     auto linkService = dynamic_cast<nfd::face::GenericLinkService*>(face->getLinkService());
     const auto& options = linkService->getOptions();
-
     if (firstPkt.has<lp::NextHopFaceIdField>()) {
         if (options.allowLocalFields) {
             interest->setTag(make_shared<lp::NextHopFaceIdTag>(firstPkt.get<lp::NextHopFaceIdField>()));
@@ -608,13 +597,9 @@ void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, cons
     ++nInInterests;
 }
 
-void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face* face)
+void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face * face)
 {
 
-    if(face==nullptr){
-        getGlobalLogger().info("MwNfd({}):: IngressFace is NULL...");
-        return;
-    }
     auto data = make_shared<Data>(netPkt);
 
     auto linkService = dynamic_cast<nfd::face::GenericLinkService*>(face->getLinkService());
