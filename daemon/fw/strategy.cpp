@@ -341,9 +341,12 @@ Strategy::lookupFib(const pit::Entry& pitEntry) const
   // Forwarding hint should have been stripped by incoming Interest pipeline when reaching producer region
   BOOST_ASSERT(!m_forwarder.getNetworkRegionTable().isInProducerRegion(fh));
 
+	NFD_LOG_TRACE("DelegationList.size: " << fh.size());
+
   const fib::Entry* fibEntry = nullptr;
   for (const Delegation& del : fh) {
     fibEntry = &fib.findLongestPrefixMatch(del.name);
+	getGlobalLogger().info("DelegationList.del.name: {}, nexthops: {}" , del.name.toUri() , fibEntry->hasNextHops());
     if (fibEntry->hasNextHops()) {
       if (fibEntry->getPrefix().size() == 0) {
         // in consumer region, return the default route

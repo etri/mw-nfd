@@ -239,7 +239,7 @@ void MwNfd::handleNfdcCommand()
 					goto response;
 				}
 			}
-			getGlobalLogger().info("Worker[Id:{}/CPU:{}] added prefix into FIB({}), nh: {}", m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
+			//getGlobalLogger().info("Worker[Id:{}/CPU:{}] added prefix into FIB({}), nh: {}", m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
 			fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
 			if(entry!=nullptr)
 				getFibTable().addOrUpdateNextHop(*entry, *face, cost);
@@ -270,7 +270,7 @@ void MwNfd::handleNfdcCommand()
 			Face* face1 = m_faceTable->get(faceId);
 			if(face1!=nullptr){
 				cleanupOnFaceRemoval( m_forwarder->getNameTree(), m_forwarder->getFib(), m_forwarder->getPit(), *face1);
-				getGlobalLogger().info("Worker[Id:{}/CPU:{}] removed Face({})", m_workerId,sched_getcpu(), face1->getId());
+				//getGlobalLogger().info("Worker[Id:{}/CPU:{}] removed Face({})", m_workerId,sched_getcpu(), face1->getId());
 			}else{
 				getGlobalLogger().info("Face Destroy - None Face {} on CPU {}", faceId, sched_getcpu());
 			}
@@ -387,7 +387,7 @@ MwNfd::initializeManagement()
 		Name prefix(prefixAndStrategy.first);
 		Name strategy(prefixAndStrategy.second.get_value<std::string>());
 		strategy_choice.insert(prefix, strategy);
-		getGlobalLogger().info("tables.strategy_choice: {} : {}" , prefix.toUri(), strategy.toUri() );
+		//getGlobalLogger().info("tables.strategy_choice: {} : {}" , prefix.toUri(), strategy.toUri() );
 	}
 	auto network_region = config.get_child("tables.network_region");
 
@@ -395,19 +395,19 @@ MwNfd::initializeManagement()
 	nrt.clear();
 	for (const auto& pair : network_region) {
 		nrt.insert(Name(pair.first));
-		getGlobalLogger().info("tables.network_region: {}" , pair.first );
+		//getGlobalLogger().info("tables.network_region: {}" , pair.first );
 	}
 
 	auto sCsMaxPackets = config.get_child_optional("tables.cs_max_packets");
 	auto nCsMaxPackets = sCsMaxPackets->get_value<std::size_t>();
 
 	auto&& policyName = config.get<std::string>("tables.cs_policy", "lru");
-	getGlobalLogger().info("tables.cs_policy: {} : nCsMaxPackets:{}" , policyName ,nCsMaxPackets);
+	//getGlobalLogger().info("tables.cs_policy: {} : nCsMaxPackets:{}" , policyName ,nCsMaxPackets);
+
 	unique_ptr<cs::Policy> csPolicy;
 	csPolicy = cs::Policy::create(policyName);
 
 	m_forwarder->getCs().setLimit(nCsMaxPackets);
-	//cs.setLimit(nCsMaxPackets);
 	if (m_forwarder->getCs().size() == 0 && csPolicy != nullptr) {
 		m_forwarder->getCs().setPolicy(std::move(csPolicy));
 	}
@@ -522,7 +522,7 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
                 switch (netPkt.type()) {
                     case tlv::Interest:
                         if (firstPkt.has<lp::NackField>()) {
-                            //this->decodeNack(netPkt, firstPkt, endpoint);
+                            decodeNack(netPkt, firstPkt, endpoint, face);
                         }   
                         else {
                             decodeInterest(netPkt, firstPkt, endpoint, face);
@@ -658,7 +658,7 @@ void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const En
 
 void MwNfd::decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face *face)
 {
-#if 0
+	getGlobalLogger().info("decodeNack function");
     lp::Nack nack((Interest(netPkt)));
     nack.setHeader(firstPkt.get<lp::NackField>());
 
@@ -694,10 +694,7 @@ void MwNfd::decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const En
         return;
     }
 
-    //nfd::face::Face *face = m_faceTable->get(faceId);
-
     m_forwarder->startProcessNack(FaceEndpoint(*face, endpointId), nack);
-#endif
     ++nInNacks;
 }
 
