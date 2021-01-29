@@ -124,8 +124,12 @@ FaceManager::createFace(const ControlParameters& parameters,
   }
   faceParams.wantLocalFields = parameters.hasFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED) &&
                                parameters.getFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED);
+
+#if defind(ETRI_NFD_ORG_ARCH)
   faceParams.wantLpReliability = parameters.hasFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED) &&
                                  parameters.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED);
+#endif
+
   if (parameters.hasFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED)) {
     faceParams.wantCongestionMarking = parameters.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED);
   }
