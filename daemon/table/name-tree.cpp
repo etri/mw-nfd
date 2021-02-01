@@ -173,6 +173,7 @@ NameTree::eraseIfEmpty(Entry* entry, bool canEraseAncestors)
 Entry*
 NameTree::findExactMatch(const Name& name, size_t prefixLen) const
 {
+  NFD_LOG_DEBUG("findExactMatch name = " << name);
   prefixLen = std::min(name.size(), prefixLen);
   if (prefixLen > getMaxDepth()) {
     return nullptr;
