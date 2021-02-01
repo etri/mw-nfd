@@ -150,13 +150,19 @@ DatagramTransport<T, U>::doClose()
     boost::system::error_code error;
     m_socket.cancel(error);
     m_socket.close(error);
+
   }
 
   // Ensure that the Transport stays alive at least until
   // all pending handlers are dispatched
+
+#if defined(ETRI_NFD_ORG_ARCH)
   getGlobalIoService().post([this] {
     this->setState(TransportState::CLOSED);
   });
+#else
+    this->setState(TransportState::CLOSED);
+#endif
 }
 
 template<class T, class U>
@@ -173,7 +179,7 @@ DatagramTransport<T, U>::doSend(const Block& packet)
 }
 
 
-#ifdef ETRI_NFD_ORG_ARCH
+#if defined(ETRI_NFD_ORG_ARCH)
 template<class T, class U>
 void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
@@ -183,6 +189,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
         return processErrorCode(error);
 
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
+
 
     bool isOk = false;
     Block element;
@@ -208,18 +215,19 @@ void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
         const boost::system::error_code& error)
 {
-    if (error)
-        return processErrorCode(error);
+	if( nBytesReceived == 0 ){
+		return ;
+	}
 
+    if (error){
+        return processErrorCode(error);
+	}
 
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
 
     int32_t packetType;
     int32_t worker;
     bool ret __attribute__((unused))=false;
-
-	if(nBytesReceived==0)
-		return;
 
     std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
 
@@ -247,6 +255,15 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
 template<class T, class U> void
 DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
+
+#if !defined(ETRI_NFD_ORG_ARCH)
+	if(error){
+		getGlobalLogger().info("Error handleReceive: {}, \"{}\"/{} on CPU {}", getFace()->getId(), 
+		error.message(), error.value(), 
+			sched_getcpu());
+		return;
+	}
+#endif
 
 	receiveDatagram(m_receiveBuffer.data(), nBytesReceived, error);
 
