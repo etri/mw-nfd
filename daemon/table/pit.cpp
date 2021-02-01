@@ -124,7 +124,7 @@ Pit::findDataExactMatch(const Data& data) const
   // ensure NameTree entry exists
   name_tree::Entry* nte = nullptr;
 	nte = m_nameTree.findExactMatch(name, nteDepth);
-	if (nte == nullptr) {
+	if (nte != nullptr) {
 		for (const auto& pitEntry : nte->getPitEntries()) {
 			if (pitEntry->getInterest().matchesData(data))
 				matches.emplace_back(pitEntry);

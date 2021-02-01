@@ -129,6 +129,7 @@ Cs::insert(const Data& data, bool isUnsolicited)
 			if (entry.isUnsolicited() && !isUnsolicited) {
 				entry.clearUnsolicited();
 			}
+  		m_policy->beforeEraseExact(it);
 			m_tableExact.erase(it);
 	  	std::tie(it, isNewEntry) = m_tableExact.emplace(data.shared_from_this(), isUnsolicited);
 			m_policy->afterInsertExact(it);
