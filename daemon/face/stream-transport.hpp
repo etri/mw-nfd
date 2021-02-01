@@ -316,6 +316,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 	//getGlobalLogger().info("handleReceive :{}", nBytesReceived);
 
     while (m_receiveBufferSize - offset > 0) {
+		//print_payload(m_receiveBuffer + offset, m_receiveBufferSize - offset);
 
         Block element;
         std::tie(isOk, element) = Block::fromBuffer(m_receiveBuffer + offset, m_receiveBufferSize - offset);
@@ -325,7 +326,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
         offset += element.size();
         BOOST_ASSERT(offset <= m_receiveBufferSize);
 
-
         std::tie(packetType, worker) = dissectNdnPacket( element.wire(), element.size() );
 
         if(worker==DCN_LOCALHOST_PREFIX){
@@ -334,12 +334,13 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
             this->receive(element);
         }else{
 
-		//print_payload(element.wire(), element.size());
             if(packetType>=0 and worker >=0){
                 msg.buffer = make_shared<ndn::Buffer>( element.wire(), element.size() );
                 msg.endpoint = 0;
                 msg.type = 0; // Buffer type
+				if(getFace()!=nullptr)
                 msg.faceId = getFace()->getId();
+				else msg.faceId = 0;
 
                 if(packetType==tlv::Interest)
                     ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);

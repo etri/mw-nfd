@@ -331,10 +331,10 @@ printAddedFeatures(std::ostream& os)
 #ifdef ETRI_NFD_ORG_ARCH
     std::cout << "   +-- with ETRI-NFD-ORG-ARCH." << std::endl;
 #endif
-#ifdef WITH_DUAL_CS
-    std::cout << "   +-- with WITH-DUAL-CAS." << std::endl;
+#ifdef ETRI_DUAL_CS
+    std::cout << "   +-- with WITH-DUAL-CS." << std::endl;
 #endif
-#ifdef WITH_PITTOKEN_HASH
+#ifdef ETRI_PITTOKEN_HASH
     std::cout << "   +-- with WITH-PITTOKEN-HASH." << std::endl;
 #endif
 

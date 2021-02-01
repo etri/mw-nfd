@@ -279,12 +279,13 @@ void EthernetTransport::handleRead(const boost::system::error_code& error)
             if(packetType>=0 and m_iwId >=0){
                 NDN_MSG msg;
                 msg.buffer = make_shared<ndn::Buffer>(pkt, len);
-                msg.type = 0;
+                msg.faceId = msg.type = 0;
                 if(m_destAddress.isMulticast())
                     std::memcpy(&msg.endpoint, eh->ether_shost, 6);
                 else
                     msg.endpoint = 0;
 
+				if(getFace()!=nullptr)
                 msg.faceId = getFace()->getId();
 
                 if(packetType==tlv::Interest){
