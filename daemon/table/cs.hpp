@@ -127,19 +127,13 @@ public:
 
 #else
   size_t
-  size() const
-  {
-    return m_tableExact.size();
-  }
-
-  size_t
   sizeExact() const
   {
     return m_tableExact.size();
   }
 
   size_t
-  sizeAll() const
+  size() const
   {
     return m_table.size() + m_tableExact.size();
   }
