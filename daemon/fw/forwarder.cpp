@@ -136,7 +136,7 @@ void
 Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& interest, int8_t workerId)
 {
     // receive Interest
-    NFD_LOG_DEBUG("onIncomingInterest2 in=" << ingress << " interest=" << interest.getName());
+    NFD_LOG_DEBUG("onIncomingInterest in=" << ingress << " interest=" << interest.getName());
     interest.setTag(make_shared<lp::IncomingFaceIdTag>(ingress.face.getId()));
     ++m_counters.nInInterests;
 

@@ -229,6 +229,8 @@ bool getCommandRx(size_t);
 void setCommandRx(size_t, bool val);
 void resetCommandRx();
 
+void print_payload(const u_char *payload,int len);
+
 } // namespace mw-nfd
 
 #endif // MW_NFD_DAEMON_COMMON_GLOBAL_HPP

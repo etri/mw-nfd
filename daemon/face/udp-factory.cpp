@@ -448,7 +448,7 @@ UdpFactory::applyMcastConfigToNetif(const shared_ptr<const net::NetworkInterface
     return {};
   }
 
-  NFD_LOG_DEBUG("111-Creating multicast faces on " << netif->getName());
+  NFD_LOG_DEBUG("Creating multicast faces on " << netif->getName());
 
   std::vector<shared_ptr<Face>> faces;
   for (const auto& addr : addrs) {

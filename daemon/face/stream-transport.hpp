@@ -32,6 +32,7 @@
 #include "mw-nfd/mw-nfd-global.hpp"
 #include "mw-nfd/concurrentqueue.h"
 #include "common/city-hash.hpp"
+#include <boost/asio/socket_base.hpp>
 
 #include <queue>
 
@@ -139,7 +140,6 @@ template<class T>
 void
 StreamTransport<T>::doClose()
 {
- 	getGlobalLogger().info("{}",__func__ );
   NFD_LOG_FACE_TRACE(__func__);
 
   if (m_socket.is_open()) {
@@ -172,7 +172,6 @@ template<class T>
 void
 StreamTransport<T>::deferredClose()
 {
- 	getGlobalLogger().info("{}",__func__ );
   NFD_LOG_FACE_TRACE(__func__);
 
   resetSendQueue();
@@ -202,9 +201,14 @@ StreamTransport<T>::doSend(const Block& packet)
 		sendFromQueue();
 	}
 #else
-	m_socket.send(boost::asio::buffer(packet));
-  //boost::asio::async_write(m_socket, boost::asio::buffer(packet),
-                           //[this] (auto&&... args) { this->handleSend(std::forward<decltype(args)>(args)...); });
+    boost::system::error_code error;
+	boost::asio::socket_base::message_flags flags;
+	if(m_socket.is_open()){
+		m_socket.send(boost::asio::buffer(packet), flags, error);
+	}
+
+	if(error)
+    	getGlobalLogger().info("Error(stream-transport's doSend) INFO: [{}] : Face {} : CPU {}" , std::strerror(errno), getFace()->getId(), sched_getcpu());
 #endif
 
 }
