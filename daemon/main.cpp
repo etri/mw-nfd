@@ -526,11 +526,16 @@ int main(int argc, char** argv)
         return 0;
     }
 
+#if defined(__linux__)
 	cpu_set_t  mask;
 	CPU_ZERO(&mask);
 	//CPU_SET(std::thread::hardware_concurrency()-1, &mask);
 	CPU_SET(0, &mask);
 	sched_setaffinity(getpid(), sizeof(mask), &mask);
+#elif defined(__APLLE__)
+	processor_set_t mask;
+	//processor_assign(getpid(), mask, true);
+#endif
 
 	resetCommandRx();
 
@@ -596,18 +601,24 @@ int main(int argc, char** argv)
 
 		tg.create_thread( [workerId, coreId, if_name]{
 
+#if defined(__linux__)
 				cpu_set_t cpuset;
 				CPU_ZERO(&cpuset);
 				CPU_SET(coreId, &cpuset);
 				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
-				if (rc != 0) {
-				std::cerr << "The Input Thread : Error calling pthread_setaffinity_np: " << rc << "\n";
-				}
 
-				pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+				if (rc != 0) {
+					std::cerr << "The Input Thread : Error calling pthread_setaffinity_np: " << rc << "\n";
+				}
 
 				getGlobalLogger().info("The Input-Thread is Running with core#: {}/worker#:{}, TID:{}", 
 						coreId, workerId, syscall(SYS_gettid));
+
+#elif defined(__APLLE__)
+	processor_set_t mask;
+	//processor_assign(getpid(), mask, true);
+#endif
+
 
 				setGlobalIwId(workerId);
 
@@ -630,19 +641,24 @@ int main(int argc, char** argv)
 
 		tg.create_thread( [ workerId, coreId, &cv, &m, &retval, configFile]{
 
+				ndn::KeyChain           m_nfdKeyChain;
+#if defined(__linux__)
 				cpu_set_t cpuset;
 				CPU_ZERO(&cpuset);
 				CPU_SET(coreId, &cpuset);
 				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
 
-				ndn::KeyChain           m_nfdKeyChain;
 
 				if (rc != 0) {
 				getGlobalLogger().info("Dcn Thread ERROR+++ calling pthread_setaffinity_np: {}", rc);
 				return;
 				}
-
 				getGlobalLogger().info("MW-NFD-Worker(worker-id:{}/core:{})", workerId, coreId);
+#elif defined(__APLLE__)
+	processor_set_t mask;
+	//processor_assign(getpid(), mask, true);
+#endif
+
 
 				const nfd::face::GenericLinkService::Options options;
 				try{

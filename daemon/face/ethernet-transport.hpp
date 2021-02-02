@@ -111,7 +111,6 @@ private:
   signal::ScopedConnection m_netifStateChangedConn;
   signal::ScopedConnection m_netifMtuChangedConn;
   bool m_hasRecentlyReceived;
-    uint8_t m_iwId;
 #ifdef _DEBUG
   /// number of frames dropped by the kernel, as reported by libpcap
   size_t m_nDropped;

@@ -24,7 +24,9 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#if defined(__linux__)
 #include <linux/if_packet.h>
+#endif
 #include <net/ethernet.h> /* the L2 protocols */
 #include "common/global.hpp"
 #include "mw-nfd-global.hpp"
@@ -315,6 +317,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
     return std::make_tuple(packetType, worker);
 }
 
+#if 0
 int get_interface_number_by_device_name(int socket_fd, std::string interface_name) {
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
@@ -334,9 +337,10 @@ int get_interface_number_by_device_name(int socket_fd, std::string interface_nam
     return ifr.ifr_ifindex;
 
 }
+#endif
 
 MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
-MoodyMQ g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
+//MoodyMQ g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 BoostMQ g_dcnBoostMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 
 void mq_allocation()
@@ -346,7 +350,6 @@ void mq_allocation()
     for(i=0;i<MQ_ARRAY_MAX_SIZE;i++){
         for(j=0;j<MQ_ARRAY_MAX_SIZE;j++){
             g_dcnMoodyMQ[i][j] = std::make_shared<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>();
-            g_dcnMoodyOutMQ[i][j] = std::make_shared<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>();
         }
     }
 }

@@ -261,9 +261,11 @@ DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, s
 
 #if !defined(ETRI_NFD_ORG_ARCH)
 	if(error){
+#if defined(__linux__)
 		getGlobalLogger().info("Error handleReceive: {}, \"{}\"/{} on CPU {}", getFace()->getId(), 
 		error.message(), error.value(), 
 			sched_getcpu());
+#endif
 		return;
 	}
 #endif

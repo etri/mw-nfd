@@ -36,13 +36,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include<sys/socket.h> /* contains socket(), bind(), includes SOCK_RAW macro from bits/socket.h */
-#include<features.h>
-#include<linux/if_packet.h> /* contains sockaddr_ll */
-#include<linux/if_ether.h> /* contain 802.3 protocol numbers and constants, contains definition of ethernet frame header */
-#include<errno.h>
-#include<net/if.h>
-#include<netinet/ether.h>
+#include <sys/socket.h> /* contains socket(), bind(), includes SOCK_RAW macro from bits/socket.h */
+
+#if defined(__linux__)
+#include <features.h>
+#include <linux/if_packet.h> /* contains sockaddr_ll */
+#include <linux/if_ether.h> /* contain 802.3 protocol numbers and constants, contains definition of ethernet frame header */
+#include <netinet/ether.h>
+#endif
+
+#include <errno.h>
+#include <net/if.h>
 
 #include <boost/endian/conversion.hpp>
 

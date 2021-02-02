@@ -207,8 +207,13 @@ StreamTransport<T>::doSend(const Block& packet)
 		m_socket.send(boost::asio::buffer(packet), flags, error);
 	}
 
-	if(error)
-    	getGlobalLogger().info("Error(stream-transport's doSend) INFO: [{}] : Face {} : CPU {}" , std::strerror(errno), getFace()->getId(), sched_getcpu());
+	if(error){
+			#if defined(__APPLE__)
+    	getGlobalLogger().info("stream-transport's doSend - INFO: [{}]" , std::strerror(errno));
+			#elif defined(__linux__)
+    	getGlobalLogger().info("stream-transport's doSend - INFO: [{}] : CPU {}" , std::strerror(errno), sched_getcpu());
+			#endif
+	}
 #endif
 
 }

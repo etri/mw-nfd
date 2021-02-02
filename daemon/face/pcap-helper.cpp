@@ -29,8 +29,10 @@
 #include <pcap/pcap.h>
 #include <unistd.h>
 #include <sys/socket.h>
- #include <linux/if_packet.h>
-       #include <net/ethernet.h> /* the L2 protocols */
+#if defined(__linux__)
+#include <linux/if_packet.h>
+#include <net/ethernet.h> /* the L2 protocols */
+#endif
 
 #if !defined(PCAP_NETMASK_UNKNOWN)
 #define PCAP_NETMASK_UNKNOWN  0xffffffff
