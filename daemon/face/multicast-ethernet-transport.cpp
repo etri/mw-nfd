@@ -52,7 +52,7 @@ MulticastEthernetTransport::MulticastEthernetTransport(const ndn::net::NetworkIn
                                                        const ethernet::Address& mcastAddress,
                                                        ndn::nfd::LinkType linkType)
   : EthernetTransport(localEndpoint, mcastAddress)
-#if defined(__linux__)
+#ifdef __linux__
   , m_interfaceIndex(localEndpoint.getIndex())
 #endif
 {

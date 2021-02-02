@@ -108,9 +108,6 @@ void Nfd::initialize()
     // only one auto-detection procedure is triggered
     m_reloadConfigEvent = getScheduler().schedule(5_s, [this] {
       NFD_LOG_INFO("Network change detected, reloading face section of the config file...");
-#if defined(ETRI_NFD_ORG_ARCH)
-      std::cout<< "Network change detected, reloading face section of the config file..." << std::endl;
-#endif
       reloadConfigFileFaceSection();
     });
   });

@@ -140,7 +140,6 @@ void bulk_test_case_01();
 void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
 #ifndef ETRI_NFD_ORG_ARCH
  void terminate(const boost::system::error_code& error, int signalNo);
- void onNotification(const ndn::nfd::FaceEventNotification& notification);
 #endif
 
   ConfigSection m_configSection;

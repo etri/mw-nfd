@@ -156,7 +156,7 @@ DatagramTransport<T, U>::doClose()
   // Ensure that the Transport stays alive at least until
   // all pending handlers are dispatched
 
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
   getGlobalIoService().post([this] {
     this->setState(TransportState::CLOSED);
   });
@@ -179,7 +179,7 @@ DatagramTransport<T, U>::doSend(const Block& packet)
 }
 
 
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
 template<class T, class U>
 void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
@@ -259,12 +259,11 @@ template<class T, class U> void
 DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
 
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
 	if(error){
-#if defined(__linux__)
+#ifdef __linux__
 		getGlobalLogger().info("Error handleReceive: {}, \"{}\"/{} on CPU {}", getFace()->getId(), 
-		error.message(), error.value(), 
-			sched_getcpu());
+		error.message(), error.value(), sched_getcpu());
 #endif
 		return;
 	}

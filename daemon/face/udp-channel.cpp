@@ -158,7 +158,7 @@ UdpChannel::createFace(const udp::Endpoint& remoteEndpoint,
   }
 
   // else, create a new face
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
   ip::udp::socket socket(getGlobalIoService(), m_localEndpoint.protocol());
 #else
   int ifIndex=getIfIndex(remoteEndpoint.address().to_string().c_str());

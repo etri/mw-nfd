@@ -356,7 +356,7 @@ void mq_allocation()
 
 thread_local int32_t g_iwId;
 
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
 static shared_ptr<spdlog::logger> g_logService=nullptr;
 #endif
 
@@ -402,7 +402,7 @@ int32_t getIfIndex(const char *addr)
 	char netmask[NI_MAXHOST];
 
 	if (getifaddrs(&ifaddr) == -1) {
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
 		std::cout << "getifaddrs Error--------------: " << addr << std::endl;
 #endif
 		return 0;
@@ -465,7 +465,7 @@ void setForwardingWorkers(int8_t cap)
     g_forwardingWorkers = cap;
 }
 
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
 spdlog::logger& getGlobalLogger()
 {
     return *g_logService;

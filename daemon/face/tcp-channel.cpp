@@ -86,7 +86,7 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
     return;
   }
 
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
   auto clientSocket = make_shared<ip::tcp::socket>(getGlobalIoService());
 #else
 	int ifIndex = getIfIndex(remoteEndpoint.address().to_string().c_str());
@@ -103,7 +103,7 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
   });
 }
 
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
 void
 TcpChannel::createFaceForMwNfd(ip::tcp::socket&& socket,
                        const FaceParams& params,
@@ -271,7 +271,7 @@ TcpChannel::handleConnect(const boost::system::error_code& error,
 
   NFD_LOG_CHAN_TRACE("Connected to " << socket->remote_endpoint());
 
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
 	createFace(std::move(*socket), params, onFaceCreated);
 #else
   createFaceForMwNfd(std::move(*socket), params, onFaceCreated);

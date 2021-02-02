@@ -119,34 +119,11 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 		//int opt=1;
 		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
 
-#if !defined(ETRI_NFD_ORG_ARCH)
-        //m_faceMonitor.onNotification.connect(bind(&MwNfd::onNotification, this, _1));
-        //m_faceMonitor.start();
-#endif
     }
 
 MwNfd::~MwNfd() = default;
 
 #ifndef ETRI_NFD_ORG_ARCH
-void
-    MwNfd::onNotification(const ndn::nfd::FaceEventNotification& notification)
-    {
-        if (notification.getKind() == ndn::nfd::FACE_EVENT_CREATED) {
-			//getGlobalLogger().info("worker:: onNotification::FACE_EVENT_CREATED: on CPU {}" , sched_getcpu() );
-		}
-        if (notification.getKind() == ndn::nfd::FACE_EVENT_DESTROYED) {
-            nfd::face::Face * face = m_faceTable->get(notification.getFaceId());
-            if(face!=nullptr){
-#if defined(__linux__)
-			getGlobalLogger().info("worker:: onNotificationFACE_EVENT_DESTROYED: on CPU {}" , sched_getcpu() );
-#endif
-                cleanupOnFaceRemoval(
-                    m_forwarder->getNameTree(), m_forwarder->getFib(), 
-                    m_forwarder->getPit(), *face);
-            }
-        }
-    }
-
 
 Fib& MwNfd::getFibTable()
 {
@@ -255,7 +232,7 @@ void MwNfd::handleNfdcCommand()
 			}
 			fib::Entry* entry = m_forwarder->getFib().findExactMatch(prefix);
 			if(entry!=nullptr){
-#if defined(__linux__)
+#ifdef __linux__
 				getGlobalLogger().info("Successfully removed Prefix({}) with NextHop({}) on Worker[{}/{}].", 
 						prefix.toUri(), face->getId(),
 						m_workerId,sched_getcpu()
@@ -264,7 +241,7 @@ void MwNfd::handleNfdcCommand()
 				m_forwarder->getFib().removeNextHop(*entry, *face);
 			}else{
 
-#if defined(__linux__)
+#ifdef __linux__
 				getGlobalLogger().info("There Exist No Entry to be removed from FIB. Worker[{}/{}], prefix({}), nh({})", 
 						m_workerId,sched_getcpu(), prefix.toUri(), face->getId());
 #endif
@@ -278,7 +255,7 @@ void MwNfd::handleNfdcCommand()
 			if(face1!=nullptr){
 				cleanupOnFaceRemoval( m_forwarder->getNameTree(), m_forwarder->getFib(), m_forwarder->getPit(), *face1);
 			}else{
-#if defined(__linux__)
+#ifdef __linux__
 				getGlobalLogger().info("Face Destroy - None Face {} on CPU {}", faceId, sched_getcpu());
 #endif
 			}
@@ -384,7 +361,7 @@ void MwNfd::initialize(uint32_t input_workers)
 void
 MwNfd::initializeManagement()
 {
-#if defined(__linux__)
+#ifdef __linux__
 	getGlobalLogger().info("Config File: {} on CPU {}", m_configFile, sched_getcpu());
 #endif
 
@@ -507,7 +484,7 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 {
     nfd::face::Face *face = m_faceTable->get(faceId);
 	if(face==nullptr){
-#if defined(__linux__)
+#ifdef __linux__
 		getGlobalLogger().info("There is no face Entry with {} on CPU {}", faceId, sched_getcpu());
 #endif
 		return;
@@ -725,6 +702,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
         char* ptr __attribute__((unused));
+
 
 		if (fp==NULL) {
 			getGlobalLogger().info("MW-NFD: bulk_fib_test: can't read bulk-fib-file:{}", getBulkFibFilePath());

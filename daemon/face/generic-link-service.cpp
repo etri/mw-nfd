@@ -241,8 +241,7 @@ GenericLinkService::sendNetPacket(lp::Packet&& pkt, bool isInterest)
 lp::Sequence
 GenericLinkService::assignSequence(lp::Sequence val)
 {
-    // modified by ETRI(modori) on 20201203
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
   return m_lastSeqNo.fetch_add(val);
 #else
   return 0;
@@ -254,7 +253,6 @@ GenericLinkService::assignSequence(lp::Packet& pkt)
   pkt.set<lp::SequenceField>(++m_lastSeqNo);
 }
 
-// added by ETRI(modori) on 20201203
 void
 GenericLinkService::assignSequence(lp::Packet& pkt, lp::Sequence seq)
 {
@@ -264,7 +262,7 @@ GenericLinkService::assignSequence(lp::Packet& pkt, lp::Sequence seq)
 void
 GenericLinkService::assignSequences(std::vector<lp::Packet>& pkts)
 {
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
     lp::Sequence begin_seq = m_lastSeqNo.fetch_add(pkts.size());
     std::for_each(pkts.begin(), pkts.end(), [this, &begin_seq] (auto& pkt) { 
             this->assignSequence(pkt, begin_seq++);
@@ -501,7 +499,6 @@ GenericLinkService::decodeData(const Block& netPkt, const lp::Packet& firstPkt,
     }
   }
 
-  // added by ETRI(modori) on 20201215
   if (firstPkt.has<lp::PitTokenField>()) {
     data->setTag(make_shared<lp::PitToken>(firstPkt.get<lp::PitTokenField>()));
   }

@@ -127,7 +127,7 @@ FaceManager::createFace(const ControlParameters& parameters,
 
   faceParams.wantLpReliability = parameters.hasFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED) &&
                                  parameters.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED);
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
   if(faceParams.wantLpReliability){
 	  NFD_LOG_TRACE("received create request for unsupported Reliability: " << remoteUri.getScheme());
 	  done(ControlResponse(406, "Unsupported Reliability On MW-NFD"));

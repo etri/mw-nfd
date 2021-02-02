@@ -110,14 +110,10 @@ Forwarder::Forwarder(FaceTable& faceTable)
             });
 
     m_faceTable.beforeRemove.connect([this] (const Face& face) {
-#if !defined(ETRI_NFD_ORG_ARCH)
+#ifndef ETRI_NFD_ORG_ARCH
             ControlParameters parameters;
             parameters.setFaceId(face.getId());
-            //auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-            //emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, nullptr, pa, getGlobalNetName());
-//			getGlobalLogger().info("Staring MW_NFDC_VERB_DESTROYED command(cpu:{})", sched_getcpu());
             emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, parameters, getGlobalNetName());
-//			getGlobalLogger().info("Finished MW_NFDC_VERB_DESTROYED command(cpu:{})", sched_getcpu());
 #endif
             cleanupOnFaceRemoval(m_nameTree, m_fib, m_pit, face);
             });

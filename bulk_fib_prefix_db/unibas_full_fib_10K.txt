@@ -55,7 +55,7 @@
 /com/bookbrowse/reviews/index.cfm/book_number/964
 /com/cbinet/conference/speakers
 /fr/larousse/dictionnaires/francais-allemand/flot
-/com/mulberry/storelocator/asia/korea,south
+/com/mulberry/storelocator/asia/koreaCsouth
 /com/act4u/pages
 /us/ca/fullerton/ci/depts/museum/programs
 /pl/mp/sierpc/maciejewski
@@ -63,7 +63,7 @@
 /com/hungariancult/Qv8E8/82607
 /com/tampabay/things-to-do/events/5-things-to-do-under-5-april-10-16/features
 /com/soccerway/players/anderson-luis-ribeiro-pereira
-/com/funnyjunk/funny_pictures/3958274/Mrs.+Vader
+/com/funnyjunk/funny_pictures/3958274/Mrs.PVader
 /com/mlblogs/marksheldon/2010/06/16/postgame-not-much-extra
 /com/denalioutdoor/Kids-Boots-Sale/Rubber-Rain-Bogs-Black/1193-1122-859-287
 /com/journalisme/les-assises-2012-menu
@@ -176,7 +176,7 @@
 /com/dmnews/retail-promotional-product-buyers-from-new-century-direct/printarticle
 /com/pbase/dosseman/image/133675323
 /com/cisco/en/US/products/ps5855
-/de/kindergaerten-bw/SEMINAR-MECKENBEUREN,Lde
+/de/kindergaerten-bw/SEMINAR-MECKENBEURENCLde
 /com/madthumbs/images/flirting-couples-daynight-40/6965126
 /com/fodors/world/europe/scotland/argyll-and-the-isles/iona
 /es/amazon/Philips-46PFL5507H-12-Televisor-pulgadas/dp
@@ -205,7 +205,7 @@
 /com/wordpress/zongrik/2012/04/07
 /org/mayoclinic/drugs-supplements/gentamicin-ophthalmic-route/precautions
 /com/zocdoc/urologists/rosemead-ca-73373pm
-/com/junodownload/artists/Rich+Box/releases
+/com/junodownload/artists/RichPBox/releases
 /com/biblegateway/legacy/topical/Midianites
 /net/hillsdale/article/20130521/NEWS/305219983/0
 /com/blackberry/appworld/webstore/vendor/30739
@@ -251,7 +251,7 @@
 /com/fark/comments/7203889
 /com/vg247/tag/rocksmith
 /edu/hope/student/life/ucs
-/org/biologos/resources/find/any/Ancient+Cultures,Atheism+&+Scientism,Miracles
+/org/biologos/resources/find/any/AncientPCulturesCAtheismP&PScientismCMiracles
 /com/popsugar/fashion/photo-gallery/34070684/image/34142826
 /com/cafemom/group/110162/forums/read/17212267
 /se/bloggamera/2008
@@ -332,7 +332,7 @@
 /com/moviefone/news/2011/01/20
 /com/jcpenney/little-girls/dresses/skirts/_/N-1boZ1z141crZ1z140k5
 /com/terrysvillage/spring/free-decorating-ideas/home-decor-free-decorating
-/com/viosoftware/Antivirus+Mac
+/com/viosoftware/AntivirusPMac
 /com/wordpress/davidbcoe/2013/01/28
 /com/blogspot/writingandrhetoric/2008/01
 /com/epicsports/soccer/cat/190/r1/f-hp7-q22
@@ -362,7 +362,7 @@
 /com/wahanda/report
 /org/medhelp/user_journals/show/650639
 /info/shakahari/category/hindustani
-/org/wikisource/en/wiki/Men_of_the_Time,_eleventh_edition
+/org/wikisource/en/wiki/Men_of_the_TimeC_eleventh_edition
 /com/worldfootballdaily/b/Wesley-Sneijder-Where-Are-You
 /com/carolinahuddle/boards/topic/82550-do-we-have-the-best-outdoor-field
 /com/pyyz/uploadfile/pic/htm10
@@ -430,7 +430,7 @@
 /com/techbargains/deal/131215
 /com/colmjude/Travel
 /com/greeningofgavin/2011/01
-/com/clker/search/bird+cartoon+fish
+/com/clker/search/birdPcartoonPfish
 /com/theredvault/blog/2010/08
 /com/hotelplanner/Hotels/21110
 /com/valorebooks/textbooks/microeconomics-10th-edition
@@ -451,7 +451,7 @@
 /com/wordpress/crossroadsofempires/2011/12/09
 /com/flight1
 /org/summitpost/big-ice-trekking/climbers-log/765542
-/com/gamefaqs/users/rct+two+rules+3
+/com/gamefaqs/users/rctPtwoPrulesP3
 /org/rawartists/dallas
 /com/hollywood/videos/interview/55041373
 /com/venere/es/hoteles/italia/umbria
@@ -511,7 +511,7 @@
 /com/gaytube/media/62310
 /uk/co/architectsjournal/news/columnists/the-regs-places-of-public-entertainment
 /org/openclipart/detail/13548
-/no/linux/lxr/linux-old+v2.4.26/include/linux
+/no/linux/lxr/linux-oldPv2.4.26/include/linux
 /com/redeyechicago/articles/2013-03-14/news
 /com/europeantour/challengetour/players/playeridE39216/results
 /com/lulus/manufacturer/sort-on-high/filter-color-74/filter-price-150/214
@@ -563,7 +563,7 @@
 /br/com/vitrinedobairro/oeste/butanta-sp
 /com/vitacost/alba-un-petroleum-lip-balm-with-spf-18-vanilla-0-15-oz
 /com/blogspot/dclkita/2009/04
-/com/jango/music/Buffalo+Springfield/Hung+Upside+Down
+/com/jango/music/BuffaloPSpringfield/HungPUpsidePDown
 /com/dailygazette/news/2013/may/02/0502_raucciruling
 /net/theinquirer/inquirer/news/2153896
 /com/ridgecrestca/article/20130517/NEWS/305179967/1015
@@ -656,7 +656,7 @@
 /tv/fotomontajes/tag/antiguos
 /com/newhampshire/article/20130918/NEWS08/130919236/0
 /com/steampowered/store/app/12570
-/com/ajmadison/b.php/Capital,GE,SmegP3b30+InchP3bWall+Ovens
+/com/ajmadison/b.php/CapitalCGECSmegP3b30PInchP3bWallPOvens
 /com/pro-football-reference/players/C/ChanDo20/touchdowns
 /com/msn/zone/en/casinovpoker1
 /com/danscomp/products/367162
@@ -710,7 +710,7 @@
 /com/bigupload/view/12318
 /com/gawker/5527596
 /com/badjojo/2585198
-/com/sail-world/USA/Volvo-Ocean-Race:-Images-from-the-Inport-Race,-Auckland
+/com/sail-world/USA/Volvo-Ocean-Race:-Images-from-the-Inport-RaceC-Auckland
 /com/farecompare/flights/Rio_de_Janeiro-RIO/africa
 /com/bigstockphoto/image-23618231
 /biz/mlseg/en/egypt/31406
@@ -776,7 +776,7 @@
 /com/totalbeauty/reviews/product/6436512
 /com/adweek/tvnewser/weather-channel-releases-winter-storm-names-for-2013-2014
 /org/digitalartanddesign
-/com/ajmadison/b.php/Beverage+CenterP3bHeight:+18P22+-+33.9P22P3bNoP3bRefrigerators
+/com/ajmadison/b.php/BeveragePCenterP3bHeight:P18P22P-P33.9P22P3bNoP3bRefrigerators
 /com/tastespotting/detail/176348
 /com/network54/Forum/181413/message/1336754273/last-1336754971
 /cz/csobleasing/cz/zakaznici
@@ -815,7 +815,7 @@
 /org/gentoo/archives/gentoo-devrel
 /com/blogspot/mindaperkasa/2010/07
 /com/latimes/articles/1992-01-05/news/hl-2159_1_job-fairs
-/org/phys/tags/alzheimer+s+disease/sort/liverank/all
+/org/phys/tags/alzheimerPsPdisease/sort/liverank/all
 /com/circlecount/vi/p
 /com/getsatisfaction/levis/topics
 /com/swiftfilm/tag/star-wars/page
@@ -865,7 +865,7 @@
 /org/fepblue
 /com/football365/queens-park-rangers/8259970
 /com/techcitynews/2014/02/20
-/com/jango/music/Bruce+Springsteen/Glory+Days
+/com/jango/music/BrucePSpringsteen/GloryPDays
 /org/pcbsd/lists/pipermail/pbibuild/2012-February
 /com/dailypuppy/member/anonymous/album/371/photo
 /com/codeguru/vb/gen/vb_forms/listbox/article.php/c5951
@@ -907,7 +907,7 @@
 /com/pny/company/where-to-buy
 /com/teamfanshop/yahoosports/NCAA_Texas_A_And_M_Kingsville_Javelinas_Kids_Youth
 /net/kchkradio/2012/04/17
-/com/windsorstar/health/diet-fitness/Gallery+acne+fighting+foods/6952133
+/com/windsorstar/health/diet-fitness/GalleryPacnePfightingPfoods/6952133
 /com/superuser/questions/317228
 /com/slrgear/reviews/showproduct.php/product/1529/si
 /com/newgrounds/portal/view/415841/review_page
@@ -1035,7 +1035,7 @@
 /pl/republika/rgamez
 /com/applegazette/news/hootsuite-comes-to-the-ipad/attachment
 /com/sleepyeyenews/article/20130323/BLOGS/303239997
-/com/stylebistro/lookbook/Hailee+Steinfeld/GgImZR9cQTk/Handbags
+/com/stylebistro/lookbook/HaileePSteinfeld/GgImZR9cQTk/Handbags
 /com/cureresearch/w/wilms_tumor
 /org/idofoundation/cgi-bin
 /gov/texas/tceq/waterquality/p2
@@ -1068,7 +1068,7 @@
 /com/horseandponyvideos
 /com/wunderground/history/airport/CWYL/2012/12/30
 /com/bdnews24/opinion/author/kayes-ahmed/page
-/com/montrealgazette/life/food-wine/Vegetarians+holiday+table/5824047
+/com/montrealgazette/life/food-wine/VegetariansPholidayPtable/5824047
 /com/wjrz/Events/listings.aspx
 /com/edebiyatdefteri/siir/629710
 /com/ning/wemakezines/photo/2288844:Photo:11701
@@ -1079,11 +1079,11 @@
 /com/ziprealty/property/1212-SONOMA-DR-ALLEN-TX-75013/65995426
 /com/golfgalaxy/walter-hagen-mens-raleigh-short-sleeve-polo/fa12whraleighpolo
 /com/blogspot/muralilistening
-/com/sqlblog/tags/SQL/t-sql/ntile/windowing+functions/rank
+/com/sqlblog/tags/SQL/t-sql/ntile/windowingPfunctions/rank
 /com/officedepot/a/browse/102796
 /com/izlesene/video/beni-topraga-gelin-eyledin
 /com/yahoo/groups/neo/groups/christmasinternational/conversations/topics
-/com/snagajob/job-search/j-active+company+needs+30+people+immediately/w-me
+/com/snagajob/job-search/j-activePcompanyPneedsP30PpeoplePimmediately/w-me
 /com/wlky/m/news/Man-nearly-dies-during-surprise-shopping-trip
 /net/chesapeakebay/SE0/blog/blog/keyword/environmental_education
 /com/cbssports/blogs/cgubata/mcc/blogs/view
@@ -1094,9 +1094,9 @@
 /com/basspro/Shooting-Gun-Parts/Type-Rifle-Accessories/_
 /com/cortezjournal/article/20130102/NEWS01/130109975/0/NEWS07
 /com/cafemom/thestir/love_sex/145031
-/ro/tvtrip/Villeneuve-dP27Ascq+hoteluri-hotels
+/ro/tvtrip/Villeneuve-dP27AscqPhoteluri-hotels
 /com/reelz/movie/193100
-/com/billmuehlenberg/search/militant+atheist/page
+/com/billmuehlenberg/search/militantPatheist/page
 /com/bookpassage/browse/book/3385/self-help
 /com/utahutes/sports/w-tennis/mtt
 /com/drodio/maryland-real-estate/clinton
@@ -1108,7 +1108,7 @@
 /ca/computervalley/f8n143-ksg/722868710449
 /com/kiowacountysignal/article/20121224/NEWS/312249998/0
 /com/gotgayporn/flagspam/645934/255099
-/com/tvguide/video/Halloween/Halloween+5312008
+/com/tvguide/video/Halloween/HalloweenP5312008
 /com/carolinahuddle/boards/user/402-monkeybutt
 /de/shopbetreiber-blog/2015/03/31
 /com/grace-marshall/blog/page
@@ -1156,7 +1156,7 @@
 /it/uninsubria/www4/on-line/home/naviga-per-tema/ateneo/organizzazione
 /com/jewelsfablife/2012/07/03
 /com/wordpress/mycrazylittlelife/2008/10/20
-/com/buckle/mens/shoes/brand:bke+gbx
+/com/buckle/mens/shoes/brand:bkePgbx
 /com/loft/regular-purple-sale-pants
 /com/britannica/topic/647975
 /com/movies/stepfather-2
@@ -1174,7 +1174,7 @@
 /com/bangthebook/picks/t/36642
 /com/wkyc/sports/article/285887/54
 /com/technologyreview/view/426586
-/hu/tvtrip/Baiersbronn+szPC3PA1lloda-hotels
+/hu/tvtrip/BaiersbronnPszPC3PA1lloda-hotels
 /com/orangotag/blog/episode/index
 /com/blogspot/boletteshus
 /org/wordpress/svn/plugins/the-countdown
@@ -1209,7 +1209,7 @@
 /uk/co/holidaylettings/kinvarra
 /com/deanscards/p/48240/8.00
 /com/the-leader/article/20140812/SPORTS/140819878/10085
-/it/lastfm/music/Hargus+PE2P80P9CPigPE2P80P9D+Robbins
+/it/lastfm/music/HargusPPE2P80P9CPigPE2P80P9DPRobbins
 /com/pyramydair/a/BB_guns_and_pellet_guns/1116/ru_8/loudness_1
 /com/forbes/sites/tomvanriper/2013/08/09
 /org/aaiff
@@ -1251,14 +1251,14 @@
 /com/blogspot/mainstreambaptist/2013/01
 /com/fimegroup
 /com/theybf/2014/08/25
-/ro/tvtrip/Cermes+hoteluri-hotels
+/ro/tvtrip/CermesPhoteluri-hotels
 /com/basspro/Classification-Ladies/Size-13/Size-40/_
 /com/design-milk/venice-beach-ca-restaurant-inventive-ceiling
 /com/aliexpress/popular/enclosure-plastic
 /com/foodandwine/slideshows/houston-in-10-plates
 /com/cantonrep/article/20140124/NEWS/140129624/10284
 /com/blogspot/rpbouman/2010/03
-/com/jango/music/Bright+Eyes/Away+in+a+Manger
+/com/jango/music/BrightPEyes/AwayPinPaPManger
 /com/photobucket/media/user/mr_palafox_92/media
 /edu/kaskaskia/Cosmetology
 /com/texasrebelradio
@@ -1282,7 +1282,7 @@
 /com/stackexchange/unix/questions/27937/blocking-outgoing-connects-with-iptables
 /com/moddb/mods/battlefield-1918/downloads
 /com/olneyenterprise/ci_26113197
-/ca/househunting/calgary/Buying-Homes/There+value+small+houses/5886806
+/ca/househunting/calgary/Buying-Homes/TherePvaluePsmallPhouses/5886806
 /com/foodengineeringmag/products/category/2628/product
 /org/mdelections/voting_system/overseas_voters/overseas_voters/forms
 /com/podophile/2007/01/17
@@ -1364,7 +1364,7 @@
 /com/turbosquid/3d-models/ready-games-real-time-3d-max
 /com/evo/outlet-shop/snowboard/pants/ride/womens
 /com/tartareandesire/old_tours/Nevermore
-/de/flohmarkt38/ahausen/abendkleidung/festlicher+hosenanzug/archRecId,9118968
+/de/flohmarkt38/ahausen/abendkleidung/festlicherPhosenanzug/archRecIdC9118968
 /com/github/joomla/joomla-platform/commit
 /net/dvidshub/news/117766
 /com/theguardian/football/2011/jan/21
@@ -1380,7 +1380,7 @@
 /org/apache/mail-archives/mod_mbox/cocoon-dev/200207.mbox
 /com/rotoworld/headlines/nfl/252743
 /com/blogspot/andystonemusic
-/com/conceptcarz/view/photo/803723,20802
+/com/conceptcarz/view/photo/803723C20802
 /com/blogspot/janeville/2011/08
 /us/mn/state/education/MDE/Welcome/AdvBCT/TeachLicenTaskForce
 /es/lastfm/user/Codesleuth
@@ -1486,7 +1486,7 @@
 /com/teenink/poetry/free_verse/article/507970
 /com/kenrockwell/nikon/d40
 /com/menupix/losangeles/cn/40/275
-/kr/co/tvtrip/MoundsP20View+PEDP98PB8PEDP85P94-hotels
+/kr/co/tvtrip/MoundsP20ViewPPEDP98PB8PEDP85P94-hotels
 /uk/co/stitchcraftcreate/yarn/yarn-by-brand
 /com/ljworld/www2/mailfriend/334/33188
 /com/intel/content/www/us/en
@@ -1502,7 +1502,7 @@
 /com/oneiionestudiospa
 /org/marketplace/story/related/2358P203740
 /com/pgatour/players/player.26710.ramiro-goti.html
-/com/1010tires/Tires/Reviews/205-55R16/Falken/Passenger+Cars
+/com/1010tires/Tires/Reviews/205-55R16/Falken/PassengerPCars
 /com/wgr550/Screw-You--NFL
 /gov/ohio/supremecourt/SCO/justices/pfeifer/column/2012
 /com/craftsy/project/view/baby-dragon-amigurumi
@@ -1519,7 +1519,7 @@
 /com/fleetly/register
 /com/configurarequipos/foro-ayuda/2701562/251/0
 /com/superherouniverse/wiki/Autobots_Meet_Marvel_Universe
-/com/ajmadison/b.php/Stainless+LookP3bFreestandingP3b$800+-+$899P3bWine+Coolers
+/com/ajmadison/b.php/StainlessPLookP3bFreestandingP3b$800P-P$899P3bWinePCoolers
 /org/utu/ilink
 /com/heldenmagazin/2009/03/17/die-kleine-presseschau-vom-10-bis-zum-17-marz-2009
 /com/mytinyphone/profile/jkakas
@@ -1563,7 +1563,7 @@
 /com/newbergdodge/usercontrols/search
 /com/cnet/forums/7723-13973_102-583213
 /com/typepad/ledgeandgardens/ledge_and_gardens/2012/08
-/com/jango/music/Khia/Hater+Walk
+/com/jango/music/Khia/HaterPWalk
 /com/walgreens/store/c/productlist/NE355502/1
 /com/apidock/rails/v3.1.0/ActionDispatch/Cookies/CookieJar/new
 /com/ziprealty/homes-for-sale/list/saltlakecity/by-zip/84040
@@ -1875,7 +1875,7 @@
 /com/kesq/kesq/flu-shots-available-now
 /us/ms/state/ls/billstatus/documents/1997/SR
 /in/orangecounty/kabini-resorts/de/unsere-leute
-/fi/marmai/uutiset/portugalilaislehden+kampanja+nayttaa+kuinka+maailma+makaa
+/fi/marmai/uutiset/portugalilaislehdenPkampanjaPnayttaaPkuinkaPmaailmaPmakaa
 /com/familyeducation/school/curriculum-planning/alternative-education
 /org/misnomer/blog/2008/03/26
 /com/kiowacountysignal/article/20131027/NEWS/310279949/1665
@@ -1939,7 +1939,7 @@
 /com/loot/leisure-and-lifestyle/what-s-on/ticket
 /com/medicalxpress/tags/school
 /com/lxer/module/newswire/view/173149
-/com/ajmadison/b.php/BoschP2CElectroluxP2CGE+MonogramP3BP3E+P245P2C000
+/com/ajmadison/b.php/BoschP2CElectroluxP2CGEPMonogramP3BP3EPP245P2C000
 /com/cyberseams/article/105718/craft_basics
 /com/deviantart/koronamosel/art
 /cat/gencat/mediambient
@@ -1974,7 +1974,7 @@
 /com/erdelynet/2013/10
 /com/chia-anime/download/anime/1333
 /com/horseclicks/bashkir-curly/oklahoma/harness/ACI
-/com/google/maps/search/39.118145,+117.215012/@39.118145,117.215012,17z
+/com/google/maps/search/39.118145CP117.215012/@39.118145C117.215012C17z
 /com/itslive/cam/Sharick.Ts
 /com/racorstoragesolutions/RXR1TSRy4hualvktdqty5b4eogracsgTT/tips-and-advice
 /edu/jhu/hrnt/pay
@@ -1997,7 +1997,7 @@
 /org/edweek/ew/articles/2005/03/02
 /com/testfreaks/keyboards/genovation-controlpad-683
 /jp/animeanime/article/2014/04/17
-/com/yasni/steve+johs/check+people
+/com/yasni/stevePjohs/checkPpeople
 /com/education/schoolfinder/us/california/ojai/nordhoff-high
 /com/scribd/es/doc/95705400
 /com/bakeorbreak/category/stone-fruit/cherry/page
@@ -2020,7 +2020,7 @@
 /com/hostelworld/czech/hosteldetails.php/Atlantic-Point-Backpackers/Kapske-Mesto
 /com/wiley/onlinelibrary/doi/10.1111/j.1471-6402.1997.tb00108.x
 /com/jalopnik/5442556/infographic-proves-cash-for-clunkers-great-for-japanese
-/com/sqlblog/tags/Azure/Conferences/Windows+Azure/DBA
+/com/sqlblog/tags/Azure/Conferences/WindowsPAzure/DBA
 /com/classicindustries/shop/1989/camaro/parts/wheel-tire/wheel-covers
 /com/brandrepublic/jobs/job/513171
 /com/shoprite/pd/OralB/ProHealth-CrossAction-Toothbrush-Soft/1-ct
@@ -2039,7 +2039,7 @@
 /com/smartsound/royalty-free-music/library/Caribbean/Sprightly
 /com/hondapartsunlimited/auto-parts/2002/honda/civic-sedan/gx-side-srs-trim
 /it/lastfm/music/SWV/_
-/com/businessweek/jobs/a/all-jobs/list/q-Otr+Truck+Driver/l-HoustonP2C+TX
+/com/businessweek/jobs/a/all-jobs/list/q-OtrPTruckPDriver/l-HoustonP2CPTX
 /nu/graphicgarden/files17/eng/print
 /com/sarasotamagazine/blog/tag/fuzion-dance-artists
 /com/sitepoint/community/t/javascript-with-ruby-on-rails
@@ -2095,7 +2095,7 @@
 /com/deseretnews/user/comments/865560639
 /com/altova/list/xsl-list/200510
 /ca/histoirecanada
-/com/sqlblog/tags/developer/How+I+work/Presentations
+/com/sqlblog/tags/developer/HowPIPwork/Presentations
 /com/wikia/uncyclopedia/wiki/User:Weird_Al
 /com/scholarships/author/mary-steffenhagen
 /com/blogspot/seputarduniaanak/2010/03
@@ -2125,7 +2125,7 @@
 /com/mywapblog/fendiebook
 /com/snooth/region/usa/oregon
 /com/homeadvisor/tloc/Naples-FL
-/ca/househunting/vancouversun/condos/Treasure+from+1745+sale+Acadie/5813617
+/ca/househunting/vancouversun/condos/TreasurePfromP1745PsalePAcadie/5813617
 /name/didigames/y8games
 /com/gamefaqs/ps2/580401-jikkyou-world-soccer-2000-final-edition
 /com/notw/products/accessories-phone-cases-american-flag-iphone-4-4s-case-302103
@@ -2148,7 +2148,7 @@
 /com/fotothing/Richard79/photo
 /org/un/fr/events/friendshipday/2011
 /org/phrack/issues/38
-/com/stylebistro/lookbook/Aviator+Sunglasses/yngMsRtKJs2/angle
+/com/stylebistro/lookbook/AviatorPSunglasses/yngMsRtKJs2/angle
 /com/pressofatlanticcity/sports/team-by-team-high-school-field-hockey-capsules
 /com/appleblossomdreams/2013/11
 /com/woodfordtimes/article/ZZ/20140904/NEWS
@@ -2209,7 +2209,7 @@
 /com/mycityrocks/concert_tickets/1st_Mariner_Arena_Maryland_MD
 /com/emerica/team/jessteez97
 /se/lokaltidningen/hassleholm/en-kompakt-premiumkombi-/20120801/tema/712319813
-/com/midwiferytoday/community/tags/becoming+a+CPM/NMI/learning
+/com/midwiferytoday/community/tags/becomingPaPCPM/NMI/learning
 /com/fotosportacademy/calendari
 /com/blogspot/speakquietly/2008/12
 /com/pcrush/subcat/611
@@ -2221,7 +2221,7 @@
 /com/bobscycle/street/mens-riding-gear/protection
 /com/rideukbmx/page
 /com/montenews/article/20130909/NEWS/309099969/0
-/com/homesandland/Real-Estate-Agent/Mt_Pleasant,/Pam_Bishop,_Realtor,_CRS,_ABR
+/com/homesandland/Real-Estate-Agent/Mt_PleasantC/Pam_BishopC_RealtorC_CRSC_ABR
 /com/bloomberg/quote/ALBRI:FP
 /com/velonation/News/ID/7142
 /com/shoemetro/yes-cloud/1-page/y-refine/DESIGNER-Brand
@@ -2321,7 +2321,7 @@
 /com/topix/forum/city/hatch-nm/TP6I32V2E42QIA9OB
 /org/dmoz/desc/World/PortuguPC3PAAs/Desportos/AquPC3PA1ticos
 /edu/rochester/urmc/social-work/service-areas
-/com/bradfordexchange/mcategory/jewelry-and-watches_8364+113
+/com/bradfordexchange/mcategory/jewelry-and-watches_8364P113
 /com/singeronline
 /com/dailysunnews/m/photos/2013/oct/11/23591
 /com/seetickets/venue/ancienne-belgique-brussels
@@ -2333,7 +2333,7 @@
 /com/officedepot/a/products/358602
 /com/freshpair/mens/Bold/Cover-Male
 /com/eliberico
-/com/peoplefinders/d/Mohammad+Ahmed
+/com/peoplefinders/d/MohammadPAhmed
 /com/unionleader/article/20140415/NEWS06/140419434/0
 /gov/ed/nces/PUBSEARCH
 /com/legacy/sympathy/funeral-flowers/azcentral/sympathy/randal-bell-rande
@@ -2358,7 +2358,7 @@
 /com/economist/news/21566467-indonesia
 /com/associationdatabase/wac
 /com/wordpress/iheartkimchi/2008/08/31
-/it/yasni/loredana+bavosa
+/it/yasni/loredanaPbavosa
 /com/mensunderwearstore/shop/underwear/print/male-power
 /com/scsuntimes/article/20121107/NEWS/121109808/1012
 /com/onlynaturalpet/products/SmartCat-Ultimate-Scratching-Post-RSST-3832
@@ -2455,7 +2455,7 @@
 /com/gawker/5924898
 /com/theguardian/world/2014/mar/17
 /com/automd/shops/partin-rondal_312370
-/net/launchpad/bugs/ubuntu/+source/armel-cross-toolchain-base/+bug
+/net/launchpad/bugs/ubuntu/Psource/armel-cross-toolchain-base/Pbug
 /com/taftmidwaydriller/article/20130502/NEWS/305029907/1685
 /com/gopsusports/blog/2014/01
 /com/wordpress/marikinacity/2009/04/30
@@ -2594,7 +2594,7 @@
 /com/flickr/photos/foodiebride
 /com/elance/j/rewrite-text
 /com/relaischateaux/fr/malte
-/gov/tn/topics/Dept.+of+Human+Services/Searchable+Databases
+/gov/tn/topics/Dept.PofPHumanPServices/SearchablePDatabases
 /com/whorunsgov
 /com/sherdog/pictures/gallery/fighter/f_21467
 /com/collegehoopsnet/node/169529
@@ -2632,7 +2632,7 @@
 /gov/texas/tceq/permitting/registration/used_oil/help/site
 /com/nbcnews/id/50337810/ns
 /com/sportstalkflorida/pro-football-talks-mike-wilkening-with-tuck-and-oneill
-/com/chictopia/Charcoal-Gray-Alice-+-Olivia-For-Payless-Shoes
+/com/chictopia/Charcoal-Gray-Alice-P-Olivia-For-Payless-Shoes
 /com/deviantart/songsforever/art
 /com/johndcook/blog/2010/09/02
 /com/lawguru/legal-questions/missouri-general-civil-litigation
@@ -2761,7 +2761,7 @@
 /com/bloodhorse/horse-racing/articles/46115/princess-rooney-goes-to-oneills-plan
 /com/washingtontimes/communities/neighborhood/rights-so-divine/2012/aug/14
 /com/reformer/columnists/ci_23651045
-/ca/househunting/Homes/Home-Renovating/Retire+Canada+warmest+lake/6906322
+/ca/househunting/Homes/Home-Renovating/RetirePCanadaPwarmestPlake/6906322
 /com/searchenginewatch/sew/how-to/2263536
 /com/hbo/store/t-shirts-hoodies-pg6
 /ru/wedding-svadba
@@ -2887,7 +2887,7 @@
 /com/backseatbangers/en/s1/trailer/4320
 /com/giantbomb/profile/fanvice
 /com/firstcoastnews/archive/life/entertainment/article/309748/19
-/com/classifiedsgiant/285-/fuel-Gasoline/make-Buick/bodystyle-Kit+Car
+/com/classifiedsgiant/285-/fuel-Gasoline/make-Buick/bodystyle-KitPCar
 /com/moviesaddicted/movies/0245/20278
 /com/wildtangent/articles/410016/20121130
 /jp/co/rakuten/item/rsswebshop
@@ -2955,7 +2955,7 @@
 /com/allrecipes/cook/1612089
 /uk/co/zoopla/to-rent/property/balby/lister-avenue
 /es/huffingtonpost/2012/09/05
-/com/fitbit/foods/Mac+Cheese+Large
+/com/fitbit/foods/MacPCheesePLarge
 /com/upi/topic/Debbie_Reynolds
 /com/wordpress/ladiesdotdotdot/2009/08/13
 /com/architonic/pmsht/campanone-modo-luce
@@ -3049,7 +3049,7 @@
 /com/portclintonnewsherald/article/20140318/SPORTS/303180027
 /com/brooklyndaily/sections/calendar/date_code
 /com/budsgunshop/catalog/mobile/product/411549186
-/com/horseracing/videos/deutsche+traber+derby+2006+-russel+november
+/com/horseracing/videos/deutschePtraberPderbyP2006P-russelPnovember
 /com/writersofbhutan/2010
 /com/withasoutherntwist/2013/07
 /com/nashobapublishing/sports/ci_26423084
@@ -3114,7 +3114,7 @@
 /com/latimes/articles/2010/sep/23/entertainment
 /se/bravofly/erbjudande/flyg/antalya
 /com/honestgamers/6164/playstation/rage-racer
-/com/milfspregnant/gals/MTEwMToxOToxOA,0,0,0,
+/com/milfspregnant/gals/MTEwMToxOToxOAC0C0C0C
 /com/webcomicsnation/ronnieraccoon
 /org/unmultimedia/radio/spanish/2013/03
 /at/herold/gelbe-seiten/schwarzau-im-gebirge/8Ghfr
@@ -3131,7 +3131,7 @@
 /com/popsugar/love/photo-gallery/34084132/image/34084162
 /ws/webdesign-ne/tag/plugin/page
 /com/stackexchange/gis/questions/52431
-/com/ross-simons/jewelry/bracelets/bracelet-7-inch,designer-jewelry,diamond,link
+/com/ross-simons/jewelry/bracelets/bracelet-7-inchCdesigner-jewelryCdiamondClink
 /com/eastbay/Mens/Dress-Shoes/_-_/N-1pZdsZ44
 /com/bigstockphoto/image-41127898
 /com/gamasutra/view/authors/930334
@@ -3154,7 +3154,7 @@
 /my/mypenang/index.php/calendar-of-holidays/68-calendar-holidays-or-cuti
 /org/mozilla/addons/FR/firefox/addon/clean-links/reviews
 /com/villagesoup/washington-ia/p/kitchen-staff-wait-staff
-/com/mobygames/genre/sheet/top-down/offset,4625
+/com/mobygames/genre/sheet/top-down/offsetC4625
 /com/ediloisir/ediloisir
 /com/hanon-shop/news/249
 /com/wordpress/ideologicallyimpure/2013/09/25
@@ -3196,7 +3196,7 @@
 /com/thewirecutter
 /net/omha/schedule/day/league_instance/13283/2013/12
 /org/cinedat/de/darsteller
-/com/gurufocus/term/Total+Equity/ORBT/TotalP2BEquity
+/com/gurufocus/term/TotalPEquity/ORBT/TotalP2BEquity
 /org/kyvl/kdl/catalog/xt7vq814nr68_4
 /com/stackexchange/outdoors/help/badges/30
 /com/imdb/title/tt0118640
@@ -3204,7 +3204,7 @@
 /edu/arizona/union/mealplans
 /pl/oferteo/wniosek-o-dotacje
 /es/vacaciones-espana/Santa-Margalida
-/com/stylebistro/runway/Halston/New+York+Fashion+Week+Spring+2010/Details
+/com/stylebistro/runway/Halston/NewPYorkPFashionPWeekPSpringP2010/Details
 /com/8k/estrellitas
 /com/saratogawine/Hans-Lang/xprice/20-30/xe_Country
 /de/uni-hd/semitistik/yule
@@ -3257,7 +3257,7 @@
 /org/socalcross/events/scps9-udocross
 /com/getlatestnews/13703
 /com/dallasmidwest/Glass-Finish/Officient-Brand/Clearance-Deal
-/com/sqlblog/tags/cloud/SQL+Azure/Security
+/com/sqlblog/tags/cloud/SQLPAzure/Security
 /com/webmd/drugs/2/drug-78322/dextroamphetamine-bulk/details
 /nl/cylex-bedrijvengids/laren-lochem/bedrijf
 /br/com/fotosdejesuscristo/jesus-cristo
@@ -3282,7 +3282,7 @@
 /com/xvideos/video2602167
 /com/dailygazette/events/2013/sep/25
 /com/pinkfloyd/index.php/twitter/design/miscellany/history
-/com/ajmadison/b.php/DacorP3BDowndraftP3BDacor+RenaissanceP3BCooking
+/com/ajmadison/b.php/DacorP3BDowndraftP3BDacorPRenaissanceP3BCooking
 /ch/mattig/en/home/mattig-fiduciary-services/company/team-p1015
 /com/jackssurfboards/mens_accessories_belts/VOLCOM/Redux-Belt/BLKP7C
 /com/pontodanoticia
@@ -3350,7 +3350,7 @@
 /com/jztzw/14165
 /com/starpulse/m/news/Stephanie_Caldwell/2012/10/01
 /com/inhabitat/scientists-propose-using-artificial-volcanoes-to-stave-off-global-warming
-/mx/com/paisdelosjuegos/juego/masacre+y+tiroteo
+/mx/com/paisdelosjuegos/juego/masacrePyPtiroteo
 /com/thewebcomiclist/users/1612
 /com/jpcycles/motorcycle-parts/arlen-ness/triple-trees
 /com/testfreaks/lenses/canon-ef-600mm-f-4l-is-ii-usm
@@ -3375,7 +3375,7 @@
 /com/mousewait/disneyland/lands-talk/198810
 /com/breckenridgeamerican/ci_26329175
 /com/sethf/infothought
-/com/stylebistro/lookbook/Shenae+Grimes/cG-kdYGl125
+/com/stylebistro/lookbook/ShenaePGrimes/cG-kdYGl125
 /org/gitorious/opensuse/packagehunter/commit
 /com/kempa/2005
 /com/emagister/grupos/debate/sirve_el_micromycin_para_el_acne_
@@ -3424,7 +3424,7 @@
 /com/sportspyder/players/11677-ryan-sadowski
 /com/livinginblackandwhite/photo/photo
 /com/tampatrib/article/20130709/ARTICLE/130709466
-/com/publicsurplus/sms/fremontco,wy/browse
+/com/publicsurplus/sms/fremontcoCwy/browse
 /de/auswaertiges-amt/sid_77758B55646569D80D20150A137DC44C/DE/Infoservice/FAQ
 /com/tampabay/sports/brawl-erupts-in-canadas-wbc-win
 /ca/usask/wgcvf/events
@@ -3436,7 +3436,7 @@
 /com/dice/job/browse/security
 /com/mountainproject/v/bullet-hole-boulder-area
 /com/nfl/news/story/09000d5d829da249/article
-/com/bradfordexchange/mcategory/gifts_9881+9849
+/com/bradfordexchange/mcategory/gifts_9881P9849
 /com/countryinns/columbus-hotel-ga-31904/gabradle
 /com/ysnews/news/2010/09/page
 /org/perl/cpansearch/src/TOBYINK
@@ -3485,7 +3485,7 @@
 /com/flavorus/event/SEAN-TYAS-HALLOWEEN-YYC
 /com/movieinsider/m10522
 /com/motorsport/nascar/photo/user-uploads/gran-triunfo
-/com/bulbs/Light_Bulbs/Under_2,000_hrs/Screw_Terminal_RMulti_PurposeT-Base
+/com/bulbs/Light_Bulbs/Under_2C000_hrs/Screw_Terminal_RMulti_PurposeT-Base
 /com/terrysvillage/outdoor/sale/st.-patricks-day
 /com/clickwrestle/pro/87724
 /com/amctv/movies/movie/2001
@@ -3516,7 +3516,7 @@
 /ar/com/linkbyme/san-andres-buenosaires
 /com/gearboxsoftware/community/articles/876
 /com/gosanangelo/profootball/community
-/com/snagajob/job-search/w-fredonia,+pa
+/com/snagajob/job-search/w-fredoniaCPpa
 /com/zap2it/tvlistings/tv/north-shore
 /com/foodnetwork/my/community/suthernchic_279683
 /com/huffingtonpost/news/parenting-teenagers
@@ -3669,8 +3669,8 @@
 /com/godlikeproductions/forum1/message2075682/reply34946268
 /com/memecenter/fun/996681
 /uk/co/bromsgrovestandard/2014/08/10
-/com/businessweek/jobs/a/all-jobs/list/q-Nurse+Tech+RCnaP2FstnaT/fed-2
-/ca/househunting/burnabynow/might+white/6689749
+/com/businessweek/jobs/a/all-jobs/list/q-NursePTechPRCnaP2FstnaT/fed-2
+/ca/househunting/burnabynow/mightPwhite/6689749
 /com/garyweeks
 /com/clanram/forums/f11/rams-jerseys-remembered-part-ii-iv-numbers-26-50-a-47681
 /com/golfsmith/search/ztech-sonocaddie-balance-certified/_
@@ -3697,7 +3697,7 @@
 /org/apache/cocoon/subprojects/block-deployment
 /za/co/chouselive/demo/css/centre
 /edu/nd/rarebooks/digital/civil_war/diaries_journals
-/com/moolka/jzv/prod/14845/Djeco/Toys/Room+Decor
+/com/moolka/jzv/prod/14845/Djeco/Toys/RoomPDecor
 /com/programmableweb/users/vairag
 /com/moviecodec/general
 /sk/volnestojacevane/index.php/component/users
@@ -3722,7 +3722,7 @@
 /com/honestgamers/9150/arcade/star-gladiator-episode-1-final-crusade
 /hu/kosarsport/player/x1112/hun/A14328
 /org/notmartha/archives/2008/03/12
-/com/smashwords/books/tags/military+fantasy/_
+/com/smashwords/books/tags/militaryPfantasy/_
 /ca/canoe/slam/Slam/Wrestling/2013/07/16
 /com/bobbyberkhome/product/table-lamps/10328-51878
 /com/giantbomb/dragon-ball-z/3025-159
@@ -3740,7 +3740,7 @@
 /com/csudhnews/category/prof-studies
 /com/austinchronicle/issues/vol18/issue45
 /com/zillow/amberwood-north-chandler-az
-/com/quotesdaddy/author/Chi+Chi+Rodriguez
+/com/quotesdaddy/author/ChiPChiPRodriguez
 /com/huffpostmaghreb/2013/08/03
 /com/infowars/sandy-volunteers-facing-same-risks-as-911-first-responders
 /com/xvideos/video120196
@@ -3773,7 +3773,7 @@
 /be/tennisinfo/nieuws/8708
 /com/reelz/movie/257596
 /com/shutterstock/pic-24250549
-/fm/last/music/Extreme/III+Sides+To+Every+Story
+/fm/last/music/Extreme/IIIPSidesPToPEveryPStory
 /com/gwlittle/product/itty_bitty_turtle_toy
 /com/io9/5963100
 /org/lpl/about-the-library/news-releases
@@ -3783,7 +3783,7 @@
 /com/mmawarehouse/gameness_air_2014_gi
 /org/greatschools/arizona/chino-valley
 /com/timesunion/blog/business/verizon-to-use-hybrid-vehicles-in-new-york
-/com/eventective/USA/Florida/Key+Biscayne
+/com/eventective/USA/Florida/KeyPBiscayne
 /com/cisco/supportforums/discussion/10234791
 /com/securityfocus/bid/2701
 /com/foodtravelupdate
@@ -3842,7 +3842,7 @@
 /com/redbonzai/portfolio_posts
 /com/timesherald/article/20130131/NEWS01
 /com/tcwmag/tag/feminism
-/com/wowprogress/guild/us/perenolde/Raiders+Inc/next/2012-12-14
+/com/wowprogress/guild/us/perenolde/RaidersPInc/next/2012-12-14
 /com/screwfix/p/floplast-sp106-flexible-connector
 /ch/oris/ko/watches/oris-divers-titan-date
 /com/oodle/motorcycles/used-motorcycles/odessa-tx-area
@@ -3895,7 +3895,7 @@
 /com/plasamainananak
 /org/slashdot/ask/story/12/03/27/1650230
 /com/reelz/movie/154412/star-wars-episode-iii-revenge-of-the-sith
-/edu/uark/digitalcollections/cdm/search/searchterm/Gingrich,P20Newt/mode
+/edu/uark/digitalcollections/cdm/search/searchterm/GingrichCP20Newt/mode
 /com/moviepostershop/jin-roh-the-wolf-brigade-movie-poster-1998
 /is/bible/PTULAI/John/1
 /net/metalstorm/users/Adus11
@@ -3918,7 +3918,7 @@
 /com/cheezburger/app/Alexwin/CollectibleDetails
 /com/avvo/attorneys/60448-il-jesse-goehl-1177759
 /com/tube8/gay/hardcore/man-hole
-/com/jango/music/Kitty+Daisy+Lewis
+/com/jango/music/KittyPDaisyPLewis
 /com/shaneco/detail/14k-white-gold-wedding-band/41006314
 /com/dermapoise/brands
 /com/trendswaystore/lang-es/content
@@ -3987,16 +3987,16 @@
 /org/neafoundation/listings/grantee-archive/jessica-thompson
 /com/bankrate/financing/banking/business-banking-bill-clears-hurdle
 /com/neoseeker/members/Auxilium/steam
-/com/warnerclassics/shop/60,5099972124222
+/com/warnerclassics/shop/60C5099972124222
 /org/cnpensioners
 /com/askart/artist/artist/11169888
 /com/4shared/video/RceW5m3i
-/com/uscho/stats/player/mid,12298
+/com/uscho/stats/player/midC12298
 /com/cappex/colleges/Normandale-Community-College
 /com/seattleweekly/2007-10-17/news
 /com/jezebel/5824656
 /com/thedaileyblend/2012/08
-/com/ross-simons/jewelry/all/clearance,egana,other-metal
+/com/ross-simons/jewelry/all/clearanceCeganaCother-metal
 /com/glendimplex/privacy-policy
 /me/jeuxgratuit/score-jeu-flash/jeux-de-zombies-et-halloween
 /com/legacy/funeral-homes/George-Renner--Sons-Funeral-Home/fh-6341
@@ -4045,7 +4045,7 @@
 /com/moviefone/movie/tangled/33552
 /com/ajmadison/b.php/PlatinumP3BDryers
 /ca/pegcitycarcoop/2012
-/com/fitbit/foods/Linguine+Pasta+Dry
+/com/fitbit/foods/LinguinePPastaPDry
 /com/timescall/entertainment/ci_24324179
 /org/worldcat/title/fur-pazifisten/oclc
 /com/salaryexpert/SalarySurveyData/CityECleveland-OH/JobEoperator-front-end-loader
@@ -4385,7 +4385,7 @@
 /edu/rpi/nees/class-activities
 /com/potterybarn/products/framed-little-things-print-wall-art
 /com/velonation/Forums/aff/4/aft/685/afv
-/com/thereikipage/directory/index.php/North+America
+/com/thereikipage/directory/index.php/NorthPAmerica
 /com/purinamills/horse-feed/products
 /com/stackexchange/unix/questions/58372
 /com/testfreaks/monitors/apollo-ltm240cs06
@@ -4418,7 +4418,7 @@
 /org/edulink/research
 /com/automotive/best-cars/best-cars-short-drivers
 /com/theadvocate/news/5257226-123
-/com/victoryradionetwork/radio/network+storage+server
+/com/victoryradionetwork/radio/networkPstoragePserver
 /com/cisco/developer/web/axl/forums/-/message_boards
 /edu/uwi/sta/uwispace/dspace/handle/2139/7990
 /com/polyvore/untitled_575
@@ -4445,7 +4445,7 @@
 /com/tubesesso/search
 /org/dovelewis/donate
 /com/vivino/wineries/montigoli/wines
-/com/clker/search/bal+billard
+/com/clker/search/balPbillard
 /edu/harvard/hls
 /com/ticketstogo/production/367397
 /org/ncte/press/contenthistory/2013923/47701/8/47
@@ -4500,7 +4500,7 @@
 /com/stackoverflow/users/1864575
 /com/earmilk/2013/01/07
 /com/preciod/ar/plaqueta-lavarropas-eslabPC3PA3-n-de-lujo-digital-awr-680-2-3-W8QnK
-/com/ross-simons/jewelry/all/gold,international-designs,omega,yellow-gold
+/com/ross-simons/jewelry/all/goldCinternational-designsComegaCyellow-gold
 /com/yargiakademi/forum
 /com/cafemom/mobile/group/114270/forums/read/17339373
 /com/couriernews/view/full_story/18090976
@@ -4537,7 +4537,7 @@
 /com/radioiowa/category/firesaccidentsdisasters/page
 /com/kleintools/catalog/cold-chisels-alloy-diamond-point
 /com/community-news/node/6763
-/com/fitbit/foods/Angus+Three+Cheese+Bacon
+/com/fitbit/foods/AngusPThreePCheesePBacon
 /com/radio/2014/04/16
 /com/dmvanswers/questions/1725
 /net/atheistuniverse/group/foxnewswatch/user
@@ -4556,7 +4556,7 @@
 /com/kotaku/5165243
 /com/michiananewschannel/Admin/ArticleViewPage/tabid/66/ArticleId/23242
 /com/airtouronline/cgi-bin
-/com/ajmadison/b.php/ElectroluxP3BSingleP3BElectricP3B220-265+VoltsP3BWall+Ovens
+/com/ajmadison/b.php/ElectroluxP3BSingleP3BElectricP3B220-265PVoltsP3BWallPOvens
 /com/ktvz/Lose-weight-raise-heat-with-sexy-exercises
 /com/boxofficemojo/intl/egypt/yearly
 /com/tv/people/barbara-stock
@@ -4580,7 +4580,7 @@
 /com/zipcar/umn
 /com/grandcoulee/story/2014/02/19/community/senior-meals
 /com/blogspot/mieftintegral/2011/02
-/de/yasni/klaus+esser
+/de/yasni/klausPesser
 /com/time/3781639/israeli-beach-gillian-laub
 /com/penguin/book/magic-for-a-price-by-devon-monk
 /com/dailytribune/article/20121209/SPORTS03/121209544/-1/SPORTS
@@ -4657,7 +4657,7 @@
 /uk/org/demesnecommunitycentre
 /com/missingremote/forums/htpc-software/developers-corner
 /org/aiga/portfolios/gallery/Alphas
-/com/buckle/womens/shirts-tops/brand:crash-and-burn+the-classic
+/com/buckle/womens/shirts-tops/brand:crash-and-burnPthe-classic
 /com/cvedetails/metasploit-modules/product-13572
 /com/mobile17/ringtones/180273/lady
 /com/aplaceformom/alzheimers-care/florida
@@ -4740,7 +4740,7 @@
 /com/xhamster/movies/1657226
 /com/stalbertgazette/article/20130413/SAG1101/304139987/-1/sag
 /com/rakuten/prod/sounds-we-make-native-american-flute-and-design-kit
-/com/stylebistro/lookbook/Amy+Winehouse/2e-oqMMQ-ok
+/com/stylebistro/lookbook/AmyPWinehouse/2e-oqMMQ-ok
 /com/mytulip/shop/cabaret-boa-panties
 /com/gamnix/2010/12/15
 /com/kertoon/id12
@@ -4807,7 +4807,7 @@
 /com/seatgeek/venues/house-of-blues-new-orleans
 /org/gentoo/packages/package/x11-drivers
 /fr/larousse/dictionnaires/anglais-espagnol/StraitP20ofP20Gibraltar
-/com/montrealgazette/jobs/Video+industry+rock+emerges/7833242
+/com/montrealgazette/jobs/VideoPindustryProckPemerges/7833242
 /com/ziprealty/property/1226-240TH-ST-W-FARMINGTON-MN-55024/39341321
 /org/maplight/us-congress/bill/112-s-3240/1080014/amendment/22495
 /com/rchaven/directory/detail
@@ -4827,7 +4827,7 @@
 /edu/ucdavis/ucdmc/orthopaedics/research
 /org/openjurist/849/f2d/393
 /com/blogfa/rashinataey
-/com/fineartamerica/art/all/professional+athletes
+/com/fineartamerica/art/all/professionalPathletes
 /org/mlseg/en/egypt/28215
 /com/atgstores/cooking/cooking-dining/tableware/bowls/material/china
 /com/cheatsguru/xbox/madden_nfl_08/questions
@@ -4958,7 +4958,7 @@
 /com/mastishare/video/6085
 /com/mynorthwest/704/2437288
 /com/magicseaweed/Fferam-Fawr-Listing
-/com/yasni/clyde+hall
+/com/yasni/clydePhall
 /com/etsy/listing/109157924
 /com/mrmrsimran/2010/05/17
 /com/foodservicewarehouse/beverage-tubs-180-420
@@ -5072,7 +5072,7 @@
 /com/football365/newcastle-united/8926544
 /com/apunkachoice/names/pin/pinky_campbell
 /com/hoteles/de1482458-am64/se-aceptan-mascotas-hoteles-jamesburg-nueva-jersey
-/de/lastfm/user/mexxicana/library/music/Bob+Marley/_
+/de/lastfm/user/mexxicana/library/music/BobPMarley/_
 /com/blogspot/themessyapron/2009/07
 /cl/udec/facea/educacion
 /com/blogfa/rahi228
@@ -5086,7 +5086,7 @@
 /com/rotoworld/headlines/nfl/287514
 /com/gameinformer/b/podcasts/archive/2010/08/26
 /com/economist/comment/reply/21571374
-/com/strolen/guild/index.php/board,78.27
+/com/strolen/guild/index.php/boardC78.27
 /com/bellross/dk/it/collections
 /gov/nsopw/RXR1TSRs0t32txty5bfviaum4gpe4l5TT/en/Home
 /com/illegalcurve/2013/07/19
@@ -5188,7 +5188,7 @@
 /com/osnews/user/uid:58006
 /com/jsperf/array-indexof-vs-set-has
 /org/aarp/work/working-after-retirement/info-02-2013
-/ir/k1j/fa/think,-learn-,-trainning
+/ir/k1j/fa/thinkC-learn-C-trainning
 /br/com/tuugo/Companies/atlPC3PA9tica-fitness-center4
 /com/newsok/fitness-briefs-for-jan.-29/article/3749869
 /com/mobile17/artist/1617
@@ -5263,7 +5263,7 @@
 /com/soundcloud/blacklines
 /com/geni/people/Sylvester-Ussery
 /uk/co/bestpricecomputers
-/net/trendme/en/Shop/buxton-Clutch+bags-buxton-muted-metallics-qal-q-clutch-bronze
+/net/trendme/en/Shop/buxton-ClutchPbags-buxton-muted-metallics-qal-q-clutch-bronze
 /com/reliableparts/lookup/118936
 /com/emusic/book/jen-lancaster/the-tao-of-martha
 /com/192/atoz/people/poopalapillai
@@ -5338,7 +5338,7 @@
 /com/blogspot/jadeuno/2012/09
 /com/gandermountain/Apparel/Womens-Apparel
 /com/discgolfscene/courses/Minot_Air_Force_Base
-/com/peoplefinders/p/Shane+Stoughton
+/com/peoplefinders/p/ShanePStoughton
 /com/amoeba/chega-de-saudade-cd-jo-o-gilberto/albums
 /com/ebookmall/ebook/a-year-without-made-in-china/sara-bongiorni
 /com/ladyfootlocker/_-_/N-1d0Z22
@@ -5404,7 +5404,7 @@
 /com/ellmwq3/13250
 /com/blogspot/pengskitchen/2011/09
 /net/airlineroute/2012/02/09
-/com/clker/search/floral+decoration+clip-art
+/com/clker/search/floralPdecorationPclip-art
 /com/youporn/de/watch/96898
 /com/lulus/manufacturer/filter-price-150/225
 /org/mathforum/library/topics/measurement
@@ -5495,13 +5495,13 @@
 /tv/hir/friss-hirek
 /com/ratemds/doctor-ratings/2590860
 /com/pagetrafficbuzz/adwords-bids-farewell-regular-plas-shopping-campaigns
-/fm/last/music/Cho+Young-Wuk/_
+/fm/last/music/ChoPYoung-Wuk/_
 /edu/stsci/institute/conference/spring2011
 /com/thestreet/story/10277819/1
 /br/com/clicrbs/wp/anjaragua/2012/06/07
 /com/scrapbookmax/gallery/happy-birthday-onie21-21
 /com/teamfanshop/yahoosports/NHL_Hockey_Chicago_Blackhawks_Ladies_Jackets
-/com/clker/search/sale+explosion+price+checkered+boom+offers
+/com/clker/search/salePexplosionPpricePcheckeredPboomPoffers
 /org/metoperashop/decor-for-the-home/browse/of11
 /com/madametussauds/Sydney/NewsAndEvents/ValentinesEvent2014
 /com/memecenter/fun/1531119
@@ -5510,7 +5510,7 @@
 /net/themeforest/forums/thread/inspiration-
 /com/horse/item/its-hard-to-stumble-t-shirt
 /com/chateaudechissay/fr/se-restaurer
-/com/atu2/forum/index.php/board,3.9
+/com/atu2/forum/index.php/boardC3.9
 /com/favecrafts/Ornaments/Glitzy-Snowman-Ornaments/ct
 /ca/newswire/en/story/1372483
 /com/thedailyjournal/article/20121005/NEWS01
@@ -5572,7 +5572,7 @@
 /com/turbosquid/3d-models/3d-arabic-pottery-model
 /com/panjiva/Tissage-Du-Ronchay
 /com/bjornard/kristian/work/print
-/fm/last/music/Adam+Semijalac/_
+/fm/last/music/AdamPSemijalac/_
 /com/crn/slide-shows/channel-programs/300071747
 /com/glocktalk/threads/why-arent-sigs-more-popular.1468997
 /de/ebay/itm/Minibagger-Neuson-
@@ -5642,8 +5642,8 @@
 /net/eurogamer/profiles/alexander_light
 /com/atlantamusicguide/2010/09/22
 /com/christianbook/churchleaders-com-top-100-2012-edition/9781935541509/pd
-/com/snagajob/job-search/w-lake+montezuma,+az
-/com/clker/search/icon+computer+car+hotel+park
+/com/snagajob/job-search/w-lakePmontezumaCPaz
+/com/clker/search/iconPcomputerPcarPhotelPpark
 /com/tweaktown/news/15029/rim_unveils_blackberry_pearl_3g
 /com/salonspasource/hair-styles/ca/santa-clara
 /com/dvice/archives/2008/02
@@ -5655,7 +5655,7 @@
 /com/aspicyperspective/2012/09
 /com/deadspin/posts/5795162
 /com/anime-planet/users/Takeshi/manga
-/com/tvguide/video/FOX+Sports+Racing/NASCAR+on+FOX+Edwards+rounds+out+the+top+3
+/com/tvguide/video/FOXPSportsPRacing/NASCARPonPFOXPEdwardsProundsPoutPthePtopP3
 /fr/blogspot/poilusdelavienne/2013/05
 /com/ancientfaces/surname/bastopcu-family-history
 /com/nordstrom/shop/s/ellen-tracy-faux-fur-anorak-vest-regular-petite-online-only
@@ -5725,7 +5725,7 @@
 /com/sevensentences/2013/02/19
 /com/quotesdaddy/quote/802159/paris-hilton
 /se/gamereactor/recensioner/70551
-/com/shopping/nutrition/multiminerals+lutein
+/com/shopping/nutrition/multimineralsPlutein
 /com/pocketnow/tag/optimus-3d../page
 /org/worldcat/title/milk-glass-moon-a-big-stone-gap-novel/oclc
 /edu/uchicago/astro/~voort
@@ -5772,7 +5772,7 @@
 /de/artnet/kPc3Pbcnstler/rene-iche
 /com/mofosex/videos/29065
 /com/knetbooks/fast-facts-er-nurse-emergency-room/bk
-/com/peoplefinders/p/William+Morris/Lancaster
+/com/peoplefinders/p/WilliamPMorris/Lancaster
 /com/click2houston/news/Hearing-device-in-mouth-helps-deaf-patients
 /vn/gov/gtvthatinh
 /com/android-apps/apps/leprecoin-slot-machine
@@ -5795,7 +5795,7 @@
 /gov/nsopw/RXR1TSRhfyjzfgczl0lixdnulvvrv2oTT
 /com/blogspot/mayorgraham/2009/11
 /net/thumbnet/obits
-/com/snagajob/job-search/c-stop+and+shop+supermarket+peapod
+/com/snagajob/job-search/c-stopPandPshopPsupermarketPpeapod
 /tt/co/guardian/news/2014-04-15
 /com/rockpapershotgun/2011/10/24
 /com/ixl/membership/family
@@ -5872,7 +5872,7 @@
 /com/filmthreat/blogs
 /com/weheartit/entry/31010046/via
 /com/emedicinehealth/slideshow_weight_control_and_smoking_cessation
-/com/famous-smoke/flor+de+gonzalez+super+cazador+cigars
+/com/famous-smoke/florPdePgonzalezPsuperPcazadorPcigars
 /com/azbarbeque/forums/show-us-your-smokers-and-grills/my-smoker-on-a-new-trailer
 /com/localvets/ca/san-ramon
 /com/movieposterdb/movie/2248816
@@ -5936,7 +5936,7 @@
 /com/search-hadoop/m/Qq7SC1P37U11
 /com/kenmore/home-vacuum-cleaners-floor-care-upright-vacuums&1_LessP20thanP2012P20lbs.
 /com/mobile17/ringtones/161480086/the-lumineers
-/uk/co/tripadvisor/members-citypage/chris+in+Northants
+/uk/co/tripadvisor/members-citypage/chrisPinPNorthants
 /com/campusmoviefest/teams/10527-team-billy-mays
 /com/johnlewis/hnd-brigitte-4-seater-granite-dining-table
 /ru/teplograd/brands
@@ -5995,12 +5995,12 @@
 /com/flightaware/fr/resources/airport/KSTL/services/Accommodation
 /com/ancientfaces/person/matthew-j-aliifua
 /com/chia-anime/download/episode/1328-26516
-/es/lastfm/user/chiapil/library/music/Pearl+Jam/_
+/es/lastfm/user/chiapil/library/music/PearlPJam/_
 /com/drivenguild/forums
 /com/meihaoyy/m
 /com/cnet/products/pix-501-50-3des-bundle-chassis-sw-50-users-3des
 /org/slashdot/news/story/07/07/17/0119241
-/com/famousfootwear/en-US/Mens/_/Laredo/Boots~Casual+Boots/WebExclusive
+/com/famousfootwear/en-US/Mens/_/Laredo/Boots~CasualPBoots/WebExclusive
 /com/psfk/2010/07
 /com/pbase/azaleasociety/image/52579852
 /com/kosheronabudget/hoover-wind-tunnel-bagless-vacuum-99-99-shipped
@@ -6012,7 +6012,7 @@
 /eu/working-dog/dogs-details/38508
 /lt/delfi/verslas/media
 /com/wordpress/aolsoulsanctuary
-/com/wilko/educational/wilko-play-rainbow-stacking-cups-12+-months/invt
+/com/wilko/educational/wilko-play-rainbow-stacking-cups-12P-months/invt
 /su/promportal/goods/2210594
 /com/n4g/news/1213915
 /uk/co/thewestmorlandgazette/news
@@ -6025,11 +6025,11 @@
 /com/sportinglife/racing/results/08-09-2012/suffolk-downs/result/523703
 /com/engadget/tag/harvest-moon/page
 /com/bigtenstore/shop/COLLEGE_Penn_State_Nittany_Lions_Mens_Golf_And_More
-/com/ross-simons/jewelry/rings/blue,clearance,gemstones,stainless-steel
+/com/ross-simons/jewelry/rings/blueCclearanceCgemstonesCstainless-steel
 /com/babycenter/community/post/a37788292
 /com/sparkrebel/spark/005dx1
 /com/drivethrurpg/product/103599
-/com/clker/search/computer+desktop+apple+screen+mac
+/com/clker/search/computerPdesktopPapplePscreenPmac
 /com/gizmodo/5931532
 /edu/barnard/nyccep/resources
 /com/classiccars/listings/dealer/431
@@ -6209,7 +6209,7 @@
 /com/secondcasa/no/ferieleilighet-starigrad-paklenica-seline
 /com/airspacemag/flight-today/how-things-work-ring-laser-gyros-32371541
 /com/bizjournals/upstart/companies/startups/2014/07/24
-/fr/yasni/sabine+denys
+/fr/yasni/sabinePdenys
 /de/auswaertiges-amt/sid_01F87114DCCCC668DBB5074B3AE7AA12/EN
 /com/bigupload/view/32382
 /com/mentalfloss/article/19939
@@ -6275,7 +6275,7 @@
 /com/ranker/list/famous-brigham-young-university-alumni-and-students
 /com/ticketsnow/manchester-orchestra-tickets
 /com/9gag/gag/4409050
-/com/naxos/person/Bauer,P20Christian
+/com/naxos/person/BauerCP20Christian
 /com/lyonmag/article/49350
 /com/washingtonpost/blogs/the-switch/wp/2014/04/03
 /com/cheatmasters/cheats/24445
@@ -6296,7 +6296,7 @@
 /com/iheart/artist/Park-3659
 /com/chow/profile/218745
 /mil/uscg/baseBoston
-/org/imslp/wiki/Category:Fesca,_Alexander
+/org/imslp/wiki/Category:FescaC_Alexander
 /com/kenmore/kenmore-5.3-cu-ft-self-cleaning-electric-range-white
 /com/staples/MMs-Variety-Bag-305-oz-Bag
 /com/jlyikang/37
@@ -6352,7 +6352,7 @@
 /net/fimfiction/story/34857
 /com/snowpatrol/photos
 /com/arizonasports/story/98562
-/tw/tvtrip/Hoisdorf+PE5PAEPB6PE9PA3PAFPE5PBAP97-hotels
+/tw/tvtrip/HoisdorfPPE5PAEPB6PE9PA3PAFPE5PBAP97-hotels
 /net/gowyld/econtent/Zinio
 /de/die-ideale-hochzeit/mecklenburg-vorpommern/wittenhagen
 /com/lubbockonline/slideshow/2012-11-17
@@ -6374,7 +6374,7 @@
 /com/cardealexpert/dealer/46605
 /com/koiheat/golf
 /com/wareseeker/download/pdf-download-for-firefox-3.0.0.1.rar
-/hu/tvtrip/UniversityP20City+szPC3PA1lloda-hotels
+/hu/tvtrip/UniversityP20CityPszPC3PA1lloda-hotels
 /edu/campbell/lib/guides
 /com/farecompare/flights/Orsta-Volda-HOV
 /org/cpan/search/~jsiracusa/Rose-HTML-Objects-0.619/lib/Rose/HTML
@@ -6430,7 +6430,7 @@
 /net/mangareader/1707-54182-2/ginga-densetsu-weed
 /my/lot/ligakit
 /com/thelodownny/leslog/author
-/net/flickrhivemind/Tags/afghanistan,marijuana
+/net/flickrhivemind/Tags/afghanistanCmarijuana
 /uk/co/runnersworld/reviews/shoes/neutral-shoes/puma-faas-800/gallery
 /com/hotelplanner/Hotels/133254
 /com/lemonfree/car/Jeep-Grand-Cherokee-2013
@@ -6712,7 +6712,7 @@
 /com/totaldiscountvitamins/product/31455
 /com/ppcgeeks/forum/windows-mobile-development
 /com/cedarcanyongifts/catalog/product_compare/add/product/381/uenc
-/edu/usm/digilib/cdm/search/searchterm/Klapwyk,P20Bethany./mode
+/edu/usm/digilib/cdm/search/searchterm/KlapwykCP20Bethany./mode
 /com/beckspaced/blog/tag
 /com/letsbonus/es/cocina
 /com/warephotos/vehicles
@@ -6728,7 +6728,7 @@
 /com/askubuntu/users/68716
 /com/thisnext/item/6E49C8D3
 /com/teamfanshop/yahoosports/NBA_Basketball_New_York_Knicks_Ladies_T-Shirts
-/com/snagajob/job-search/c-babies+r+us
+/com/snagajob/job-search/c-babiesPrPus
 /com/dbstalk/topic/198214-hr-24-frustrations
 /org/summitpost/marella
 /com/news-gazette/classified/2011-11-02
@@ -6746,7 +6746,7 @@
 /org/curethekids/about-us/mission
 /com/build/progress-lighting-p3563-eclipse-ceiling-light
 /com/circleofmoms/topics/potty-train-toddler
-/com/snagajob/job-search/w-waymart,+pa
+/com/snagajob/job-search/w-waymartCPpa
 /com/vatgia/3970/404012
 /za/org/theplayhouse
 /com/gizmodo/5822367
@@ -6756,7 +6756,7 @@
 /us/wi/k12/oakfield
 /com/scripsmart/giftcards/428-country-buffet-gift-card
 /com/posters555/movies/Affair-in-Trinidad-movie-posters-1952
-/org/animeonly/ara/gallery/search/RkeywordT/black+and+white+anime/RalbumT
+/org/animeonly/ara/gallery/search/RkeywordT/blackPandPwhitePanime/RalbumT
 /com/buenastareas/ensayos/Basura-Ensayo
 /com/hansrossel/english
 /edu/uwyo/infotech
@@ -6791,7 +6791,7 @@
 /com/wtae/news/satellites-key-in-predicting-killer-storms
 /com/tvrage/person/id-360700
 /com/quill/agic-chef-microwave/cbs
-/com/glassmessages/index.php/topic,2917.0
+/com/glassmessages/index.php/topicC2917.0
 /com/junkiemonkeys/category/film
 /com/comfortsuites/fr/hotel-pelham-alabama-AL276
 /com/metacafe/watch/yt-9b0dwWHS5fk
@@ -6812,7 +6812,7 @@
 /com/arktimes/arkansas/hucks-mansion
 /com/arttowngifts/Father-s-Day-Chocolate-Oreo-Box-p
 /br/com/netshoes
-/com/horseracing/videos/sights+and+sounds+on+travers+day+2012
+/com/horseracing/videos/sightsPandPsoundsPonPtraversPdayP2012
 /edu/willamette/alumni/publications
 /org/marxists/dansk/marx
 /com/itatennis/ITA_Teams/Cal_Poly_-_Women
@@ -6829,7 +6829,7 @@
 /com/thetelegram/Sports/2012-10-13
 /com/obsidianportal/gobopolis/wikis
 /org/phys/tags/emergency
-/com/shopping/toys/to-popular-characters-blues-clues+board-games-and-more
+/com/shopping/toys/to-popular-characters-blues-cluesPboard-games-and-more
 /org/worldarchitecture/world-buildings/fgpv
 /com/loft/modern-skinny-cuffed-cropped-jeans-in-floral-print
 /com/kenmore/kitchen-ranges-ovens-cooktops-wall-ovens&KenmoreP20Elite_30P20inches
@@ -6936,19 +6936,19 @@
 /com/stackoverflow/questions/11179014
 /com/knetbooks/wretched-earth-reprint-frantz/bk
 /com/spreadshirt/pirate-skull-with-eye-patch-t-shirts-C3376A8210307/color
-/pl/yasni/julian+winiarczyk
+/pl/yasni/julianPwiniarczyk
 /com/tube8/hardcore/vanessa-cage-on-vacation
 /com/muzikspirit/clip/brasco-on-se-voile-la-face
 /com/forumotion/tag/tugas
 /com/flipkey/cape-town-cottage-rentals
 /com/perryellis/casual-shirts/medium-plaid-slim-fit-shirt
 /com/inquisitr/507503
-/com/glassmessages/index.php/board,11.9
+/com/glassmessages/index.php/boardC11.9
 /com/alibaba/en/welfit
 /com/magazines/like-me-confessions-of-a-heartland-country-singer
 /edu/mit/broad/news-and-publications
 /com/bigoven/recipe/pumpkin-cake-with-cream-cheese-frosting-cake
-/com/vimeo/tag:rusty+long/sort:comments
+/com/vimeo/tag:rustyPlong/sort:comments
 /com/jezebel/5896969
 /com/timelessrides/classic-cars-for-sale/packard
 /com/metacafe/videos_about/zach_ryder
@@ -6996,7 +6996,7 @@
 /com/thevalleydispatch/dracut/ci_25344730
 /com/kaango/denverpost/ad-bottle-rem-oilpowdersolvent-5-beaut-aqua-25-720-301-6400
 /com/foxnews/on-air/special-report-bret-baier/blog/2013/02/25
-/se/tvtrip/BadP20Kohlgrub+hotell-hotels
+/se/tvtrip/BadP20KohlgrubPhotell-hotels
 /com/publicrecords360/people-search/zimmer
 /com/geni/people/Marie-Elisabeth-Rohel
 /edu/ufl/lists/cgi-bin
@@ -7036,7 +7036,7 @@
 /com/manipalpublicschool/oh
 /com/selectaticket/Cities/5459
 /com/editionshelios/achat
-/se/hitta/a+m+f+bowling+inc.+usa+filial/runmarPC3PB6
+/se/hitta/aPmPfPbowlingPinc.PusaPfilial/runmarPC3PB6
 /com/motortopia/barcelonette75
 /com/vitacost/dse-healthcare-solutions-lipo-flavonoid-plus-100-caplets-1
 /su/spb/smiles/skype_forum
@@ -7102,7 +7102,7 @@
 /com/pacsun/Ports-O-Call-Flannel-Shirt
 /com/thisnext/browse/rolito
 /net/imaginaryworld/2138
-/ch/yasni/julie+novak
+/ch/yasni/juliePnovak
 /com/thefactsite/2010/06
 /com/fleetfarm/detail/sportsstuff-super-mable-triple-rider-towable
 /com/appbrain/app/pifan2012-PECPB6P94PECPB2P9CPECP9EP912
@@ -7134,7 +7134,7 @@
 /com/open-tube/2012
 /com/readthehook/97552
 /com/glogster/iuprocurement/purchasing-process-at-indiana-university
-/com/clker/search/color+drawing+outline+beer
+/com/clker/search/colorPdrawingPoutlinePbeer
 /com/jessicalynette/holidays
 /com/sheetmusicstock/sheetmusic/1017289
 /ca/renomark/CalgaryRegion
@@ -7156,7 +7156,7 @@
 /com/splashcarwashes/category/1790&cfidE23342111&cftokenE38052319
 /com/themagicwarehouse/LP6137
 /com/thefrisky/2010-06-21/quotable-julianne-moores-sex-scenes-get-an-r-rating
-/hu/tvtrip/SanP20Antonio+szPC3PA1lloda-hotels
+/hu/tvtrip/SanP20AntonioPszPC3PA1lloda-hotels
 /de/popula/dresden
 /com/wordpress/archkckblog/2011
 /com/onlineathens/blotter
@@ -7179,12 +7179,12 @@
 /com/macmall/p/Jabra-Corporation-Cellular-Telephony
 /org/wordpress/plugins/apollo-bar
 /com/christianmingle/singles/Ontario
-/uk/co/houseoffraser/MenCs+Watches
+/uk/co/houseoffraser/MenCsPWatches
 /com/myheritage/site-photo-albums-125055571
 /com/bookdepository/Post-Mortem-Technique-Handbook-Deborah-Hopster
 /com/sarasotamagazine/events/pickin-picnic-at-the-downtown-bradenton-riverwalk
 /com/firehouse/news/10496580
-/com/snagajob/job-search/w-red+banks,+ms
+/com/snagajob/job-search/w-redPbanksCPms
 /com/cheatsguru/xbox360/over_g_fighters
 /com/abovetopsecret/forum/thread885651
 /com/mpora/users/MEDIAxtrem
@@ -7255,7 +7255,7 @@
 /com/itslive/cam/PinkKandiXXX
 /ru/gametarget/novosti-sandbox
 /com/queenscourier/pols-call-for-review-of-g-train-performance
-/uk/co/houseoffraser/Lego+Helicopter+Surveillance+-+60046
+/uk/co/houseoffraser/LegoPHelicopterPSurveillanceP-P60046
 /com/dtworld/Neutron-Volt-p
 /com/recipetips/recipe-cards/t--7263
 /com/sears/appliances-heating-indoor-heaters&Broan-NuTone_125-325
@@ -7267,7 +7267,7 @@
 /com/hotels/is/de1457712
 /net/styleforum/t/314804
 /com/friendsearch/gardena/girls-dating
-/com/aceshowbiz/events/85th+Academy+Awards+Nominees+Luncheon
+/com/aceshowbiz/events/85thPAcademyPAwardsPNomineesPLuncheon
 /com/brookstone/shiatsu-neck-and-shoulder-massager
 /net/bluecctv/cctv-accessories/video-amplifier
 /com/blogspot/enjoyinglifesjourney
@@ -7390,7 +7390,7 @@
 /com/wfls/Spotsylvania-Cops-Investigate-Drive-By-Shootings
 /com/portalprogramas/gratis/inspiration-9
 /com/splashcarwashes/category/7611&cfidE25916129&cftokenE54995519
-/com/sputnikmusic/bands/Passion+Pit
+/com/sputnikmusic/bands/PassionPPit
 /org/streetfiles/eacrew
 /com/pornoxo/videos/19292
 /vn/gov/vhttdlkv3/Quy-hoach-Dau-tu
@@ -7456,7 +7456,7 @@
 /com/origamispirit/2012/10
 /br/com/galeaosp
 /com/iwindsurf/secure
-/com/fitbit/foods/Cereal+Honey+d+Corn+Flakes+Eco+Pac
+/com/fitbit/foods/CerealPHoneyPdPCornPFlakesPEcoPPac
 /com/pond5/stock-footage/485363
 /com/namasupli/spl
 /com/gravograph/Deutsch/--220berP20uns
@@ -7511,7 +7511,7 @@
 /com/papersinvited/members
 /com/hotels/fr/de1635878-qu3
 /com/hotels/id/de1672890
-/com/quotesdaddy/author/Jack+Handy
+/com/quotesdaddy/author/JackPHandy
 /com/stackexchange/users/1363227
 /com/crocs/shop-by-activity
 /com/funshu/gnoum
@@ -7519,7 +7519,7 @@
 /com/tripolog/south-africa
 /com/calarumba/boletines
 /com/bigstockphoto/image-4795915
-/com/nancysnotions/product/klasse+topstitch+needle+set
+/com/nancysnotions/product/klassePtopstitchPneedlePset
 /com/vipcycle/ducati-chrome-billet-round-motorcycle-handlebar-mirrors-pair
 /com/pasadenastarnews/obituaries/20131229
 /jp/c16/www4
@@ -7655,7 +7655,7 @@
 /com/buenastareas/materias/obras-de-teatro-de-6-personajes
 /com/securitystoreusa/Digital-Watchdog-B2372TIR-Bullet-Camera-Omni-Focu-p
 /com/wikihow/Clean-Your-Bridge
-/com/streetinsider/Stock+Splits/Air+Methods+RAIRMT+Board+Approves+Three-for-One+Split
+/com/streetinsider/StockPSplits/AirPMethodsPRAIRMTPBoardPApprovesPThree-for-OnePSplit
 /com/sothinkmedia/flash-video-encoder-command-line
 /com/cbssports/shop/CBS_Appalachian_State_Mountaineers_Kids_Hats
 /org/lupusny/lupus-research
@@ -7755,7 +7755,7 @@
 /com/knetbooks/schools-performing-beyond-expectations-1st/bk
 /com/ims-insulation/products/engineering-sheets
 /com/photomichaelwolf/editorial-work
-/com/peoplefinders/p/Arms+Robinson
+/com/peoplefinders/p/ArmsPRobinson
 /net/beneaththewaves/Photography
 /com/onlineseats/events/2110608
 /com/testfreaks/hifi-speakers/polk-audio-dsw-pro550
@@ -7889,7 +7889,7 @@
 /com/rleague/profiles/Scubly
 /org/htlcto/search
 /com/soccerlens/lionel-messis-202-goals-for-barcelona-in-12-minutes
-/com/chictopia/Minnetonka+Kitty+Flats-reviews/Minnetonka+Kitty+Flats
+/com/chictopia/MinnetonkaPKittyPFlats-reviews/MinnetonkaPKittyPFlats
 /com/scmp/article/964922
 /id/go/bi/en
 /com/fragrantica/perfume/Mary-Kate-and-Ashley-Olsen
@@ -7989,7 +7989,7 @@
 /com/motorcycle-usa/76115/Motorcycle-Photo-Gallery-Photo
 /com/kcra/news/Richmond-man-to-get-life-in-prison-for-raping-boy
 /com/edebiyatdefteri/siir/490870
-/com/funnyjunk/Guns+are+art/funny-pictures
+/com/funnyjunk/GunsParePart/funny-pictures
 /com/blackcatsystems/RadMap
 /com/dailymotion/playlist/xw5h6_stillmuzik_clips
 /com/ephotozine/user/moses88-87298
@@ -8250,7 +8250,7 @@
 /com/itv/ginositalianescape
 /com/antiquesnavigator/d-383539
 /net/upthedownstair/2005/11
-/com/ajmadison/b.php/220-265+VoltsP3BDepthP3A+31P22+-+31.9P22P3BLaundry+Centers
+/com/ajmadison/b.php/220-265PVoltsP3BDepthP3AP31P22P-P31.9P22P3BLaundryPCenters
 /edu/ie/business-school/faculty-research
 /com/altrec/sierra-designs-mens-cyclone-eco-jacket-42119
 /net/horrornews/41602
@@ -8264,18 +8264,18 @@
 /com/radiotfs/Show/31
 /com/armorgames/play/6163
 /com/sbpress/2010/12
-/com/peoplefinders/d/patti+yurkovich
+/com/peoplefinders/d/pattiPyurkovich
 /com/io9/5955620
 /com/bookrenter/andrew-glover
 /com/gamefaqs/users/ZeroJinKui
 /com/soundcloud/jamtheman1906/jammmm-ooooooh-jammmm-t-riley
 /com/imaging-resource/PRODS/DSCTX1
 /com/zzhuaqiang/convert/ostzoh
-/com/1001oyun/oyun/boyama+kitabPC4PB1
+/com/1001oyun/oyun/boyamaPkitabPC4PB1
 /gr/plus500/Promotions
 /sg/com/cosmeticdentistry/html
 /com/quiltersclubofamerica/members/mdt141
-/com/starpulse/Music/Case,_Neko
+/com/starpulse/Music/CaseC_Neko
 /com/deccanherald/content/356812
 /net/baixandojogos/2010/02
 /com/sopitas/201606-madame-recamier-presenta-su-nuevo-video-luz-verde
@@ -8342,11 +8342,11 @@
 /com/telescope/The-Star-Party-How-To-Focus-Your-Telescopes/p
 /com/audible/listener/Peter-A-Sessa
 /com/healthgrades/physician/dr-kevin-funk-yj83c
-/com/snooth/wines/chateau+poujeaux
+/com/snooth/wines/chateauPpoujeaux
 /com/susannahconway/2012/06
 /com/noticiasinsolitasya/201406267974/Partidos-de-Futbol-en-vivo
 /com/jazzonthetube/jazz-clubs
-/com/fitbit/foods/Protein+Meal+Bar+Strawberry
+/com/fitbit/foods/ProteinPMealPBarPStrawberry
 /com/pbase/actiefotos
 /com/shutterstock/pic-52203748
 /com/saferwholesale/Propane-Gas-Heater-50-000-BTU-Convection-Heater-p
@@ -8506,7 +8506,7 @@
 /com/kcci/m/Winter-thaw-leaves-homes-vulnerable-to-pests
 /net/fruityclub/dubstep
 /com/testfreaks/dvd-players-recorders/pioneer-dv-59avi
-/net/selectscience/products/hydrocarbon+moisture-traps
+/net/selectscience/products/hydrocarbonPmoisture-traps
 /com/vuemix/app/users
 /com/genealogyvillage/newmexicottp/Catron
 /com/landofnod/4-x-6-grey-ribbon-cutting-fringe-rug
@@ -8526,7 +8526,7 @@
 /com/csmonitor/2006/0711
 /com/mackolik/Karsilastirma/1261058
 /com/liberallylean/2007/04
-/com/ajmadison/b.php/IlveP3BP24500+-+P24599P3BCooking+Product+Accessories
+/com/ajmadison/b.php/IlveP3BP24500P-PP24599P3BCookingPProductPAccessories
 /com/ferket/blog/2009-07-22
 /com/etsy/listing/97275377
 /org/menashalibrary/calendar-community/month
@@ -8596,7 +8596,7 @@
 /com/funnyordie/caption_contests/3aa864c788
 /com/serverfault/users/120981
 /com/ocentrodeemprego/alentejo
-/com/sierratradingpost/mens-boots~d~137/sorel~b~19509,18446
+/com/sierratradingpost/mens-boots~d~137/sorel~b~19509C18446
 /com/whatwouldmomsay/blog
 /com/dotnetkicks/users/mallesh
 /com/newgrounds/shredguts
@@ -8651,7 +8651,7 @@
 /com/ngccoin/coin-varieties/half-dimes-and-dimes
 /com/antiquecollectorsclub/uk/store
 /tv/openminds/daily-ufo-headlines-32114
-/com/musica4all/buscar/tigres+de+aragua
+/com/musica4all/buscar/tigresPdeParagua
 /com/movies/actors/jeffrey-patch
 /com/hsn/products/dr-graf-vita-peptide-eye-serum
 /com/geni/project-3596
@@ -8769,7 +8769,7 @@
 /com/britannica/topic/611441
 /com/kickstarter/projects/283882349
 /com/daily-times/farmington-rss/ci_26228532
-/com/musica4all/buscar/mayra+hilda
+/com/musica4all/buscar/mayraPhilda
 /com/depositphotos/6629689
 /com/windowsphonedaily/2012/11
 /com/visitpa/pa/johnstown
@@ -8857,7 +8857,7 @@
 /com/petco/N_22_149_4294965433_4294956651_6924
 /com/ecampus/physics-chemistry-graphene-graphene/bk
 /lt/silutesskelbimai/skelbimas
-/com/bradfordexchange/mcategory/gifts_113+690+9876
+/com/bradfordexchange/mcategory/gifts_113P690P9876
 /org/freshports/www/screem
 /com/yktravelphoto/pi/1071
 /com/encribd/social
@@ -9095,13 +9095,13 @@
 /com/di3aya/category-9-6
 /com/rttnews/1861434
 /com/bigstockphoto/image-8773006
-/jp/tvtrip/Charlottetown+PE3P83P9BPE3P83P86PE3P83PAB-hotels
+/jp/tvtrip/CharlottetownPPE3P83P9BPE3P83P86PE3P83PAB-hotels
 /com/fluther/146556
 /com/porngonzo/nuvid
 /cz/legion-etrangere/knihy
 /com/inkhead/fruit-of-the-loom-tee
 /com/netokracija/vrste-sadrzaja
-/de/stowa/lshop,inline,133034194615181,de,1330341946-15181,,Porto
+/de/stowa/lshopCinlineC133034194615181CdeC1330341946-15181CCPorto
 /com/theduckwebcomics/user
 /com/sears/music-skins-zing-revolution-ms-kiss20026-guitar-hero
 /ru/medmoon/plastic
@@ -9366,7 +9366,7 @@
 /com/staples/Visiontek-900308-Graphics-Card-512-MB-DDR2
 /com/aradown/ra
 /com/racorstoragesolutions/RXR1TSR33ylnhybrqkddesfuemb3x0xTT
-/it/yasni/laura+palloni
+/it/yasni/lauraPpalloni
 /com/losgatosacura/used-inventory
 /com/gawker/5520243
 /com/footasylum/franklin--marshall-small-logo-vest-079751
@@ -9553,7 +9553,7 @@
 /com/infowars/billboards-encourage-texans-to-spy-on-each-other
 /com/allwebsitestats/cn
 /uk/co/certum
-/com/yasni/elizabeth+da+silva
+/com/yasni/elizabethPdaPsilva
 /com/wfmz/cheetah-dog-bffs-celebrate-1st-birthdays-at-dallas-zoo
 /com/thismamaloves/kissimmee-guest-services-discounted-tickets-to-disney-and-more
 /com/travellerspoint/paulacotterly1
@@ -9751,7 +9751,7 @@
 /org/fatcap/pays
 /com/thepoppenkast/page
 /com/rlfans/slstats
-/com/automotion/1981+porsche+911+sc
+/com/automotion/1981PporscheP911Psc
 /org/nczoo/volunteer
 /com/studentadvocatesforthearts/page
 /com/themetapicture/adorable-monstrosity
@@ -9827,7 +9827,7 @@
 /com/theshoemart/cole_haan-mens_air_jasper_low_camel
 /com/poemhunter/charlotte-smith
 /com/laptopbatteryexpress/Acer-Aspire-1800-laptop-Battery-p
-/pl/weselezklasa/oprawa-muzyczna,51
+/pl/weselezklasa/oprawa-muzycznaC51
 /com/fanatics/MLB_Miami_Marlins_Home_Office_And_School_School_Supplies
 /org/un-spider/user
 /com/barcrawls/philadelphia
@@ -9966,7 +9966,7 @@
 /com/idealhomestore/us
 /org/cosmetologyschool/resources
 /com/zionistmall/emporium
-/fi/tvtrip/Torren+hotellia-hotels
+/fi/tvtrip/TorrenPhotellia-hotels
 /com/bookrenter/kathleen-park-talaro
 /com/definingterms/dinoremix
 /com/maxisciences/archPE9ologie

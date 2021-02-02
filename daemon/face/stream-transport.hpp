@@ -193,7 +193,7 @@ StreamTransport<T>::doSend(const Block& packet)
 		return;
 	}
 
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
 	bool wasQueueEmpty = m_sendQueue.empty();
 	m_sendQueue.push(packet);
 	m_sendQueueBytes += packet.size();
@@ -208,9 +208,9 @@ StreamTransport<T>::doSend(const Block& packet)
 	}
 
 	if(error){
-			#if defined(__APPLE__)
+			#ifdef __APPLE__
     	getGlobalLogger().info("stream-transport's doSend - INFO: [{}]" , std::strerror(errno));
-			#elif defined(__linux__)
+			#elif __linux__
     	getGlobalLogger().info("stream-transport's doSend - INFO: [{}] : CPU {}" , std::strerror(errno), sched_getcpu());
 			#endif
 	}
@@ -255,7 +255,7 @@ StreamTransport<T>::startReceive()
                          [this] (auto&&... args) { this->handleReceive(std::forward<decltype(args)>(args)...); });
 }
 
-#if defined(ETRI_NFD_ORG_ARCH)
+#ifdef ETRI_NFD_ORG_ARCH
 template<class T> void
 StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
