@@ -116,7 +116,12 @@ ForwarderGeneralModule::formatItemText(std::ostream& os, const ForwarderStatus& 
      << ia("nFibEntries") << item.getNFibEntries()
      << ia("nPitEntries") << item.getNPitEntries()
      << ia("nMeasurementsEntries") << item.getNMeasurementsEntries()
+#ifdef ETRI_DUAL_CS
+     << ia("nExactMatching-CsEntries") << item.getNCsEntries()
+     << ia("nPrefixMatching-CsEntries") << item.getNCsEntries();
+#else
      << ia("nCsEntries") << item.getNCsEntries();
+#endif
 
   os << ia("nInInterests") << item.getNInInterests()
      << ia("nOutInterests") << item.getNOutInterests()
