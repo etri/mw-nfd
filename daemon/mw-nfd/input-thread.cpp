@@ -42,7 +42,10 @@ void InputThread::initialize(int32_t Id, const string ifname)
 
 void InputThread::run()
 {
-	getGlobalIoService().run();
+	do{
+		getGlobalIoService().poll();
+	}while(1);
+
 }
 #endif
 
