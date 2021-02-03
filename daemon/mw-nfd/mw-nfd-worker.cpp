@@ -388,6 +388,8 @@ MwNfd::initializeManagement()
 	auto sCsMaxPackets = config.get_child_optional("tables.cs_max_packets");
 	auto nCsMaxPackets = sCsMaxPackets->get_value<std::size_t>();
 
+	nCsMaxPackets /= getForwardingWorkers();
+
 	auto&& policyName = config.get<std::string>("tables.cs_policy", "lru");
 	//getGlobalLogger().info("tables.cs_policy: {} : nCsMaxPackets:{}" , policyName ,nCsMaxPackets);
 
