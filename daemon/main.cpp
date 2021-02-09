@@ -83,7 +83,6 @@ ignoreConfigSections(const std::string& filename, const std::string& sectionName
     }
 }
 
-//nfd::mw_nfd_cmd_handler g_mwNfdCmd;
 std::list<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_logFilePath;
@@ -161,6 +160,19 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 
 #endif
 
+void expirePollTimer(const boost::system::error_code& /*e*/,
+            boost::shared_ptr< boost::asio::deadline_timer > t,
+            int wid)
+{
+    if( nfd::g_expirePollTimerList[wid]==false )
+        nfd::g_expirePollTimerList[wid]=true;
+
+    t->expires_at(t->expires_at() + boost::posix_time::milliseconds(1));
+    t->async_wait(boost::bind(expirePollTimer,
+        boost::asio::placeholders::error, t, wid));
+
+}
+
 class NfdRunner : noncopyable
 {
 public:
@@ -196,6 +208,16 @@ public:
     boost::asio::io_service* const mainIo = &getGlobalIoService();
     setMainIoService(mainIo);
     boost::asio::io_service* ribIo = nullptr;
+
+    for(int i=0; i<getForwardingWorkers();i++){
+
+        boost::shared_ptr< boost::asio::deadline_timer > timer(
+                new boost::asio::deadline_timer( getMainIoService())
+                );
+        timer->expires_from_now( boost::posix_time::milliseconds( 3 ) );
+        timer->async_wait(boost::bind(expirePollTimer,
+                    boost::asio::placeholders::error, timer, i));
+    }
 
     // Mutex and conditional variable to implement synchronization between main and RIB manager
     // threads:
@@ -584,6 +606,9 @@ int main(int argc, char** argv)
 
     uint32_t worker_cores = g_dcnWorkerList.size();
     nfd::setForwardingWorkers(worker_cores);
+
+    for(int i=0;i<DCN_MAX_WORKERS;i++)
+        g_expirePollTimerList[i]=true;
 
     NfdRunner runner(configFile);
     runner.initialize();

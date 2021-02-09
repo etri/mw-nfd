@@ -45,29 +45,6 @@
 
 namespace nfd {
 
-class mw_nfd_cmd_handler
-{
-public:
-	mw_nfd_cmd_handler(){
-		x.resize(128, 0);
-	}	
-	void clear(size_t idx){
-		x[idx]=0;
-//		std::cout << __func__ << ", " << idx << ", value: " << x[idx] << std::endl;
-	}
-	size_t get(size_t idx){
-		//std::cout << __func__ << ", " << idx << std::endl;
-		return x[idx];
-	}
-	void set(){
-		//std::cout << __func__ << std::endl;
-		x.set();
-	}
-private:
-	boost::dynamic_bitset<> x;
-
-};
-
 class CommandAuthenticator;
 class ForwarderStatusManager;
 class FaceManager;
@@ -131,9 +108,6 @@ private:
   void decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face *);
   void decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face*);
 
-  void on_register_failed(){}
-
-  
 
 private:
 void bulk_test_case_01();
@@ -189,7 +163,6 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
 
 	const std::string& m_configFile;
 
-	//mw_nfd_cmd_handler &m_mwNfdCmd;
 };
 
 } // namespace nfd

@@ -37,15 +37,14 @@ int8_t g_forwardingWorkers=0;
 std::shared_ptr<nfd::MwNfd> g_mwNfds[MW_NFD_WORKER];
 
 int g_sockMwNfdCommand[MW_NFD_WORKER];
-bool g_mwNfdCmdFlags[MW_NFD_WORKER];
 int g_nfdcSocket=0;
 
 namespace nfd {
 
-bool g_commandRxFlag[128];
+bool g_commandRxFlag[DCN_MAX_WORKERS];
 void resetCommandRx()
 {
-	for(int i=0;i<128;i++)
+	for(int i=0;i<DCN_MAX_WORKERS;i++)
 		g_commandRxFlag[i]=false;
 }
 bool getCommandRx(size_t idx)
@@ -57,6 +56,7 @@ void setCommandRx(size_t idx, bool val)
 	g_commandRxFlag[idx] = val;
 }
 
+bool g_expirePollTimerList[DCN_MAX_WORKERS];
 
 int g_prefixLength4Distribution;
 bool g_bulkFibTest=false;

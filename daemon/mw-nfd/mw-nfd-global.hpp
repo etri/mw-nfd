@@ -48,9 +48,11 @@ static const uint32_t MW_NFD_WORKER = 64;
 #define DEQUEUE_BULK_MAX 32
 #define ROUTE_FLAGS_NET_NAME 32
 #define DCN_LOCALHOST_PREFIX 65535
+#define DCN_MAX_WORKERS 128
 
 using boost::multi_index_container;
 using namespace boost::multi_index;
+
 
 struct ioservice
 {
@@ -136,6 +138,8 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 #endif
 
 namespace nfd {
+extern bool g_expirePollTimerList[DCN_MAX_WORKERS];
+
 	typedef struct st_msg {
 		uint64_t workerId;
         size_t hashValue;

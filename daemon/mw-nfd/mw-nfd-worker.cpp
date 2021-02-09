@@ -45,6 +45,7 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/property_tree/info_parser.hpp>
 #include <ndn-cxx/transport/unix-transport.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
@@ -85,7 +86,6 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
     ,m_face(std::move(make_shared<ndn::UnixTransport>("/var/run/nfd.sock")), getGlobalIoService(), m_keyChain)
     ,m_faceMonitor(m_face)
     ,m_configFile(conf)
-
     {
         // Disable automatic verification of parameters digest for decoded Interests.
     //    Interest::setAutoCheckParametersDigest(false);
@@ -444,7 +444,7 @@ void MwNfd::runWorker()
 
     NDN_MSG items[DEQUEUE_BULK_MAX];
     int deq=0, idx;
-    size_t cnt=0;
+    //size_t cnt=0;
 
     int32_t inputWorkers = m_inputWorkers *2;
 
@@ -469,12 +469,10 @@ void MwNfd::runWorker()
 			}
 		}
 
-        if(cnt > 133000){
+        if(g_expirePollTimerList[m_workerId]){
             m_ios->poll();
-			cnt = 0;
+            g_expirePollTimerList[m_workerId] = false;
         }
-
-		cnt +=1;
 
     }while(!m_done);
 
