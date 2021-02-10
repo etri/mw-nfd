@@ -48,6 +48,8 @@
 #include "mgmt/strategy-choice-manager.hpp"
 #include "mgmt/tables-config-section.hpp"
 
+#include <boost/property_tree/info_parser.hpp>
+
 
 extern int32_t g_dcnWorkerCapacity;
 
@@ -111,7 +113,130 @@ void Nfd::initialize()
       reloadConfigFileFaceSection();
     });
   });
+
+#ifdef ETRI_NFD_ORG_ARCH
+  std::string configFile = m_configFile;
+  getScheduler().schedule(2_s, [this, configFile] {
+        ConfigSection config;
+
+          boost::property_tree::read_info(configFile, config);
+
+          try{
+          auto bulk_test = config.get_child("mw-nfd.bulk-fib-test");
+          std::string path;
+          std::string port0;
+          std::string port1;
+
+          for (const auto& info : bulk_test) {
+            
+            std::cout << info.first << ", " << info.second.get_value<std::string>() << std::endl;
+            if(info.first=="bulk-fib-file-path")
+                path = info.second.get_value<std::string>();
+            if(info.first=="bulk-fib-test-port0")
+                port0 = info.second.get_value<std::string>();
+            if(info.first=="bulk-fib-test-port1")
+                port1 = info.second.get_value<std::string>();
+          }
+
+          bool done = false;
+          FaceId faceId0 = 0;
+          FaceId faceId1 = 0;
+
+          do{ 
+              FaceTable::const_iterator it; 
+              FaceUri uri;
+
+              for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
+
+                  uri = it->getLocalUri();
+
+                  if( uri.getHost() == port0 ){
+                      faceId0 = it->getId();
+                  }   
+
+                  if( uri.getHost() == port1 ){
+                      faceId1 = it->getId();
+                  }   
+              }   
+
+              if( faceId0 != 0 and faceId1 != 0 ){
+                  config_bulk_fib(faceId0, faceId1, path);
+                  std::cout << faceId0 << "/" << faceId1 << std::endl;
+                  done = true;
+              }   
+          }while(!done);
+
+          }catch(const std::exception& e){
+          }
+  });
+
+#endif
 }
+
+
+#ifdef ETRI_NFD_ORG_ARCH
+bool Nfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path)
+{
+    FILE *fp;
+    char line[1024]={0,};
+    uint64_t cost = 0;
+    int ndx = 0;
+    int line_cnt=0;
+    FaceUri uri;
+    FaceId nextHopId;
+    size_t fibs=0;
+    char* ptr __attribute__((unused));
+
+    fp =  fopen (fib_path.c_str(), "r");
+
+    if (fp==NULL) {
+        return false;
+    }
+
+    while ( !feof(fp) ) {
+        ptr=fgets(line, sizeof(line), fp);
+        line_cnt ++;
+    }
+    line_cnt -=1;
+    fclose(fp);
+
+    fp =  fopen (fib_path.c_str(), "r");
+
+    while ( !feof(fp) ) {
+        ptr = fgets(line, sizeof(line), fp);
+        if(strlen(line)==0) continue;
+        if(line[0]=='"') continue;
+
+        line[strlen(line)-1]='\0';
+        Name prefix(line);
+
+        if(prefix.size() <=0){
+            ndx++;
+            continue;
+        }
+
+        if(ndx >= line_cnt/2){
+            nextHopId = faceId0;
+        }else{
+            nextHopId = faceId1;
+        }
+
+        Face* face = m_faceTable->get(nextHopId);
+
+        fib::Entry * entry = m_forwarder->getFib().insert(prefix).first;
+        if(entry!=nullptr){
+            m_forwarder->getFib().addOrUpdateNextHop(*entry, *face, cost);
+            fibs += 1;
+        }
+
+        ndx++;
+        memset(line, '\0', sizeof(line));
+    }
+    fclose(fp);
+
+    return true;
+}
+#endif
 
 void
 Nfd::configureLogging()
