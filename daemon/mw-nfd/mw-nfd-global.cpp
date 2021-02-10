@@ -172,8 +172,11 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,// std::shar
 				retval += nfdc->retval;
 				ret = nfdc->ret;
 			}
-		}else
+		}else{
+#ifndef ETRI_NFD_ORG_ARCH
 			getGlobalLogger().info("mgmt::Can't send worker:{} command", i);
+#endif
+        }
 
 		setCommandRx(i, false);
 	}

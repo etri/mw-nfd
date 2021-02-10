@@ -346,7 +346,6 @@ Strategy::lookupFib(const pit::Entry& pitEntry) const
   const fib::Entry* fibEntry = nullptr;
   for (const Delegation& del : fh) {
     fibEntry = &fib.findLongestPrefixMatch(del.name);
-	getGlobalLogger().info("DelegationList.del.name: {}, nexthops: {}" , del.name.toUri() , fibEntry->hasNextHops());
     if (fibEntry->hasNextHops()) {
       if (fibEntry->getPrefix().size() == 0) {
         // in consumer region, return the default route
