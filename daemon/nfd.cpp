@@ -129,7 +129,6 @@ void Nfd::initialize()
 
           for (const auto& info : bulk_test) {
             
-            std::cout << info.first << ", " << info.second.get_value<std::string>() << std::endl;
             if(info.first=="bulk-fib-file-path")
                 path = info.second.get_value<std::string>();
             if(info.first=="bulk-fib-test-port0")
@@ -161,7 +160,6 @@ void Nfd::initialize()
 
               if( faceId0 != 0 and faceId1 != 0 ){
                   config_bulk_fib(faceId0, faceId1, path);
-                  std::cout << faceId0 << "/" << faceId1 << std::endl;
                   done = true;
               }   
           }while(!done);
