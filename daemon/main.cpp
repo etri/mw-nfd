@@ -85,7 +85,6 @@ ignoreConfigSections(const std::string& filename, const std::string& sectionName
 
 std::list<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
-std::string g_logFilePath;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 
@@ -128,6 +127,7 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 	else
     	setPrefixLength4Distribution(2);
 
+#if 0
     opt = section.get_child_optional("fib-sharding");
 	if(opt){
 			string val = opt->get_value<std::string>();
@@ -137,6 +137,8 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 					setFibSharding(false);
 	}else
 		setFibSharding(true);
+#endif
+    setFibSharding(true);
 
     opt = section.get_child_optional("bulk-fib-test");
 	if(opt){
@@ -153,8 +155,8 @@ static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std
 	}else
         setBulkFibTest(false);
 
-    opt = section.get_child_optional("log-file-path");
-    g_logFilePath = opt->get_value<std::string>();
+    //opt = section.get_child_optional("log-file-path");
+    //g_logFilePath = opt->get_value<std::string>();
 
 }
 
@@ -564,10 +566,9 @@ int main(int argc, char** argv)
     ConfigFile config(&ignoreConfigSections);
     config.addSectionHandler("mw-nfd", &onMwNfdConfig);
     config.parse(configFile, false);
-    makeGlobalLogger(g_logFilePath);
+    //makeGlobalLogger(g_logFilePath);
 
-    getGlobalLogger().info("");;
-    //getGlobalLogger().info(" *v* Running Multi-Worker NFD Archecture...");
+    NFD_LOG_INFO("");;
     std::cout << " *v* Running MW-NFD Archecture..." << std::endl;
 	nfd::printAddedFeatures(std::cout);
 
@@ -633,11 +634,11 @@ int main(int argc, char** argv)
 				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
 
 				if (rc != 0) {
-					std::cerr << "The Input Thread : Error calling pthread_setaffinity_np: " << rc << "\n";
+					NFD_LOG_DEBUG("The Input Thread : Error calling pthread_setaffinity_np: " << rc );
+                    exit(0);
 				}
 
-				getGlobalLogger().info("The Input-Thread is Running with core#: {}/worker#:{}, TID:{}", 
-						coreId, workerId, syscall(SYS_gettid));
+				NFD_LOG_INFO("The Input-Thread is Running with core#: "<< coreId << "/worker#:" << workerId << " TID:" << sched_getcpu()); 
 
 #elif defined(__APLLE__)
 	processor_set_t mask;
@@ -661,51 +662,48 @@ int main(int argc, char** argv)
 
 	workerId =0;
 
-	for(auto core : g_dcnWorkerList){
-		coreId = core;
+    for(auto core : g_dcnWorkerList){
+        coreId = core;
 
-		tg.create_thread( [ workerId, coreId, &cv, &m, &retval, configFile]{
+        tg.create_thread( [ workerId, coreId, &cv, &m, &retval, configFile]{
 
-				ndn::KeyChain           m_nfdKeyChain;
+                ndn::KeyChain           m_nfdKeyChain;
 #if defined(__linux__)
-				cpu_set_t cpuset;
-				CPU_ZERO(&cpuset);
-				CPU_SET(coreId, &cpuset);
-				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
+                cpu_set_t cpuset;
+                CPU_ZERO(&cpuset);
+                CPU_SET(coreId, &cpuset);
+                int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
 
-
-				if (rc != 0) {
-				getGlobalLogger().info("Dcn Thread ERROR+++ calling pthread_setaffinity_np: {}", rc);
-				return;
-				}
-				getGlobalLogger().info("MW-NFD-Worker(worker-id:{}/core:{})", workerId, coreId);
+                if (rc != 0) {
+                    NFD_LOG_DEBUG("Dcn Thread ERROR+++ calling pthread_setaffinity_np: " << rc);
+                    exit(0);
+                }
+                NFD_LOG_INFO("MW-NFD-Worker(worker-id:" << workerId << "/core:" << coreId);
 #elif defined(__APLLE__)
-	processor_set_t mask;
-	//processor_assign(getpid(), mask, true);
+                processor_set_t mask;
+                //processor_assign(getpid(), mask, true);
 #endif
 
+                const nfd::face::GenericLinkService::Options options;
+                try{
+                    auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options, configFile);
+                    {
+                        std::unique_lock<std::mutex> lock(m);
+                        cv.wait(lock, [&retval] { return retval == 1; });
+                    }   
+                    setMwNfd(workerId, mwNfd);
+                    mwNfd->initialize( g_inputWorkerList.size()+1 );
 
-				const nfd::face::GenericLinkService::Options options;
-				try{
-				auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options, configFile);
-				{
-				std::unique_lock<std::mutex> lock(m);
-				cv.wait(lock, [&retval] { return retval == 1; });
-				}   
-				setMwNfd(workerId, mwNfd);
-				mwNfd->initialize( g_inputWorkerList.size()+1 );
+                    if(getBulkFibTest())
+                        mwNfd->prepareBulkFibTest(g_bulkFibTestPort0, g_bulkFibTestPort1);
 
-				if(getBulkFibTest())
-					mwNfd->prepareBulkFibTest(g_bulkFibTestPort0, g_bulkFibTestPort1);
+                    mwNfd->runWorker();
 
-				mwNfd->runWorker();
-
-				}catch (const std::exception& e) {
-				}
-		});
-		workerId +=1;
-	}
-
+                }catch (const std::exception& e) {
+                }
+        });
+        workerId +=1;
+    }
 
     try {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));

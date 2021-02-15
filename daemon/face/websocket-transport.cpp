@@ -81,7 +81,6 @@ WebSocketTransport::WebSocketTransport(websocketpp::connection_hdl hdl,
 void
 WebSocketTransport::doSend(const Block& packet)
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   websocketpp::lib::error_code error;
   m_server.send(m_handle, packet.wire(), packet.size(),
@@ -157,7 +156,6 @@ WebSocketTransport::schedulePing()
 void
 WebSocketTransport::sendPing()
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   websocketpp::lib::error_code error;
   m_server.ping(m_handle, "NFD-WebSocket", error);
@@ -172,7 +170,6 @@ WebSocketTransport::sendPing()
 void
 WebSocketTransport::handlePong()
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   ++this->nInPongs;
 }
@@ -188,7 +185,6 @@ WebSocketTransport::handlePongTimeout()
 void
 WebSocketTransport::processErrorCode(const websocketpp::lib::error_code& error)
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   if (getState() == TransportState::CLOSING ||
       getState() == TransportState::FAILED ||
@@ -204,7 +200,6 @@ WebSocketTransport::processErrorCode(const websocketpp::lib::error_code& error)
 void
 WebSocketTransport::doClose()
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   m_pingEventId.cancel();
 

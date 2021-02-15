@@ -35,6 +35,8 @@ size_t nDropped[128];
 size_t nIfDropped[128];
 #endif
 
+NFD_LOG_INIT(ForwarderStatusManager);
+
 namespace nfd {
 
 static const time::milliseconds STATUS_FRESHNESS(5000);
@@ -119,19 +121,17 @@ ForwarderStatusManager::collectGeneralStatus()
 #ifdef ETRI_DEBUG_COUNTERS
     for(int i=0;i<128;i++){
         if( inInt[i]!=0 or outInt[i]!= 0 or inData[i]!=0 or outData[i]!=0){
-            getGlobalLogger().info("Face({}) - Total nFaceCounters: {}/{}/{}/{}" , 
-                    i+face::FACEID_RESERVED_MAX, 
-                    inInt[i], outInt[i], inData[i], outData[i]
-                    );
+            NFD_LOG_INFO(("Face(" << i+face::FACEID_RESERVED_MAX << ") - Total nFaceCounters: " << inInt[i] << "/" << outInt[i] <<
+                        "/" << inData[i] << "/" << outData[i] );
         }
 
         if(nEnqMiss[i]!=0)
-            getGlobalLogger().info("Face({}) - nEnqueueMiss: {}" , i+face::FACEID_RESERVED_MAX, nEnqMiss[i]);
+            NFD_LOG_INFO("Face(" <<  i+face::FACEID_RESERVED_MAX << ") - nEnqueueMiss: " << nEnqMiss[i]);
 
         if(nDropped[i]!=0)
-            getGlobalLogger().info("Face({}) - nDrooped Packets: {}" , i+face::FACEID_RESERVED_MAX, nDropped[i]);
+            NFD_LOG_INFO("Face(" << i+face::FACEID_RESERVED_MAX << ") - nDrooped Packets: " << nDropped[i]);
         if(nDropped[i]!=0)
-            getGlobalLogger().info("Face({}) - nIfDrooped Packets: {}" , i+face::FACEID_RESERVED_MAX, nIfDropped[i]);
+            NFD_LOG_INFO("Face(" << i+face::FACEID_RESERVED_MAX << ") - nIfDrooped Packets: " << nIfDropped[i]);
     }
 #endif
 

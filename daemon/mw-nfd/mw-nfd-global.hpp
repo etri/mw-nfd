@@ -32,11 +32,6 @@
 #include "concurrentqueue.h"
 #include "mw-nfd-worker.hpp"
 
-#ifndef ETRI_NFD_ORG_ARCH
-#include <spdlog/sinks/daily_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#endif
-
 #include <ndn-cxx/mgmt/nfd/control-parameters.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/multi_index_container.hpp>
@@ -216,11 +211,6 @@ void setForwardingWorkers(int8_t);
 int8_t  getForwardingWorkers();
 void setFibSharding(bool);
 bool getFibSharding();
-
-#ifndef ETRI_NFD_ORG_ARCH
-spdlog::logger& getGlobalLogger();
-shared_ptr<spdlog::logger> makeGlobalLogger(std::string);
-#endif
 
 boost::asio::io_service*
 getGlobalIoService(int);

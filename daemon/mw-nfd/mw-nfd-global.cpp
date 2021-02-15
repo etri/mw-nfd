@@ -124,8 +124,7 @@ std::shared_ptr<nfd::MwNfd> getMwNfd(int8_t wid)
 		return g_mwNfds[wid];
 }
 
-size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,// std::shared_ptr<ndn::Interest> interest, 
-    //std::shared_ptr<ndn::nfd::ControlParameters> parameters, bool netName)
+size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
     ndn::nfd::ControlParameters parameters, bool netName)
 {
     int i,numbytes;
@@ -173,9 +172,7 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,// std::shar
 				ret = nfdc->ret;
 			}
 		}else{
-#ifndef ETRI_NFD_ORG_ARCH
-			getGlobalLogger().info("mgmt::Can't send worker:{} command", i);
-#endif
+            //std::cout << "mgmt::Can't send worker: " << i << " command." << std::cout ;
         }
 
 		setCommandRx(i, false);
@@ -320,30 +317,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
     return std::make_tuple(packetType, worker);
 }
 
-#if 0
-int get_interface_number_by_device_name(int socket_fd, std::string interface_name) {
-    struct ifreq ifr;
-    memset(&ifr, 0, sizeof(ifr));
-
-    if (interface_name.size() > IFNAMSIZ) {
-        return -1;
-
-    }
-
-    strncpy(ifr.ifr_name, interface_name.c_str(), sizeof(ifr.ifr_name));
-
-    if (ioctl(socket_fd, SIOCGIFINDEX, &ifr) == -1) {
-        return -1;
-
-    }
-
-    return ifr.ifr_ifindex;
-
-}
-#endif
-
 MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
-//MoodyMQ g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 BoostMQ g_dcnBoostMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 
 void mq_allocation()
@@ -358,10 +332,6 @@ void mq_allocation()
 }
 
 thread_local int32_t g_iwId;
-
-#ifndef ETRI_NFD_ORG_ARCH
-static shared_ptr<spdlog::logger> g_logService=nullptr;
-#endif
 
 namespace ip = boost::asio::ip;
 
@@ -468,23 +438,6 @@ void setForwardingWorkers(int8_t cap)
     g_forwardingWorkers = cap;
 }
 
-#ifndef ETRI_NFD_ORG_ARCH
-spdlog::logger& getGlobalLogger()
-{
-    return *g_logService;
-}
-
-shared_ptr<spdlog::logger> makeGlobalLogger(std::string path)
-{
-    if(path == "stdout" )
-        g_logService = spdlog::stdout_color_mt("MW-NFD");
-    else{
-        // Create a daily logger - a new file is created every d    ay on 8:00am
-        g_logService = spdlog::daily_logger_mt("dcn-daily-logger", path, 8, 0);
-    }
-
-    return g_logService;
-}
 
 /*
  * print data in rows of 16 bytes: offset   hex   ascii
@@ -583,7 +536,6 @@ print_payload(const u_char *payload, int len)
 
 return;
 }
-#endif
 
 
 } // namespace mw-nfd

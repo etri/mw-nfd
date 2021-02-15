@@ -13,6 +13,7 @@
 #include <net/if.h>
 #endif
 
+NFD_LOG_INIT(InputThread);
 namespace nfd {
 
 InputThread::InputThread()
@@ -31,12 +32,13 @@ InputThread::~InputThread() = default;
 
 void InputThread::initialize(int32_t Id, const string ifname)
 {
-    getGlobalLogger().info("initializing InputThread-InputThreadId:{}/Physical Port:{}.", Id, ifname);
+    //getGlobalLogger().info("initializing InputThread-InputThreadId:{}/Physical Port:{}.", Id, ifname);
+    NFD_LOG_INFO( "initializing InputThread-InputThreadId:" << Id << "/Physical Port:" << ifname  );;
 	int ifIndex = 0;
 
 	ifIndex= if_nametoindex(ifname.c_str());
 
-	getGlobalLogger().info("InputThread({}) - ifIndex: {} ... ", Id, ifIndex);
+	NFD_LOG_INFO("InputThread(" << Id << ") - ifIndex: " <<  ifIndex);
 	setGlobalIoService(ifIndex, &getGlobalIoService());
 }
 

@@ -140,7 +140,6 @@ template<class T>
 void
 StreamTransport<T>::doClose()
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   if (m_socket.is_open()) {
     // Cancel all outstanding operations and shutdown the socket
@@ -172,7 +171,6 @@ template<class T>
 void
 StreamTransport<T>::deferredClose()
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   resetSendQueue();
 
@@ -187,7 +185,6 @@ template<class T>
 void
 StreamTransport<T>::doSend(const Block& packet)
 {
-	NFD_LOG_FACE_TRACE(__func__);
 
 	if (getState() != TransportState::UP){
 		return;
@@ -209,9 +206,9 @@ StreamTransport<T>::doSend(const Block& packet)
 
 	if(error){
 			#ifdef __APPLE__
-    	getGlobalLogger().info("stream-transport's doSend - INFO: [{}]" , std::strerror(errno));
+    	NFD_LOG_FACE_TRACE("stream-transport's doSend - INFO: " << std::strerror(errno));
 			#elif __linux__
-    	getGlobalLogger().info("stream-transport's doSend - INFO: [{}] : CPU {}" , std::strerror(errno), sched_getcpu());
+    	NFD_LOG_FACE_TRACE("stream-transport's doSend - INFO: " << std::strerror(errno) << ", CPU " << sched_getcpu());
 			#endif
 	}
 #endif
@@ -318,8 +315,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
     m_receiveBufferSize += nBytesReceived;
 
-	//getGlobalLogger().info("handleReceive :{}", nBytesReceived);
-
     while (m_receiveBufferSize - offset > 0) {
 		//print_payload(m_receiveBuffer + offset, m_receiveBufferSize - offset);
 
@@ -359,7 +354,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
     if (!isOk && m_receiveBufferSize == ndn::MAX_NDN_PACKET_SIZE && offset == 0) {
         NFD_LOG_FACE_ERROR("Failed to parse incoming packet or packet too large to process");
-        getGlobalLogger().info("Failed to parse incoming packet or packet too large to process");
         this->setState(TransportState::FAILED);
         doClose();
         return;
@@ -383,7 +377,6 @@ template<class T>
 void
 StreamTransport<T>::processErrorCode(const boost::system::error_code& error)
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   if (getState() == TransportState::CLOSING ||
       getState() == TransportState::FAILED ||
