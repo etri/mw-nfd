@@ -14,6 +14,7 @@
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <boost/property_tree/info_parser.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
@@ -63,101 +64,88 @@ namespace nfd {
  *  fails, NFD will be terminated.
  */
 
-inline void
-ignoreConfigSections(const std::string& filename, const std::string& sectionName,
-        const ConfigSection& section, bool isDryRun)
-{
-    // Ignore "log" and "rib" sections, but raise an error if we're missing a
-    // handler for an NFD section.
-    if (sectionName == "rib" 
-        || sectionName == "log" 
-        || sectionName == "general" 
-        || sectionName == "face_system" 
-        || sectionName == "authorizations" 
-        || sectionName =="tables" ) {
-        // do nothing
-    }
-    else {
-        // missing NFD section
-        ConfigFile::throwErrorOnUnknownSection(filename, sectionName, section, isDryRun);
-    }
-}
-
-std::list<int8_t> g_dcnWorkerList;
+std::set<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 
 #ifndef ETRI_NFD_ORG_ARCH
-static void onMwNfdConfig(const ConfigSection& section, bool isDryRun, const std::string&)
+static void configMwNfdConfig(const std::string configFileName)
 {
     std::string user;
     std::string group;
+    OptionalConfigSection opt;
 
-    OptionalConfigSection opt = section.get_child_optional("input-thread-core-assign");
-	if(opt){
-			for (const auto& worker : *opt) {
-					g_inputWorkerList.emplace( worker.first, worker.second.get_value<std::uint8_t>() );
-			}
-	}
+    ConfigSection config;
+    boost::property_tree::read_info(configFileName, config);
+    auto mw_nfd_section = config.get_child("mw-nfd");
+    bool alreadyProcessForwarding = false;
 
-    opt = section.get_child_optional("forwarding-worker-core-assign");
-	if(opt){
-			std::string cores = opt->get_value<std::string>();
-			size_t pos = cores.find("-");
+    setBulkFibTest(false);
 
-			if(pos!=cores.string::npos){
-					int start, end;
-					sscanf(cores.c_str(), "%d-%d", &start, &end);
-					for(int i=start;i<=end;i++)
-							g_dcnWorkerList.push_back(i);
-			}else{
-					tokenizer<> tok(cores);
-					for (tokenizer<>::iterator i = tok.begin(); i != tok.end(); ++i){
-							string core = *i;
-							g_dcnWorkerList.push_back(atoi(core.c_str()));
-					}
-			}
-	}else
-		g_dcnWorkerList.push_back(0);
+    for(const auto& section : mw_nfd_section) {
 
-    opt = section.get_child_optional("prefix-length-for-distribution");
-	if(opt)
-    	setPrefixLength4Distribution(opt->get_value<std::size_t>());
-	else
-    	setPrefixLength4Distribution(2);
+        if( section.first == "input-thread-core-assign"){
+            auto inputs = config.get_child("mw-nfd.input-thread-core-assign");
+                for (const auto& input : inputs) {
+                    g_inputWorkerList.emplace( input.first, input.second.get_value<std::uint8_t>() );
+                }
+        }else if( section.first == "forwarding-worker-core-assign"){
+            if(alreadyProcessForwarding==true)
+            {
+                std::cerr << "There are double forwarding-worker-core-assign sections on mw-nfd section in mw-nfd.conf" << "\n";
+                exit(0);
+            }
+            auto cores = config.get("mw-nfd.forwarding-worker-core-assign", "1,2");
 
-#if 0
-    opt = section.get_child_optional("fib-sharding");
-	if(opt){
-			string val = opt->get_value<std::string>();
-			if(val=="yes")
-					setFibSharding(true);
-			else
-					setFibSharding(false);
-	}else
-		setFibSharding(true);
-#endif
+            size_t pos = cores.find("-");
+
+            if(pos!=cores.string::npos){
+                int start, end;
+                sscanf(cores.c_str(), "%d-%d", &start, &end);
+                for(int i=start;i<=end;i++)
+                    g_dcnWorkerList.insert(i);
+            }else{
+                tokenizer<> tok(cores);
+                for (tokenizer<>::iterator i = tok.begin(); i != tok.end(); ++i){
+                    string core = *i;
+                    g_dcnWorkerList.insert(atoi(core.c_str()));
+                }
+            }
+
+            alreadyProcessForwarding = true;
+        }else if( section.first == "prefix-length-for-distribution"){
+
+            setPrefixLength4Distribution(config.get<std::size_t>("mw-nfd.prefix-length-for-distribution",2));
+
+        }else if( section.first == "bulk-fib-test"){
+            auto bulks = config.get_child("mw-nfd.bulk-fib-test");
+            setBulkFibTest(true);
+            for (const auto& bulk : bulks) {
+                if(bulk.first=="bulk-fib-file-path")
+                    setBulkFibFilePath(bulk.second.get_value<std::string>());
+                else if(bulk.first=="bulk-fib-test-port0")
+                    g_bulkFibTestPort0 = bulk.second.get_value<std::string>();
+                else if(bulk.first=="bulk-fib-test-port1")
+                    g_bulkFibTestPort1 = bulk.second.get_value<std::string>();
+            }
+        }
+    }
     setFibSharding(true);
 
-    opt = section.get_child_optional("bulk-fib-test");
-	if(opt){
-        	setBulkFibTest(true);
-			for (const auto& bulk : *opt) {
+    if( g_inputWorkerList.size() > 0 and g_dcnWorkerList.size() > 0){
 
-					if(bulk.first=="bulk-fib-file-path")
-						setBulkFibFilePath(bulk.second.get_value<std::string>());
-					else if(bulk.first=="bulk-fib-test-port0")
-						g_bulkFibTestPort0 = bulk.second.get_value<std::string>();
-					else if(bulk.first=="bulk-fib-test-port1")
-						g_bulkFibTestPort1 = bulk.second.get_value<std::string>();
-			}
-	}else
-        setBulkFibTest(false);
+	    for(auto in:g_inputWorkerList){
 
-    //opt = section.get_child_optional("log-file-path");
-    //g_logFilePath = opt->get_value<std::string>();
+	        for(auto wrk:g_dcnWorkerList){
+                if(in.second == wrk){
+                    std::cerr << "Error!!! Using Same core Number(" << wrk << ") both InputThread and WorkerThread" << std::endl;
+                    exit(0);
+                }
+            }
+        }
 
+    }
 }
 
 #endif
@@ -563,10 +551,10 @@ int main(int argc, char** argv)
 
 	resetCommandRx();
 
-    ConfigFile config(&ignoreConfigSections);
-    config.addSectionHandler("mw-nfd", &onMwNfdConfig);
-    config.parse(configFile, false);
-    //makeGlobalLogger(g_logFilePath);
+    //ConfigFile config(&ignoreConfigSections);
+    //config.addSectionHandler("mw-nfd", &onMwNfdConfig);
+    //config.parse(configFile, false);
+    configMwNfdConfig(configFile);
 
     NFD_LOG_INFO("");;
     std::cout << " *v* Running MW-NFD Archecture..." << std::endl;
@@ -634,7 +622,7 @@ int main(int argc, char** argv)
 				int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
 
 				if (rc != 0) {
-					NFD_LOG_DEBUG("The Input Thread : Error calling pthread_setaffinity_np: " << rc );
+                std::cerr << "The Input Thread : Error calling pthread_setaffinity_np: " << rc << "\n";
                     exit(0);
 				}
 
@@ -675,7 +663,7 @@ int main(int argc, char** argv)
                 int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
 
                 if (rc != 0) {
-                    NFD_LOG_DEBUG("Dcn Thread ERROR+++ calling pthread_setaffinity_np: " << rc);
+                std::cerr << "MW-NFD Thread ERROR+++ when calling pthread_setaffinity_np(): " << rc << "\n";
                     exit(0);
                 }
                 NFD_LOG_INFO("MW-NFD-Worker(worker-id:" << workerId << "/core:" << coreId);
