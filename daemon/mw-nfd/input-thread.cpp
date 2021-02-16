@@ -33,7 +33,7 @@ InputThread::~InputThread() = default;
 void InputThread::initialize(int32_t Id, const string ifname)
 {
     //getGlobalLogger().info("initializing InputThread-InputThreadId:{}/Physical Port:{}.", Id, ifname);
-    NFD_LOG_INFO( "initializing InputThread-InputThreadId:" << Id << "/Physical Port:" << ifname  );;
+    NFD_LOG_INFO( "initializing InputThread(" << Id << ")/Physical Port:" << ifname  );;
 	int ifIndex = 0;
 
 	ifIndex= if_nametoindex(ifname.c_str());

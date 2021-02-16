@@ -67,7 +67,11 @@ Policy::Policy(const std::string& policyName)
 void
 Policy::setLimit(size_t nMaxEntries)
 {
-  NFD_LOG_INFO("setLimit " << nMaxEntries);
+#ifdef __linux__
+  NFD_LOG_INFO("setLimit " << nMaxEntries << " on CPU " << sched_getcpu());
+#elif __APPLE__
+  NFD_LOG_INFO("setLimit " << nMaxEntries );
+#endif
   m_limit = nMaxEntries;
   this->evictEntries();
 #ifdef ETRI_DUAL_CS

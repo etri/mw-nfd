@@ -64,12 +64,12 @@ namespace nfd {
  *  fails, NFD will be terminated.
  */
 
+#ifndef ETRI_NFD_ORG_ARCH
 std::set<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 
-#ifndef ETRI_NFD_ORG_ARCH
 static void configMwNfdConfig(const std::string configFileName)
 {
     std::string user;
@@ -88,7 +88,11 @@ static void configMwNfdConfig(const std::string configFileName)
         if( section.first == "input-thread-core-assign"){
             auto inputs = config.get_child("mw-nfd.input-thread-core-assign");
                 for (const auto& input : inputs) {
-                    g_inputWorkerList.emplace( input.first, input.second.get_value<std::uint8_t>() );
+                    auto ret = g_inputWorkerList.emplace( input.first, input.second.get_value<std::uint8_t>() );
+					if(ret.second == false){
+                		std::cerr << "There are Same Physical Port :" << input.first << std::endl;
+                		exit(0);
+					}
                 }
         }else if( section.first == "forwarding-worker-core-assign"){
             if(alreadyProcessForwarding==true)
@@ -109,7 +113,11 @@ static void configMwNfdConfig(const std::string configFileName)
                 tokenizer<> tok(cores);
                 for (tokenizer<>::iterator i = tok.begin(); i != tok.end(); ++i){
                     string core = *i;
-                    g_dcnWorkerList.insert(atoi(core.c_str()));
+                    auto ret = g_dcnWorkerList.insert(atoi(core.c_str()));
+					if(ret.second == false){
+                    	std::cerr << "Error!!! Using Same core Number(" << core << ") in WorkerThread" << std::endl;
+                    	exit(0);
+					}
                 }
             }
 
@@ -666,7 +674,7 @@ int main(int argc, char** argv)
                 std::cerr << "MW-NFD Thread ERROR+++ when calling pthread_setaffinity_np(): " << rc << "\n";
                     exit(0);
                 }
-                NFD_LOG_INFO("MW-NFD-Worker(worker-id:" << workerId << "/core:" << coreId);
+                NFD_LOG_INFO("MW-NFD-Worker(" << coreId <<")");
 #elif defined(__APLLE__)
                 processor_set_t mask;
                 //processor_assign(getpid(), mask, true);

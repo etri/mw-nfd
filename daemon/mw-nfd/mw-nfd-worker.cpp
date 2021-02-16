@@ -357,7 +357,7 @@ void
 MwNfd::initializeManagement()
 {
 #ifdef __linux__
-	NFD_LOG_INFO("Config File: " << m_configFile << " on CPU " <<  sched_getcpu());
+	//NFD_LOG_INFO("Config File: " << m_configFile << " on CPU " <<  sched_getcpu());
 #endif
 
 	ConfigSection config;
@@ -387,6 +387,9 @@ MwNfd::initializeManagement()
 
 	unique_ptr<cs::Policy> csPolicy;
 	csPolicy = cs::Policy::create(policyName);
+	if (csPolicy == nullptr) {
+		NDN_THROW(ConfigFile::Error("Unknown cs_policy '" + policyName + "' in section 'tables'"));
+	}
 
 	m_forwarder->getCs().setLimit(nCsMaxPackets);
 	if (m_forwarder->getCs().size() == 0 && csPolicy != nullptr) {
