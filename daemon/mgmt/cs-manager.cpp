@@ -172,17 +172,18 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
 {
   ndn::nfd::CsInfo info;
 
-#if 1
   int32_t workers = getForwardingWorkers();
   size_t NEntries = 0;
   size_t NHits = 0;
   size_t NMisses = 0;
-  info.setCapacity(m_cs.getLimit());
+  size_t NCapa = 0;
+  //info.setCapacity(m_cs.getLimit());
   info.setEnableAdmit(m_cs.shouldAdmit());
   info.setEnableServe(m_cs.shouldServe());
 
   for(int32_t i=0;i<workers;i++){
       auto worker = getMwNfd(i);
+      NCapa += worker->getCsTable().getLimit();
       NEntries += worker->getCsTable().size();
       NHits += worker->getCountersInfo().nCsHits;
       NMisses += worker->getCountersInfo().nCsMisses;
@@ -191,15 +192,7 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
     info.setNEntries(NEntries);
     info.setNHits(NHits);
     info.setNMisses(NMisses);
-#else
-  info.setCapacity(m_cs.getLimit());
-  info.setEnableAdmit(m_cs.shouldAdmit());
-  info.setEnableServe(m_cs.shouldServe());
-  info.setNEntries(m_cs.size());
-  info.setNHits(m_fwCounters.nCsHits);
-  info.setNMisses(m_fwCounters.nCsMisses);
-
-#endif
+  info.setCapacity(NCapa);
 
   context.append(info.wireEncode());
   context.end();
