@@ -451,24 +451,20 @@ mw-nfd
     input-thread-core-assign
     {
         ; network interface that is serviced by input-thread and it's core number
-        enp7s0f0 10
-        enp7s0f1 11
+    ;    enp7s0f0 10
+    ;    enp7s0f1 11
     }
 
     forwarding-worker-core-assign 4,6,8,10,12,14,16,18,20,22,24,26
     ; forwarding-worker-corelist 0-2, 3,5
 
     prefix-length-for-distribution 2
-	fib-sharding yes ;no
 
-	bulk-fib-test 
-	{
-		bulk-fib-file-path /usr/local/etc/ndn/fib-bulk.txt
-		bulk-fib-test-port0 enp7s0f0
-		bulk-fib-test-port1 enp7s0f1
-	}
+	;bulk-fib-test 
+	;{
+	;	bulk-fib-file-path /usr/local/etc/ndn/fib-bulk.txt
+	;	bulk-fib-test-port0 enp7s0f0
+	;	bulk-fib-test-port1 enp7s0f1
+	;}
 
-    ;log-file /tmp/dcn/fast-nfd.log 
-    ;default action
-    log-file-path stdout
 }
