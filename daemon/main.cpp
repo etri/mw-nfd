@@ -102,24 +102,25 @@ static void configMwNfdConfig(const std::string configFileName)
             }
             auto cores = config.get("mw-nfd.forwarding-worker-core-assign", "1,2");
 
-            size_t pos = cores.find("-");
+			boost::char_separator<char> sep(",");
+			typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer;
+			t_tokenizer tok(cores, sep);
+			for (t_tokenizer::iterator beg = tok.begin(); beg != tok.end(); ++beg)
+			{   
+				string core = *beg;
+				if( core.find("-") != string::npos ){
+					int start, end;
+					sscanf(core.c_str(), "%d-%d", &start, &end);
+					if( end <= start ){
+						std::cerr << "core list error: " << core << " in mw-nfd.forwarding-worker-core-assign section" << std::endl;
+						exit(0);
+					}   
+					for(int i=start;i<=end;i++)
+						g_dcnWorkerList.insert(i);
+				}else
+					g_dcnWorkerList.insert(atoi(core.c_str()));
+			}   
 
-            if(pos!=cores.string::npos){
-                int start, end;
-                sscanf(cores.c_str(), "%d-%d", &start, &end);
-                for(int i=start;i<=end;i++)
-                    g_dcnWorkerList.insert(i);
-            }else{
-                tokenizer<> tok(cores);
-                for (tokenizer<>::iterator i = tok.begin(); i != tok.end(); ++i){
-                    string core = *i;
-                    auto ret = g_dcnWorkerList.insert(atoi(core.c_str()));
-					if(ret.second == false){
-                    	std::cerr << "Error!!! Using Same core Number(" << core << ") in WorkerThread" << std::endl;
-                    	exit(0);
-					}
-                }
-            }
 
             alreadyProcessForwarding = true;
         }else if( section.first == "prefix-length-for-distribution"){
