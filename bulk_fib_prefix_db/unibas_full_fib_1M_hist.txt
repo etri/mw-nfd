@@ -1,0 +1,13 @@
+total prefix = 1000000
+(comps, count) distribution
+(1, 0)
+(2, 17600)
+(3, 285300)
+(4, 369400)
+(5, 191800)
+(6, 69200)
+(7, 32800)
+(8, 33900)
+total = 1000000
+avg. prefix length (bytes) in NDN wire format = 43.655
+avg. component length (bytes) in NDN wire format = 10.287
