@@ -157,9 +157,6 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
 	std::string m_bulkFibPort1;
 
     nfd::face::LpReassembler m_reassembler;
-    ndn::Face m_face;
-
-    ndn::nfd::FaceMonitor m_faceMonitor;
 
 	const std::string& m_configFile;
 

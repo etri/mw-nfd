@@ -87,8 +87,6 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
   , nInNacks(0)
     ,m_done(false)
 ,m_reassembler(options.reassemblerOptions)
-    ,m_face(std::move(make_shared<ndn::UnixTransport>("/var/run/nfd.sock")), getGlobalIoService(), m_keyChain)
-    ,m_faceMonitor(m_face)
     ,m_configFile(conf)
     {
         // Disable automatic verification of parameters digest for decoded Interests.
