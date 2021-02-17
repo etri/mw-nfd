@@ -36,9 +36,8 @@ namespace name_tree {
 class NameTree : noncopyable
 {
 public:
-//modori
   explicit
-  NameTree(size_t nBuckets = 32*1024);
+  NameTree(size_t nBuckets = 1024);
 
 public: // information
   /** \brief Maximum depth of the name tree

@@ -148,7 +148,12 @@ extern bool g_expirePollTimerList[DCN_MAX_WORKERS];
 
     static const uint32_t MW_NFDC_PORT = 3003;
     static const uint32_t MQ_ARRAY_MAX_SIZE = MW_NFD_WORKER*2;
+#ifdef __ARM_ARCH
+    #define CAPACITY 512 
+#else
     #define CAPACITY 2*1024
+#endif
+
 
 // unit millisecond
 	#define MW_NFD_CMD_TMR 10
