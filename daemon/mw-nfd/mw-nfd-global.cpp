@@ -56,7 +56,7 @@ void setCommandRx(size_t idx, bool val)
 	g_commandRxFlag[idx] = val;
 }
 
-bool g_expirePollTimerList[DCN_MAX_WORKERS];
+bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 int g_prefixLength4Distribution;
 bool g_bulkFibTest=false;

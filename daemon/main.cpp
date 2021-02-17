@@ -159,15 +159,15 @@ static void configMwNfdConfig(const std::string configFileName)
 
 #endif
 
-void expirePollTimer(const boost::system::error_code& /*e*/,
+void forwardingWorkerTimerTrigger(const boost::system::error_code& /*e*/,
             boost::shared_ptr< boost::asio::deadline_timer > t,
             int wid)
 {
-    if( nfd::g_expirePollTimerList[wid]==false )
-        nfd::g_expirePollTimerList[wid]=true;
+    if( nfd::g_workerTimerTriggerList[wid]==false )
+        nfd::g_workerTimerTriggerList[wid]=true;
 
-    t->expires_at(t->expires_at() + boost::posix_time::milliseconds(1));
-    t->async_wait(boost::bind(expirePollTimer,
+    t->expires_at(t->expires_at() + boost::posix_time::milliseconds(MW_NFD_TRIGGER_TMR));
+    t->async_wait(boost::bind(forwardingWorkerTimerTrigger,
         boost::asio::placeholders::error, t, wid));
 
 }
@@ -214,7 +214,7 @@ public:
                 new boost::asio::deadline_timer( getMainIoService())
                 );
         timer->expires_from_now( boost::posix_time::milliseconds( 3 ) );
-        timer->async_wait(boost::bind(expirePollTimer,
+        timer->async_wait(boost::bind(forwardingWorkerTimerTrigger,
                     boost::asio::placeholders::error, timer, i));
     }
 
@@ -606,7 +606,7 @@ int main(int argc, char** argv)
     nfd::setForwardingWorkers(worker_cores);
 
     for(int i=0;i<DCN_MAX_WORKERS;i++)
-        g_expirePollTimerList[i]=true;
+        g_workerTimerTriggerList[i]=true;
 
     NfdRunner runner(configFile);
     runner.initialize();

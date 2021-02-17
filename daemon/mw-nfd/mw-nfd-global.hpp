@@ -133,7 +133,7 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 #endif
 
 namespace nfd {
-extern bool g_expirePollTimerList[DCN_MAX_WORKERS];
+extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 	typedef struct st_msg {
 		uint64_t workerId;
@@ -155,9 +155,9 @@ extern bool g_expirePollTimerList[DCN_MAX_WORKERS];
 #endif
 
 
-// unit millisecond
-	#define MW_NFD_CMD_TMR 10
 	#define MW_NFD_CMD_BUF_SIZE 128
+
+#define MW_NFD_TRIGGER_TMR 1
 
     struct NdnTraits : public moodycamel::ConcurrentQueueDefaultTraits
     {
