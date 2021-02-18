@@ -97,7 +97,7 @@ ForwarderGeneralModule::formatItemXml(std::ostream& os, const ForwarderStatus& i
 void
 ForwarderGeneralModule::formatStatusText(std::ostream& os) const
 {
-  os << "General NFD status:\n";
+  os << "General MW-NFD status:\n";
   ndn::util::IndentedStream indented(os, "  ");
   formatItemText(indented, m_status);
 }

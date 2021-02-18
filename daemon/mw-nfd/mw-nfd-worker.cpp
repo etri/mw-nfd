@@ -689,11 +689,9 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
 		FaceUri uri;
 		FaceId nextHopId;
 		int32_t wid;//, ndnType;
-        size_t fibs=0;
 
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
         char* ptr __attribute__((unused));
-
 
 		if (fp==NULL) {
 			NFD_LOG_DEBUG("MW-NFD: bulk_fib_test: can't read bulk-fib-file:" << getBulkFibFilePath());
@@ -748,7 +746,6 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool 
                 fib::Entry * entry = getFibTable().insert(prefix).first;
 				if( entry !=nullptr){
 					getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-					fibs += 1;
 				}
 
 				ndx++;
@@ -771,7 +768,6 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 		FaceUri uri;
 		FaceId nextHopId;
 		int32_t wid;//, ndnType;
-        size_t fibs=0;
         char* ptr __attribute__((unused));
 
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
@@ -823,14 +819,13 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
                 fib::Entry * entry = getFibTable().insert(prefix).first;
 				if(entry!=nullptr){
                 	getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-                	fibs += 1;
 				}
 
 				ndx++;
 				memset(line, '\0', sizeof(line));
 		}
 		fclose(fp);
-		//getGlobalLogger().info("ForwardingWorker[{}] - Bulk FIB Insertion End(Fib's Entries:{})..." , m_workerId, getFibTable().size());
+        //std::cout << "ForwardingWorker[" << m_workerId << "]- Bulk FIB Insertion End(Fib's Entries:"  << getFibTable().size();
 
         return true;
 }

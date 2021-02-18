@@ -61,7 +61,7 @@ ForwarderStatusManager::collectGeneralStatus()
 
 #ifndef ETRI_NFD_ORG_ARCH
   size_t nNameTree=0;
-  size_t nFib=0;
+  size_t nFib=m_forwarder.getFib().size();
   size_t nPit=0;
   size_t nM=0;
   size_t nCs=0;
@@ -73,7 +73,6 @@ ForwarderStatusManager::collectGeneralStatus()
   size_t nOutNacks=0;
   size_t nSatisfiedInterests=0;
   size_t nUnsatisfiedInterests=0;
-
 
   int32_t workers = getForwardingWorkers();
 
