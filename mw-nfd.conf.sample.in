@@ -447,24 +447,58 @@ rib
 
 mw-nfd
 {
-    ; core-id 0 is reserved by mgmt thread
+    ; This section is for mw-nfd-specific features.
+    ; If MW-NFD runs on NFD-ORG-ARCH mode, this section is ignored.
+    ; The management thread is assinged to core 0, and it also has the role of input thread to local application faces
+    ; and physical ports with no input-thread assignments.
+    ;
+    ; It is recommended to create a input thread on a dedicated core for each main forwarding (ethernet) port.
+    ; Dynamic faces such as udp/tcp/websocket faces are binded to the input thread of associated physical port
+    ; which is determined by the local endpoint ip address.
+    ; By default, the physical ports with no input-thread assignments are handled by management thread.
+    ;
+    ; For best performance, allocate a dedicate core to each input thread.
+    ; It is recommended to assign a core within same NUMA node with the physical port.
+    ; Multiple input threads can share a single core if the system has limited cpu cores,
+    ;
+    ; Due to aggresive polling, cpu utiliztion of each input core and forwarding worker core comes to 100%.
+    ; Therefore core allocation should be careful in the systems having limited cpu cores.
+    ; For Raspberry Pi, it is recommended to assign single forwarding worker core and no input thread core.
+
     input-thread-core-assign
     {
-        ; network interface that is serviced by input-thread and it's core number
-    ;    enp7s0f0 10
-    ;    enp7s0f1 11
+      ;  enp7s0f0 10
+      ;  enp7s0f1 11
     }
 
-    forwarding-worker-core-assign 4,6,8,10,12,14,16,18,20,22,24,26
-    ; forwarding-worker-corelist 0-2, 3,5
+    ; Default forwarding worker cores are {1,2} in case no forwarding-worker-core-assign statement.
+    ; Core list can be specified with a mix of ranges (e.g. 2-4) and enumeration.
+    ;
+    forwarding-worker-core-assign 1,2
+    ;forwarding-worker-core-assign 4-6,8,10,12-15
 
+    ; Input threads distribute incoming Interests to forwarding workers based on
+    ; the hash of the name prefix of "prefix-length-for-distribution" length.
+    ; The forwarding worker-id is encoded in the PIT token of sending Interst,
+    ; and returned Data shall have the PIT token with worker-id, if the remote node forwarder support PIT token.
+    ; So, Data with PIT token will be send to the worker-id encoded in the PIT token.
+    ;
+    ; Currently, local application doesn't return Data with PIT token.
+    ; So, the local producer Data shall be distrubted based on the name prefix.
+    ; If the minimum namespace length of local applications using prefix matching between Interest and Data is K,
+    ; prefix-length-for-distribution should not be larger than K.
+    ; ( prefix-length-for-distribution <= K )
+    ; Default prefix-length-for-distribution is 2.
     prefix-length-for-distribution 2
 
-	;bulk-fib-test 
-	;{
-	;	bulk-fib-file-path /usr/local/etc/ndn/fib-bulk.txt
-	;	bulk-fib-test-port0 enp7s0f0
-	;	bulk-fib-test-port1 enp7s0f1
-	;}
 
+    ; ; bulk-fib-test is only used for MW-NFD forwarding test environment specified
+    ; ; in the MW-NFD paper (ICN 2020).
+    ; ; For normal configuration, just ignore this section.
+    ; bulk-fib-test ;
+    ; {
+    ;   bulk-fib-file-path <mw-nfd-path>/bulk_fib_prefix_db/unibas_full_fib_10K.txt
+    ;   bulk-fib-test-port0 enp7s0f0
+    ;   bulk-fib-test-port1 enp7s0f1
+    ; }
 }
