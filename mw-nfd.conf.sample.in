@@ -467,8 +467,8 @@ mw-nfd
 
     input-thread-core-assign
     {
-      ;  enp7s0f0 10
-      ;  enp7s0f1 11
+      ; enp7s0f0 10
+      ; enp7s0f1 11
     }
 
     ; Default forwarding worker cores are {1,2} in case no forwarding-worker-core-assign statement.
