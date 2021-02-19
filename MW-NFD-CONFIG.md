@@ -51,7 +51,7 @@ The MW-NFD programs are installed in /usr/local/bin and /usr/local/etc/ndn with 
 
 &nbsp;&nbsp;&nbsp;    sudo ./waf install
 
-Following NFD commands are renamed :
+Following NFD commands are renamed but has same features:
 
     nfd                     --> mw-nfd
     nfd-start               --> mw-nfd-start
@@ -59,12 +59,31 @@ Following NFD commands are renamed :
     nfd-status              --> mw-nfd-status
     nfd-status-http-server  --> mw-nfd-status-http-server
 
+Following NFD commands are not changed : nfdc, nfd-autoreg, ndn-autoconfig, ndn-autoconfig-server  
+
 ## Configuration File
 
 The sample configuration file name is changed from nfd.conf.sample to mw-nfd.conf.sample,
 which is located in /usr/local/etc/ndn/.
-It supports all of NFD configuration syntax as is, and have a specific configuration section named "mw-nfd"
+It supports all of NFD configuration syntax as is, and have a new section  named "mw-nfd"
 related to MW-NFD features.
 
 Please refer the comments on the sample config file how to configure each parameters.
+
+## Core Allocation 
+
+When a physical port and its input thread core are in the same NUMA node, best performance is expected. 
+If all of main forwarding ports are in the same NUMA node, forwarding worker cores  within same NUMA node 
+shows better performance. 
+
+Generally, the number of NUMA node is same to the number of CPU in the system. 
+Intel Xeon Scalable CPU support SNC(Sub-Numa Clustering) feature which makes single CPU to two NUMA nodes. 
+You can check the number of NUMA and cpu cores assigned to each NUMA node with "lscpu" command in Linux systems. 
+
+The numa node where a ethernet device [dev-name] is connect to can be identified with following command: 
+
+&nbsp;&nbsp;&nbsp; cat /sys/class/net/[dev-name]/device/numa_node
+
+
+
 
