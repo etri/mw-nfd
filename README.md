@@ -54,7 +54,7 @@ Detailed forwarding test method is described in the MW-NFD paper (ICN2020), and 
 | no dual_cs            |   54K         | 108K  | 220K  | 324K  | 440K  | 525K  | 577K  | 701K  | 698K  |  
 | no dual-cs & no pittoken-hash | 54K   | 107K  | 213K  | 320K  | 433K  | 521K  | 572K  | 689K  | 680K  |
 
-% NFG-ORG-ARCH with no dual-cs and no pittoken-has is equivalent to NFD 0.7.1    
+% "NFG-ORG-ARCH with no dual-cs and no pittoken-hash" is equivalent to NFD 0.7.1.    
 % This high performance can only be achieved with many distinct traffic flows. 
 
 ## Releases   
