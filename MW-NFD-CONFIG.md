@@ -16,7 +16,7 @@ Mac OS shall be supported in the future releases.
 ## Build Options
 MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding enhancement features, such as dual-cs mode and pittoken-hash mode.
 
-###1) ./waf configure --with-dual-cs      
+### 1) ./waf configure --with-dual-cs      
      : This option can yield higher forwarding performance for Intesest and Data with no CanBePrefix flag
         by introducing exact-matching CS.
      : Use dual Content Store(CS) in LRU-policy -- an exact-matching CS using unordered-set
@@ -28,11 +28,11 @@ MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding e
      : If receiving Data has {CanBePrefix=1} in PIT token, all-matching PIT lookup is performaned,
         and it is stored in prefix-matching original CS.
 
-###2) ./waf configure --with-pittoken-hash  
+### 2) ./waf configure --with-pittoken-hash  
      : Hash of Interest name is added to the PIT token of sending Interest.
      : Receiving Data with PIT token having name hash do exact-matching PIT lookup insted of all-matching PIT lookup.
 
-###3) ./waf configure --with-nfd-org-arch   
+### 3) ./waf configure --with-nfd-org-arch   
      : Use NFD's original single-thread archtecture  (no input & forwarding worker threads)
      : This option can be used in systems with limited cpu cores such as Rasberry Pi.
 
