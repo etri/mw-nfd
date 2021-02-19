@@ -60,9 +60,9 @@ def options(opt):
                       help='face coutnering(NDN Net Packet) Mode')
     optgrp.add_option('--with-nfd-org-arch', action='store_true', default=False,
                       help='Support NFD original Arch Mode')
-    optgrp.add_option('--with-dual-cs', action='store_true', default=False,
+    optgrp.add_option('--without-dual-cs', action='store_true', default=False,
                       help='Build dual content store')
-    optgrp.add_option('--with-pittoken-hash', action='store_true', default=False,
+    optgrp.add_option('--without-pittoken-hash', action='store_true', default=False,
                       help='Build pittoken hash ')
 
 PRIVILEGE_CHECK_CODE = '''
@@ -100,8 +100,8 @@ def configure(conf):
 
     conf.env.WITH_COUNTERS = conf.options.with_counters
     conf.env.WITH_NFD_ORG_ARCH = conf.options.with_nfd_org_arch
-    conf.env.WITH_DUAL_CS = conf.options.with_dual_cs
-    conf.env.WITH_PITTOKEN_HASH = conf.options.with_pittoken_hash
+    conf.env.WITHOUT_DUAL_CS = conf.options.without_dual_cs
+    conf.env.WITHOUT_PITTOKEN_HASH = conf.options.without_pittoken_hash
 
     conf.env.WITH_OTHER_TESTS = conf.options.with_other_tests
 
@@ -155,8 +155,8 @@ def configure(conf):
     conf.define_cond('WITH_OTHER_TESTS', conf.env.WITH_OTHER_TESTS)
     conf.define_cond('ETRI_DEBUG_COUNTERS', conf.env.WITH_COUNTERS)
     conf.define_cond('ETRI_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
-    conf.define_cond('WITH_DUAL_CS', conf.env.WITH_DUAL_CS)
-    conf.define_cond('WITH_PITTOKEN_HASH', conf.env.WITH_PITTOKEN_HASH)
+    conf.define_cond('WITHOUT_DUAL_CS', conf.env.WITHOUT_DUAL_CS)
+    conf.define_cond('WITHOUT_PITTOKEN_HASH', conf.env.WITHOUT_PITTOKEN_HASH)
     conf.define('DEFAULT_CONFIG_FILE', '%s/ndn/mw-nfd.conf' % conf.env.SYSCONFDIR)
     # The config header will contain all defines that were added using conf.define()
     # or conf.define_cond().  Everything that was added directly to conf.env.DEFINES
