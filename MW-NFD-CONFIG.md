@@ -13,7 +13,7 @@ MW-NFD has been tested on the following platforms:
 
 Mac OS shall be supported in the future releases.
 
-## Build Options
+## Forwarding Enhancements
 MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding enhancement features, such as dual-cs  and pit-token-hash. 
 
 ### 1) DUAL_CS feature    
