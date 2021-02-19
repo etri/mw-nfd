@@ -14,11 +14,11 @@ MW-NFD has been tested on the following platforms:
 Mac OS shall be supported in the future releases.
 
 ## Build Options
-MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding enhancement features, such as dual-cs mode and pittoken-hash mode.
+MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding enhancement features, such as dual-cs  and pit-token-hash. 
 
-### 1) ./waf configure --with-dual-cs      
-     : This option can yield higher forwarding performance for Intesest and Data with no CanBePrefix flag
-        by introducing exact-matching CS.
+### 1) DUAL_CS feature    
+     : This feature can yield higher forwarding performance for Intesest and Data with 
+       no CanBePrefix flag by introducing exact-matching CS.
      : Use dual Content Store(CS) in LRU-policy -- an exact-matching CS using unordered-set
         for Interests with no CanBePrefix flag, and prefix-matching original CS
         using ordered-set for Interests with CanBePrefix flag.
@@ -27,22 +27,25 @@ MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding e
         and it is stored in exact-matching CS.
      : If receiving Data has {CanBePrefix=1} in PIT token, all-matching PIT lookup is performaned,
         and it is stored in prefix-matching original CS.
+     : This is enabled by default.  To disable this feature,  run `waf configure --without-dual-cs`
 
-### 2) ./waf configure --with-pittoken-hash  
+### 2) PIT_TOKEN_HASH feature   
      : Hash of Interest name is added to the PIT token of sending Interest.
      : Receiving Data with PIT token having name hash do exact-matching PIT lookup insted of all-matching PIT lookup.
+     : This is enabled by default. To disable this feature, run `waf configure --without-pittoken-hash`
 
-### 3) ./waf configure --with-nfd-org-arch   
+### 3) NFD_ORG_ARCH feature 
      : Use NFD's original single-thread archtecture  (no input & forwarding worker threads)
      : This option can be used in systems with limited cpu cores such as Rasberry Pi.
+     : This is disabled by default. To enable this feature, run `waf configure --with-nfd-org-arch`
 
-For best performance, enable --with-dual-cs and --with-pittoken-hash, even for nfd-org-orch mode.
+For best performance, use default configuration, even for nfd-org-arch mode.
 ```
-   ./waf configure --with-dual-cs --with-pittoken-hash   
+   ./waf configure    
 ```
 or   
 ```
-   ./waf configure --with-nfd-org-arch --with-dual-cs --with-pittoken-hash
+   ./waf configure --with-nfd-org-arch
 ```
 ## Commands   
 
