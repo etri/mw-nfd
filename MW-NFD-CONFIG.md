@@ -37,30 +37,32 @@ MW-NFD keeps NFD's forwarding architecture, but has some additional forwarding e
      : This option can be used in systems with limited cpu cores such as Rasberry Pi.
 
 For best performance, enable --with-dual-cs and --with-pittoken-hash, even for nfd-org-orch mode.
-
-&nbsp;&nbsp;&nbsp;    ./waf configure --with-dual-cs --with-pittoken-hash   
-
+```
+   ./waf configure --with-dual-cs --with-pittoken-hash   
+```
 or   
-
-&nbsp;&nbsp;&nbsp;    ./waf configure --with-nfd-org-arch --with-dual-cs --with-pittoken-hash
-
+```
+   ./waf configure --with-nfd-org-arch --with-dual-cs --with-pittoken-hash
+```
 ## Commands   
 
 
 The MW-NFD programs are installed in /usr/local/bin and /usr/local/etc/ndn with following command.
-
-&nbsp;&nbsp;&nbsp;    sudo ./waf install
-
-Following NFD commands are renamed but has same features:
-
-    nfd                     --> mw-nfd
-    nfd-start               --> mw-nfd-start
-    nfd-stop                --> mw-nfd-stop
-    nfd-status              --> mw-nfd-status
-    nfd-status-http-server  --> mw-nfd-status-http-server
-
-Following NFD commands are not changed : nfdc, nfd-autoreg, ndn-autoconfig, ndn-autoconfig-server  
-
+```
+   sudo ./waf install
+```
+Following NFD commands are renamed but has same features:   
+```
+   nfd                     --> mw-nfd
+   nfd-start               --> mw-nfd-start
+   nfd-stop                --> mw-nfd-stop
+   nfd-status              --> mw-nfd-status
+   nfd-status-http-server  --> mw-nfd-status-http-server
+```
+Following NFD commands are not changed :   
+``` 
+   nfdc, nfd-autoreg, ndn-autoconfig, ndn-autoconfig-server  
+```
 ## Configuration File
 
 The sample configuration file name is changed from nfd.conf.sample to mw-nfd.conf.sample,
@@ -78,12 +80,14 @@ shows better performance.
 
 Generally, the number of NUMA node is same to the number of CPU in the system. 
 Intel Xeon Scalable CPU support SNC(Sub-Numa Clustering) feature which makes single CPU to two NUMA nodes. 
-You can check the number of NUMA and cpu cores assigned to each NUMA node with "lscpu" command in Linux systems. 
-
+You can check the number of NUMA and cpu cores assigned to each NUMA node with following command in Linux systems: 
+```
+   lscpu
+```
 The numa node where a ethernet device [dev-name] is connect to can be identified with following command: 
-
-&nbsp;&nbsp;&nbsp; cat /sys/class/net/[dev-name]/device/numa_node
-
+```
+   cat /sys/class/net/[dev-name]/device/numa_node
+```
 
 
 
