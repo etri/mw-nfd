@@ -44,7 +44,7 @@ Detailed forwarding test method is described in the MW-NFD paper (ICN2020), and 
  - Interfaces between packet generator and forwarding server : two 10GE ports 
  - FIB : 10K
  - Interest stream : 10M packets with unique name, no CanBePrefix flag (Data has same name to Interest) 
- - Forwarding Throughput(packet-per-second) : the sum of Interest and Data throughput forwarding by MW-NFD
+ - Forwarding Throughput(packet-per-second) : the sum of Interest and Data throughput forwarded by MW-NFD
 
    
 | worker cores          | NFD-ORG-ARCH  | 2     | 4     | 6     | 8     | 10    | 12    | 14    | 16    |
@@ -54,6 +54,8 @@ Detailed forwarding test method is described in the MW-NFD paper (ICN2020), and 
 | no dual_cs            |   54K         | 108K  | 220K  | 324K  | 440K  | 525K  | 577K  | 701K  | 698K  |  
 | no dual-cs & no pittoken-hash | 54K   | 107K  | 213K  | 320K  | 433K  | 521K  | 572K  | 689K  | 680K  |
 
+% NFG-ORG-ARCH with no dual-cs and no pittoken-has is equivalent to NFD 0.7.1 
+% This high performance can only be achieved with many distinct traffic flows. 
 
 ## Releases   
 MW-NFD version is set to same as the base NFD & ndn-cxx version.
