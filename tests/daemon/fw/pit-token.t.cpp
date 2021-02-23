@@ -47,7 +47,11 @@ BOOST_FIXTURE_TEST_CASE(Downstream, GlobalIoTimeFixture)
   auto linkS = topo.addBareLink("S", nodeR, ndn::nfd::FACE_SCOPE_NON_LOCAL);
   topo.registerPrefix(nodeR, linkS->getForwarderFace(), "/U", 5);
   // Client --- Router --- Server
+#ifdef ETRI_NFD_ORG_ARCH
   // Client requires PIT token; Router supports PIT token; Server disallows PIT token.
+#else
+  // Client requires PIT token; Router supports PIT token; Server allows PIT token.
+#endif
 
   // C sends Interest /U/0 with PIT token A
   lp::Packet lppI0("641A pit-token=6206A0A1A2A3A4A5 payload=5010 interest=050E 0706080155080130 0A0400000001"_block);
@@ -58,10 +62,16 @@ BOOST_FIXTURE_TEST_CASE(Downstream, GlobalIoTimeFixture)
   // S should receive Interest without PIT token
   BOOST_REQUIRE_EQUAL(linkS->sentPackets.size(), 1);
   lp::Packet lppS(linkS->sentPackets.back());
+#ifdef ETRI_NFD_ORG_ARCH
   BOOST_CHECK_EQUAL(lppS.count<lp::PitTokenField>(), 0);
+#else
+  // S should receive Interest with PIT token
+  BOOST_CHECK_EQUAL(lppS.count<lp::PitTokenField>(), 1);
+#endif
 
   // S responds Data
   linkS->receivePacket(makeData("/U/0")->wireEncode());
+	// R ---> CS(lpm match) 
   advanceClocks(5_ms, 30_ms);
 
   // C should receive Data with PIT token A
@@ -76,14 +86,27 @@ BOOST_FIXTURE_TEST_CASE(Downstream, GlobalIoTimeFixture)
   linkC->receivePacket(lppI1.wireEncode());
   advanceClocks(5_ms, 30_ms);
 
+#ifdef ETRI_NFD_ORG_ARCH
   // S should not receive Interest, because the Interest is satisfied by CS
   BOOST_CHECK_EQUAL(linkS->sentPackets.size(), 1);
 
   // C should receive Data with PIT token B
   BOOST_REQUIRE_EQUAL(linkC->sentPackets.size(), 2);
+#else
+  // S should receive Interest, because the Interest is not satisfied by CS(exact match)
+  BOOST_CHECK_EQUAL(linkS->sentPackets.size(), 2);
+
+  // C should receive Data with PIT token B
+  BOOST_REQUIRE_EQUAL(linkC->sentPackets.size(), 1);
+#endif
+
   lp::Packet lppD1(linkC->sentPackets.back());
   lp::PitToken tokenD1(lppD1.get<lp::PitTokenField>());
+#ifdef ETRI_NFD_ORG_ARCH
   BOOST_CHECK(tokenD1 == tokenI1);
+#else
+  BOOST_CHECK(tokenD1 != tokenI1);
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END() // TestPitToken
