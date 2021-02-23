@@ -290,8 +290,14 @@ BOOST_AUTO_TEST_CASE(ResetTimerBeforeSatisfyInterest)
   Pit& pit = forwarder.getPit();
 
   auto interest1 = makeInterest("/A", true, 90_ms);
+#ifdef ETRI_NFD_ORG_ARCH
   auto interest2 = makeInterest("/A/0", false, 90_ms);
+#else
+	// dual-cs mode using CanBePrefix flag for lpm/exact match
+  auto interest2 = makeInterest("/A/0", true, 90_ms);
+#endif
   auto data = makeData("/A/0");
+
 
   face1->receiveInterest(*interest1, 0);
   face2->receiveInterest(*interest2, 0);
@@ -342,7 +348,11 @@ BOOST_AUTO_TEST_CASE(ResetTimerAfterReceiveData)
 
   Pit& pit = forwarder.getPit();
 
+#ifdef ETRI_NFD_ORG_ARCH
   auto interest = makeInterest("/A/0", false, 90_ms);
+#else
+  auto interest = makeInterest("/A/0", true, 90_ms);
+#endif
   auto data = makeData("/A/0");
 
   face1->receiveInterest(*interest, 0);
@@ -391,7 +401,11 @@ BOOST_AUTO_TEST_CASE(ReceiveNackAfterResetTimer)
 
   Pit& pit = forwarder.getPit();
 
+#ifdef ETRI_NFD_ORG_ARCH
   auto interest = makeInterest("/A/0", false, 90_ms, 562);
+#else
+  auto interest = makeInterest("/A/0", true, 90_ms, 562);
+#endif
   lp::Nack nack = makeNack(*interest, lp::NackReason::CONGESTION);
 
   face1->receiveInterest(*interest, 0);
