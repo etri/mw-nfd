@@ -218,6 +218,20 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
     interest.setTag(make_shared<lp::IncomingFaceIdTag>(ingress.face.getId()));
     ++m_counters.nInInterests;
 
+// added by modori(20210223)
+
+  // drop if HopLimit zero, decrement otherwise (if present)
+  if (interest.getHopLimit()) {
+    if (*interest.getHopLimit() < 1) {
+      NFD_LOG_DEBUG("onIncomingInterest in=" << ingress << " interest=" << interest.getName()
+                    << " hop-limit=0");
+      ++const_cast<PacketCounter&>(ingress.face.getCounters().nInHopLimitZero);
+      return;
+    }
+
+    const_cast<Interest&>(interest).setHopLimit(*interest.getHopLimit() - 1);
+  }
+
     // /localhost scope control
     bool isViolatingLocalhost = ingress.face.getScope() == ndn::nfd::FACE_SCOPE_NON_LOCAL &&
         scope_prefix::LOCALHOST.isPrefixOf(interest.getName());
