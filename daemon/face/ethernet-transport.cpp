@@ -272,12 +272,10 @@ void EthernetTransport::handleRead(const boost::system::error_code& error)
             NFD_LOG_FACE_WARN(err);
         } else {
 
-            // modified by ETRI(modori) 
             pkt += ethernet::HDR_LEN;
             len -= ethernet::HDR_LEN;
             std::tie(packetType, worker) = dissectNdnPacket(pkt, len);
 
-            //std::cout << "face: " << getFace()->getId() << ", packetType: " << packetType << ", worker: " << worker << std::endl;
             int32_t m_iwId = getGlobalIwId();
 
             if(packetType>=0 and m_iwId >=0){
@@ -299,7 +297,8 @@ void EthernetTransport::handleRead(const boost::system::error_code& error)
                     ret = nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
                 }   
 
-                ++nInPackets;
+				++this->nInPackets;
+				this->nInBytes += len;
 
 #ifdef ETRI_DEBUG_COUNTERS
                 if(ret==false) 

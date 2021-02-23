@@ -32,6 +32,7 @@
 #include "mw-nfd/mw-nfd-global.hpp"
 
 #include <array>
+#include <iostream>
 
 namespace nfd {
 namespace face {
@@ -142,7 +143,6 @@ template<class T, class U>
 void
 DatagramTransport<T, U>::doClose()
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   if (m_socket.is_open()) {
     // Cancel all outstanding operations and close the socket.
@@ -161,7 +161,10 @@ DatagramTransport<T, U>::doClose()
     this->setState(TransportState::CLOSED);
   });
 #else
+  //  this->setState(TransportState::CLOSED);
+  getGlobalIoService(m_iwId)->post([this] {
     this->setState(TransportState::CLOSED);
+  });
 #endif
 }
 
@@ -169,7 +172,6 @@ template<class T, class U>
 void
 DatagramTransport<T, U>::doSend(const Block& packet)
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   m_socket.async_send(boost::asio::buffer(packet),
                       // 'packet' is copied into the lambda to retain the underlying Buffer
@@ -189,7 +191,6 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
         return processErrorCode(error);
 
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
-
 
     bool isOk = false;
     Block element;
@@ -225,6 +226,21 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
 
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
 
+    bool isOk = false;
+    Block element;
+    std::tie(isOk, element) = Block::fromBuffer(buffer, nBytesReceived);
+    if (!isOk) {
+        NFD_LOG_FACE_WARN("Failed to parse incoming packet from " << m_sender);
+        // This packet won't extend the face lifetime
+        return;
+    }
+    if (element.size() != nBytesReceived) {
+        NFD_LOG_FACE_WARN("Received datagram size and decoded element size don't match");
+        // This packet won't extend the face lifetime
+        return;
+    }
+//    m_hasRecentlyReceived = true;
+
     int32_t packetType;
     int32_t worker;
     bool ret __attribute__((unused))=false;
@@ -248,7 +264,11 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
         if(ret==false){
         //    this->enqMiss();
         }
+
     }
+
+ 	++this->nInPackets;
+	this->nInBytes += nBytesReceived;
 
     m_hasRecentlyReceived = true;
 }
@@ -261,8 +281,7 @@ DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, s
 
 #ifndef ETRI_NFD_ORG_ARCH
 	if(error){
-#ifdef __linux__
-#endif
+		if(getPersistency() != ndn::nfd::FACE_PERSISTENCY_PERMANENT)
 		return;
 	}
 #endif
@@ -290,7 +309,6 @@ template<class T, class U>
 void
 DatagramTransport<T, U>::processErrorCode(const boost::system::error_code& error)
 {
-  NFD_LOG_FACE_TRACE(__func__);
 
   if (getState() == TransportState::CLOSING ||
       getState() == TransportState::FAILED ||

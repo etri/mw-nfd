@@ -91,7 +91,7 @@ WebSocketTransport::doSend(const Block& packet)
   NFD_LOG_FACE_TRACE("Successfully sent: " << packet.size() << " bytes");
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
+#if defined(ETRI_NFD_ORG_ARCH)
 void
 WebSocketTransport::receiveMessage(const std::string& msg)
 {
@@ -123,6 +123,9 @@ WebSocketTransport::receiveMessage(const std::string& msg)
     NFD_LOG_FACE_WARN("Failed to parse message payload");
     return;
   }
+
+	++this->nInPackets;
+    this->nInBytes += msg.size();
 
 #if 0
   int32_t packetType;

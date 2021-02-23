@@ -351,8 +351,8 @@ UdpFactory::createMulticastFace(const shared_ptr<const net::NetworkInterface>& n
 	shared_ptr<Face> face;
 
   try{
+
 #ifdef ETRI_NFD_ORG_ARCH
-	  // modified by ETRI(modori)
 	  ip::udp::socket rxSock(getGlobalIoService());
 	  MulticastUdpTransport::openRxSocket(rxSock, mcastEp, localAddress, netif);
 	  ip::udp::socket txSock(getGlobalIoService());
@@ -374,7 +374,6 @@ UdpFactory::createMulticastFace(const shared_ptr<const net::NetworkInterface>& n
 	  //auto face = make_shared<Face>(std::move(linkService), std::move(transport));
 	  face = make_shared<Face>(std::move(linkService), std::move(transport));
   }catch(const std::exception& e) {
-		//std::cout << "Exceptions Error Modori" << std::endl;
 		return nullptr;
   }
 

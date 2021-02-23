@@ -252,7 +252,7 @@ StreamTransport<T>::startReceive()
                          [this] (auto&&... args) { this->handleReceive(std::forward<decltype(args)>(args)...); });
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
+#if defined(ETRI_NFD_ORG_ARCH)
 template<class T> void
 StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
@@ -311,7 +311,7 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
     if (error)
         return processErrorCode(error);
 
-    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes");
+    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes:" << m_receiveBufferSize);
 
     m_receiveBufferSize += nBytesReceived;
 
@@ -321,7 +321,9 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
         Block element;
         std::tie(isOk, element) = Block::fromBuffer(m_receiveBuffer + offset, m_receiveBufferSize - offset);
 
-        if (!isOk) break;
+        if (!isOk) {
+			break;
+		}
 
         offset += element.size();
         BOOST_ASSERT(offset <= m_receiveBufferSize);
@@ -350,6 +352,9 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
                 //if(ret==false) this->enqMiss();
             }
 		}
+
+		++this->nInPackets;
+		this->nInBytes += element.size();
     }
 
     if (!isOk && m_receiveBufferSize == ndn::MAX_NDN_PACKET_SIZE && offset == 0) {
