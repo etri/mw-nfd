@@ -97,7 +97,11 @@ ForwarderGeneralModule::formatItemXml(std::ostream& os, const ForwarderStatus& i
 void
 ForwarderGeneralModule::formatStatusText(std::ostream& os) const
 {
+#if defined(WITH_TESTS) || !defined(ETRI_DUAL_CS)
+  os << "General NFD status:\n";
+#else
   os << "General MW-NFD status:\n";
+#endif
   ndn::util::IndentedStream indented(os, "  ");
   formatItemText(indented, m_status);
 }
@@ -116,11 +120,11 @@ ForwarderGeneralModule::formatItemText(std::ostream& os, const ForwarderStatus& 
      << ia("nFibEntries") << item.getNFibEntries()
      << ia("nPitEntries") << item.getNPitEntries()
      << ia("nMeasurementsEntries") << item.getNMeasurementsEntries()
-#ifdef ETRI_DUAL_CS
+#if defined(WITH_TESTS) || !defined(ETRI_DUAL_CS)
+     << ia("nCsEntries") << item.getNCsEntries();
+#else
      << ia("nExactMatching-CsEntries") << item.getNCsEntries()
      << ia("nPrefixMatching-CsEntries") << item.getNCsEntries();
-#else
-     << ia("nCsEntries") << item.getNCsEntries();
 #endif
 
   os << ia("nInInterests") << item.getNInInterests()
