@@ -216,11 +216,12 @@ void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
         const boost::system::error_code& error)
 {
-	if( nBytesReceived == 0 ){
-		return ;
+	if( error ){
+        return processErrorCode(error);
 	}
 
-    if (error){
+	if( nBytesReceived == 0 ){
+std::cout << "nBytesReceived:: error" << std::endl;
         return processErrorCode(error);
 	}
 
@@ -282,7 +283,7 @@ DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, s
 #ifndef ETRI_NFD_ORG_ARCH
 	if(error){
 		if(getPersistency() != ndn::nfd::FACE_PERSISTENCY_PERMANENT)
-		return;
+    		return processErrorCode(error);
 	}
 #endif
 

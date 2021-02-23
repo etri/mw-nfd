@@ -196,7 +196,6 @@ Strategy::onDroppedInterest(const Face& egress, const Interest& interest)
   NFD_LOG_DEBUG("onDroppedInterest out=" << egress.getId() << " name=" << interest.getName());
 }
 
-    //added by ETRI(modori) 20200602
 #ifdef ETRI_NFD_ORG_ARCH
 pit::OutRecord*
 Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
