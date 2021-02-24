@@ -55,8 +55,6 @@ public:
     std::ofstream clientConf((testHome / ".ndn" / "client.conf").c_str());
     clientConf << "pib=pib-sqlite3" << std::endl
                << "tpm=tpm-file" << std::endl;
-
-		ndn::util::Logging::setLevel("*", ndn::util::LogLevel::ALL);
   }
 
   ~GlobalConfiguration() noexcept
