@@ -81,6 +81,22 @@ ForwarderStatusManager::collectGeneralStatus()
   uint64_t __attribute__((unused)) inData[16]={0,};
   uint64_t __attribute__((unused)) outData[16]={0,};
 
+  nNameTree+=m_forwarder.getNameTree().size();
+  nFib += m_forwarder.getFib().size();
+  nPit += m_forwarder.getPit().size();
+  nM +=  m_forwarder.getMeasurements().size();
+  nCs +=m_forwarder.getCs().size();
+
+  const ForwarderCounters& counters = m_forwarder.getCounters();
+  nInInterests+=(counters.nInInterests);
+        nOutInterests +=(counters.nOutInterests);
+        nInData +=(counters.nInData);
+        nOutData += (counters.nOutData);
+        nInNacks += (counters.nInNacks);
+        nOutNacks += (counters.nOutNacks);
+        nSatisfiedInterests += (counters.nSatisfiedInterests);
+        nUnsatisfiedInterests +=(counters.nUnsatisfiedInterests);
+
   for(int32_t i=0;i<workers;i++){
 
       auto worker = getMwNfd(i);

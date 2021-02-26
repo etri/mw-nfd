@@ -53,29 +53,43 @@ StrategyChoiceManager::StrategyChoiceManager(StrategyChoice& strategyChoice,
 #ifndef ETRI_NFD_ORG_ARCH
 void
 StrategyChoiceManager::setStrategy(ControlParameters parameters,
-                                   const ndn::mgmt::CommandContinuation& done)
+		const ndn::mgmt::CommandContinuation& done)
 {
-  const Name& prefix = parameters.getName();
-  const Name& strategy = parameters.getStrategy();
+	const Name& prefix = parameters.getName();
+	const Name& strategy = parameters.getStrategy();
 
-  // added by ETRI(modori) on 20200914
-  auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  //emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, nullptr, pa, false);
-  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
+	// added by ETRI(modori) on 20200914
+	auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
+	//emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, nullptr, pa, false);
+	emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
 
-  NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
-  bool hasEntry = false;
-  Name instanceName;
-    auto worker = getMwNfd(0);
-      if(worker==nullptr)
-          return done(ControlResponse(501, "InternalError"));
+	NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
+	bool hasEntry = false;
+	Name instanceName;
+	auto worker = getMwNfd(0);
+	if(worker==nullptr){
+		StrategyChoice::InsertResult res = m_table.insert(prefix, strategy);
+		if (!res) {
+			NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): cannot-create " << res);
+			return done(ControlResponse(res.getStatusCode(), boost::lexical_cast<std::string>(res)));
+		}
 
-  std::tie(hasEntry, instanceName) = worker->getStrategyChoiceTable().get(prefix);
+		NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
+		bool hasEntry = false;
+		Name instanceName;
+		std::tie(hasEntry, instanceName) = m_table.get(prefix);
+		BOOST_ASSERT_MSG(hasEntry, "StrategyChoice entry must exist after StrategyChoice::insert");
+		parameters.setStrategy(instanceName);
+		return done(ControlResponse(200, "OK").setBody(parameters.wireEncode()));
 
-  BOOST_ASSERT_MSG(hasEntry, "StrategyChoice entry must exist after StrategyChoice::insert");
-  parameters.setStrategy(instanceName);
+	}else{
+		std::tie(hasEntry, instanceName) = worker->getStrategyChoiceTable().get(prefix);
 
-  return done(ControlResponse(200, "OK").setBody(parameters.wireEncode()));
+		BOOST_ASSERT_MSG(hasEntry, "StrategyChoice entry must exist after StrategyChoice::insert");
+		parameters.setStrategy(instanceName);
+
+		return done(ControlResponse(200, "OK").setBody(parameters.wireEncode()));
+	}
 }
 
 #else
@@ -111,13 +125,10 @@ StrategyChoiceManager::unsetStrategy(ControlParameters parameters,
   const Name& prefix = parameters.getName();
   // no need to test for ndn:/ , parameter validation takes care of that
 
-#ifndef ETRI_NFD_ORG_ARCH
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  //emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_UNSET, nullptr, pa, false);
   emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
-#else
-    m_table.erase(parameters.getName());
-#endif
+
+  m_table.erase(parameters.getName());
 
   NFD_LOG_DEBUG("strategy-choice/unset(" << prefix << "): OK");
   done(ControlResponse(200, "OK").setBody(parameters.wireEncode()));
@@ -127,22 +138,22 @@ void
 StrategyChoiceManager::listChoices(ndn::mgmt::StatusDatasetContext& context)
 {
 
-#ifndef ETRI_NFD_ORG_ARCH
-      auto worker = getMwNfd(0);
+  auto worker = getMwNfd(0);
+if(worker!=nullptr){
   for (const auto& i : worker->getStrategyChoiceTable()) {
     ndn::nfd::StrategyChoice entry;
     entry.setName(i.getPrefix())
          .setStrategy(i.getStrategyInstanceName());
     context.append(entry.wireEncode());
   }
-#else
+}
+
   for (const auto& i : m_table) {
     ndn::nfd::StrategyChoice entry;
     entry.setName(i.getPrefix())
          .setStrategy(i.getStrategyInstanceName());
     context.append(entry.wireEncode());
   }
-#endif
 
   context.end();
 }

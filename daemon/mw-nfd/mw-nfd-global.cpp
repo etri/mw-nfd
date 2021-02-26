@@ -178,8 +178,6 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
 		setCommandRx(i, false);
 	}
 
-	params.reset();
-
 	if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)
 		return retval;
 

@@ -29,7 +29,7 @@
 #include "mw-nfd/mw-nfd-global.hpp"
 
 #include <ndn-cxx/mgmt/nfd/cs-info.hpp>
-
+#include <iostream>
 namespace nfd {
 
 constexpr size_t CsManager::ERASE_LIMIT;
@@ -53,38 +53,41 @@ void
 CsManager::changeConfig(const ControlParameters& parameters,
                         const ndn::mgmt::CommandContinuation& done)
 {
-  using ndn::nfd::CsFlagBit;
+	using ndn::nfd::CsFlagBit;
 
-  int32_t workers = getForwardingWorkers();
-  for(int32_t i=0;i<workers;i++){
-      auto worker = getMwNfd(i);
-      if(worker==nullptr)
-          continue;
-      if (parameters.hasCapacity()) {
-          worker->getCsTable().setLimit(parameters.getCapacity());
-      }
+	int32_t workers = getForwardingWorkers();
+	for(int32_t i=0;i<workers;i++){
+		auto worker = getMwNfd(i);
+		if(worker==nullptr) continue;
+		if (parameters.hasCapacity()) {
+			worker->getCsTable().setLimit(parameters.getCapacity()/getForwardingWorkers());
+		}
 
-      if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
-          worker->getCsTable().enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
-      }
+		if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
+			worker->getCsTable().enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
+		}
 
-      if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
-          worker->getCsTable().enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
-      }
+		if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
+			worker->getCsTable().enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
+		}
+	}
 
-  }
+	// for mgmt
+    if (parameters.hasCapacity()) {
+        m_cs.setLimit(parameters.getCapacity());
+    }
+    if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
+        m_cs.enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
+    }
+    if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
+        m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
+    }
 
-  ControlParameters body;
-
-  auto worker = getMwNfd(0);
-  if(worker==nullptr){
-    done(ControlResponse(501, "InternalError").setBody(body.wireEncode()));
-  }
-
-  body.setCapacity(worker->getCsTable().getLimit());
-  body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, worker->getCsTable().shouldAdmit(), false);
-  body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, worker->getCsTable().shouldServe(), false);
-  done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+	ControlParameters body;
+	body.setCapacity( m_cs.getLimit() );
+    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, m_cs.shouldAdmit(), false);
+    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, m_cs.shouldServe(), false);
+	done(ControlResponse(200, "OK").setBody(body.wireEncode()));
 }
 #else
 
@@ -119,17 +122,38 @@ void
 CsManager::erase(const ControlParameters& parameters,
                  const ndn::mgmt::CommandContinuation& done)
 {
-  ControlParameters body;
-  body.setName(parameters.getName());
+  //ControlParameters body;
 
 // added by ETRI(modori) on 20200914
   size_t nTotalErased = 0;
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  //nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, nullptr, pa, false);
   nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
 
-  body.setCount(nTotalErased);
-  done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+	size_t count = parameters.hasCount() ?
+		parameters.getCount() :
+		std::numeric_limits<size_t>::max();
+	m_cs.erase(parameters.getName(), std::min(count, ERASE_LIMIT),
+			[=, &nTotalErased] (size_t nErased) {
+			ControlParameters body;
+			body.setName(parameters.getName());
+			nTotalErased += nErased;
+
+			body.setCount(nTotalErased);
+
+			if (nErased == ERASE_LIMIT && count > ERASE_LIMIT) {
+			m_cs.find(Interest(parameters.getName()).setCanBePrefix(true),
+					[=] (const Interest&, const Data&) mutable {
+					body.setCapacity(ERASE_LIMIT);
+					done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+					},
+					[=] (const Interest&) {
+					done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+					});
+			}
+			else {
+			done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+			}
+			});
 
 }
 
@@ -139,28 +163,28 @@ CsManager::erase(const ControlParameters& parameters,
 CsManager::erase(const ControlParameters& parameters,
         const ndn::mgmt::CommandContinuation& done)
 {
-    size_t count = parameters.hasCount() ?
-        parameters.getCount() :
-        std::numeric_limits<size_t>::max();
-    m_cs.erase(parameters.getName(), std::min(count, ERASE_LIMIT),
-            [=] (size_t nErased) {
-            ControlParameters body;
-            body.setName(parameters.getName());
-            body.setCount(nErased);
-            if (nErased == ERASE_LIMIT && count > ERASE_LIMIT) {
-            m_cs.find(Interest(parameters.getName()).setCanBePrefix(true),
-                    [=] (const Interest&, const Data&) mutable {
-                    body.setCapacity(ERASE_LIMIT);
-                    done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-                    },
-                    [=] (const Interest&) {
-                    done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-                    });
-            }
-            else {
-            done(ControlResponse(200, "OK").setBody(body.wireEncode()));
-            }
-            });
+	size_t count = parameters.hasCount() ?
+		parameters.getCount() :
+		std::numeric_limits<size_t>::max();
+	m_cs.erase(parameters.getName(), std::min(count, ERASE_LIMIT),
+			[=] (size_t nErased) {
+			ControlParameters body;
+			body.setName(parameters.getName());
+			body.setCount(nErased);
+			if (nErased == ERASE_LIMIT && count > ERASE_LIMIT) {
+			m_cs.find(Interest(parameters.getName()).setCanBePrefix(true),
+					[=] (const Interest&, const Data&) mutable {
+					body.setCapacity(ERASE_LIMIT);
+					done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+					},
+					[=] (const Interest&) {
+					done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+					});
+			}
+			else {
+			done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+			}
+			});
 }
 
 #endif
@@ -178,6 +202,7 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
   size_t NMisses = 0;
   size_t NCapa = 0;
   //info.setCapacity(m_cs.getLimit());
+	NCapa += m_cs.getLimit();
   info.setEnableAdmit(m_cs.shouldAdmit());
   info.setEnableServe(m_cs.shouldServe());
 
@@ -189,6 +214,11 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
       NMisses += worker->getCountersInfo().nCsMisses;
 
   }
+
+    NEntries += m_cs.size();
+    NHits += m_fwCounters.nCsHits;
+    NMisses += m_fwCounters.nCsMisses;
+
     info.setNEntries(NEntries);
     info.setNHits(NHits);
     info.setNMisses(NMisses);
