@@ -31,6 +31,7 @@
 
 #include <ndn-cxx/mgmt/nfd/strategy-choice.hpp>
 
+
 namespace nfd {
 namespace tests {
 
@@ -238,6 +239,7 @@ BOOST_AUTO_TEST_CASE(StrategyChoiceDataset)
   for (const auto& pair : expected) {
     BOOST_ERROR("record for " << pair.first << " is missing");
   }
+
 }
 
 BOOST_AUTO_TEST_SUITE_END() // TestStrategyChoiceManager

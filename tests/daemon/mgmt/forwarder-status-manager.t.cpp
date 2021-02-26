@@ -98,7 +98,9 @@ BOOST_AUTO_TEST_CASE(GeneralStatusDataset)
   // Interest/Data toward ForwarderStatusManager don't go through Forwarder,
   // so request and response won't affect table size
   BOOST_CHECK_EQUAL(status.getNNameTreeEntries(), m_forwarder.getNameTree().size());
+#ifdef ETRI_NFD_ORG_ARCH
   BOOST_CHECK_EQUAL(status.getNFibEntries(), m_forwarder.getFib().size());
+#endif
   BOOST_CHECK_EQUAL(status.getNPitEntries(), m_forwarder.getPit().size());
   BOOST_CHECK_EQUAL(status.getNMeasurementsEntries(), m_forwarder.getMeasurements().size());
   BOOST_CHECK_EQUAL(status.getNCsEntries(), m_forwarder.getCs().size());

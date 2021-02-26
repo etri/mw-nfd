@@ -78,12 +78,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveNormal, T, DatagramTransportFixtures, T)
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInPackets, 2);
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, pkt1.size() + pkt2.size());
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
-
+#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_REQUIRE_EQUAL(this->receivedPackets->size(), 2);
   BOOST_CHECK(this->receivedPackets->at(0).packet == pkt1);
   BOOST_CHECK(this->receivedPackets->at(1).packet == pkt2);
   BOOST_CHECK_EQUAL(this->receivedPackets->at(0).endpoint,
                     this->receivedPackets->at(1).endpoint);
+#endif
 }
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveIncomplete, T, DatagramTransportFixtures, T)
@@ -94,7 +95,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveIncomplete, T, DatagramTransportFixtures
 
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInPackets, 0);
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, 0);
+#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_CHECK_EQUAL(this->receivedPackets->size(), 0);
+#endif
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 }
 
@@ -112,7 +115,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveTrailingGarbage, T, DatagramTransportFix
 
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInPackets, 0);
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, 0);
+#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_CHECK_EQUAL(this->receivedPackets->size(), 0);
+#endif
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 }
 
@@ -133,14 +138,18 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveTooLarge, T, DatagramTransportFixtures, 
 
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInPackets, 1);
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, buf1.size());
+#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_CHECK_EQUAL(this->receivedPackets->size(), 1);
+#endif
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 
   this->remoteWrite(buf2, false); // this should fail
 
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInPackets, 1);
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, buf1.size());
+#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_CHECK_EQUAL(this->receivedPackets->size(), 1);
+#endif
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 }
 

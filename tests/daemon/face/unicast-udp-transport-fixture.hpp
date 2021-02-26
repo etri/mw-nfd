@@ -33,6 +33,8 @@
 #include "tests/daemon/limited-io.hpp"
 #include "tests/daemon/face/dummy-link-service.hpp"
 
+#include <iostream>
+
 namespace nfd {
 namespace face {
 namespace tests {
@@ -55,6 +57,7 @@ protected:
   initialize(ip::address address,
              ndn::nfd::FacePersistency persistency = ndn::nfd::FACE_PERSISTENCY_PERSISTENT)
   {
+
     udp::socket sock(g_io);
     sock.connect(udp::endpoint(address, 7070));
     localEp = sock.local_endpoint();

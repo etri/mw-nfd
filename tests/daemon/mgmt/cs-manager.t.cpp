@@ -58,6 +58,7 @@ BOOST_AUTO_TEST_CASE(Config)
   using ndn::nfd::CsFlagBit;
   const Name cmdPrefix("/localhost/nfd/cs/config");
 
+
   // setup initial CS config
   m_cs.setLimit(22129);
   m_cs.enableAdmit(false);
@@ -75,7 +76,6 @@ BOOST_AUTO_TEST_CASE(Config)
   BOOST_CHECK_EQUAL(checkResponse(0, req.getName(),
                                   ControlResponse(200, "OK").setBody(body.wireEncode())),
                     CheckResponseResult::OK);
-
   // send filled cs/config command
   ControlParameters parameters;
   parameters.setCapacity(18609);
@@ -196,6 +196,7 @@ BOOST_AUTO_TEST_CASE(Erase)
 
   // one Data each under /A, /G, /H remain, all other Data are erased
   BOOST_CHECK_EQUAL(m_cs.size(), 3);
+
 }
 
 BOOST_AUTO_TEST_CASE(Info)

@@ -24,6 +24,7 @@
  */
 
 #include "dummy-link-service.hpp"
+#include <iostream>
 
 namespace nfd {
 namespace face {

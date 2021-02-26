@@ -163,11 +163,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveNormal, T, WebSocketTransportFixtures, T
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, pkt1.size() + pkt2.size());
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 
+#ifdef ETRI_NFD_ORG_ARCH
   BOOST_REQUIRE_EQUAL(this->serverReceivedPackets->size(), 2);
   BOOST_CHECK(this->serverReceivedPackets->at(0).packet == pkt1);
   BOOST_CHECK(this->serverReceivedPackets->at(1).packet == pkt2);
   BOOST_CHECK_EQUAL(this->serverReceivedPackets->at(0).endpoint, 0);
   BOOST_CHECK_EQUAL(this->serverReceivedPackets->at(1).endpoint, 0);
+#endif
 }
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveMalformed, T, WebSocketTransportFixtures, T)
@@ -182,7 +184,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveMalformed, T, WebSocketTransportFixtures
 
   // bad packet is dropped
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
+#ifdef ETRI_NFD_ORG_ARCH
   BOOST_CHECK_EQUAL(this->serverReceivedPackets->size(), 0);
+#endif
 
   auto pkt2 = ndn::encoding::makeStringBlock(301, "world!");
   this->client.send(this->clientHdl, pkt2.wire(), pkt2.size(), websocketpp::frame::opcode::binary);
@@ -191,8 +195,10 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveMalformed, T, WebSocketTransportFixtures
 
   // next valid packet is still received normally
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
+#ifdef ETRI_NFD_ORG_ARCH
   BOOST_REQUIRE_EQUAL(this->serverReceivedPackets->size(), 1);
   BOOST_CHECK(this->serverReceivedPackets->at(0).packet == pkt2);
+#endif
 }
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(Close, T, WebSocketTransportFixtures, T)

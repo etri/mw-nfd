@@ -37,6 +37,8 @@
 #include <boost/test/output_test_stream.hpp>
 #endif
 
+#include <iostream>
+
 namespace nfd {
 namespace tools {
 namespace nfdc {
@@ -60,7 +62,6 @@ protected:
     CommandArguments ca;
     ExecuteCommand execute;
     std::tie(noun, verb, ca, execute) = parser.parse(args, ParseMode::ONE_SHOT);
-
     Controller controller(face, m_keyChain);
     ExecuteContext ctx{noun, verb, ca, 0, out, err, face, m_keyChain, controller};
     execute(ctx);

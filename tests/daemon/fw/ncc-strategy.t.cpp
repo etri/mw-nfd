@@ -399,6 +399,8 @@ BOOST_AUTO_TEST_CASE(PredictionAdjustment) // Bug 3411
       break;
     }
   }
+//added by ETRI(modori) 20210226
+// occured error on NFD-0.7.1 when testing : ./build/unit-tests-daemon -t Fw/TestNccStrategy
   BOOST_CHECK_MESSAGE(isNewBestChosen, "new best face is not found in 50000ms"); // expected failure
 }
 

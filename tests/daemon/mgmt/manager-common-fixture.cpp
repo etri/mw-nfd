@@ -27,6 +27,8 @@
 
 #include <ndn-cxx/security/signing-helpers.hpp>
 
+#include <iostream>
+
 namespace nfd {
 namespace tests {
 

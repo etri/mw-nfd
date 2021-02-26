@@ -28,6 +28,7 @@
 #include "execute-command-fixture.hpp"
 #include "status-fixture.hpp"
 
+
 namespace nfd {
 namespace tools {
 namespace nfdc {

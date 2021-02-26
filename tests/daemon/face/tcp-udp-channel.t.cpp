@@ -144,7 +144,6 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(FaceClosure, T, FixtureAndAddressList, T::Fixtu
   this->clientFaces.at(0)->close();
 
   BOOST_CHECK_EQUAL(this->limitedIo.run(2, 5_s), LimitedIo::EXCEED_OPS);
-
   BOOST_CHECK_EQUAL(this->listenerChannel->size(), 0);
   BOOST_CHECK_EQUAL(clientChannel->size(), 0);
 }
