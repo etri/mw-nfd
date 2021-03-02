@@ -161,7 +161,6 @@ DatagramTransport<T, U>::doClose()
     this->setState(TransportState::CLOSED);
   });
 #else
-  //  this->setState(TransportState::CLOSED);
   getGlobalIoService(m_iwId)->post([this] {
     this->setState(TransportState::CLOSED);
   });
@@ -181,7 +180,6 @@ DatagramTransport<T, U>::doSend(const Block& packet)
 }
 
 
-#ifdef ETRI_NFD_ORG_ARCH
 template<class T, class U>
 void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
@@ -209,72 +207,6 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
 
     this->receive(element, makeEndpointId(m_sender));
 }
-
-#else
-template<class T, class U>
-void
-DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
-        const boost::system::error_code& error)
-{
-	if( error ){
-        return processErrorCode(error);
-	}
-
-	if( nBytesReceived == 0 ){
-std::cout << "nBytesReceived:: error" << std::endl;
-        return processErrorCode(error);
-	}
-
-    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
-
-    bool isOk = false;
-    Block element;
-    std::tie(isOk, element) = Block::fromBuffer(buffer, nBytesReceived);
-    if (!isOk) {
-        NFD_LOG_FACE_WARN("Failed to parse incoming packet from " << m_sender);
-        // This packet won't extend the face lifetime
-        return;
-    }
-    if (element.size() != nBytesReceived) {
-        NFD_LOG_FACE_WARN("Received datagram size and decoded element size don't match");
-        // This packet won't extend the face lifetime
-        return;
-    }
-//    m_hasRecentlyReceived = true;
-
-    int32_t packetType;
-    int32_t worker;
-    bool ret __attribute__((unused))=false;
-
-    std::tie(packetType, worker) = dissectNdnPacket(buffer, nBytesReceived);
-
-    if(packetType>0 and worker>=0){
-        NDN_MSG msg;
-        msg.buffer = make_shared<ndn::Buffer>(buffer, nBytesReceived);
-        msg.endpoint = makeEndpointId(m_sender);
-		if(getFace()!=nullptr)
-        msg.faceId = getFace()->getId();
-		else
-		msg.faceId = 0;
-
-        if(packetType==tlv::Interest)
-            ret=nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
-        else
-            ret=nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
-
-        if(ret==false){
-        //    this->enqMiss();
-        }
-
-    }
-
- 	++this->nInPackets;
-	this->nInBytes += nBytesReceived;
-
-    m_hasRecentlyReceived = true;
-}
-
-#endif
 
 template<class T, class U> void
 DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)

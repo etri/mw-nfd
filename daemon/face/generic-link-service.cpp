@@ -333,7 +333,6 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
 	std::tie(packetType, worker) = dissectNdnPacket( packet.wire(), packet.size() );
 
 	if(worker==DCN_LOCALHOST_PREFIX){
-		//this->receive(element);
 		try {
 			lp::Packet pkt(packet);
 

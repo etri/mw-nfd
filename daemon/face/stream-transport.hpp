@@ -252,7 +252,6 @@ StreamTransport<T>::startReceive()
                          [this] (auto&&... args) { this->handleReceive(std::forward<decltype(args)>(args)...); });
 }
 
-#if defined(ETRI_NFD_ORG_ARCH)
 template<class T> void
 StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
 {
@@ -294,89 +293,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
     startReceive();
 }
-
-#else
-
-template<class T> void
-StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t nBytesReceived)
-{
-    size_t offset = 0;
-    bool isOk = true;
-    int32_t packetType;
-    int32_t worker;
-    Block element;
-    NDN_MSG msg;
-    bool ret __attribute__((unused));
-
-    if (error)
-        return processErrorCode(error);
-
-    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes:" << m_receiveBufferSize);
-
-    m_receiveBufferSize += nBytesReceived;
-
-    while (m_receiveBufferSize - offset > 0) {
-		//print_payload(m_receiveBuffer + offset, m_receiveBufferSize - offset);
-
-        Block element;
-        std::tie(isOk, element) = Block::fromBuffer(m_receiveBuffer + offset, m_receiveBufferSize - offset);
-
-        if (!isOk) {
-			break;
-		}
-
-        offset += element.size();
-        BOOST_ASSERT(offset <= m_receiveBufferSize);
-
-        std::tie(packetType, worker) = dissectNdnPacket( element.wire(), element.size() );
-
-        if(worker==DCN_LOCALHOST_PREFIX){
-            this->receive(element);
-        }else if(packetType==lp::tlv::LpPacket and worker==DCN_LOCALHOST_PREFIX){
-            this->receive(element);
-        }else{
-
-            if(packetType>=0 and worker >=0){
-                msg.buffer = make_shared<ndn::Buffer>( element.wire(), element.size() );
-                msg.endpoint = 0;
-                msg.type = 0; // Buffer type
-				if(getFace()!=nullptr)
-                msg.faceId = getFace()->getId();
-				else msg.faceId = 0;
-
-                if(packetType==tlv::Interest)
-                    ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
-                else
-                    ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
-
-                //if(ret==false) this->enqMiss();
-            }
-		}
-
-		++this->nInPackets;
-		this->nInBytes += element.size();
-    }
-
-    if (!isOk && m_receiveBufferSize == ndn::MAX_NDN_PACKET_SIZE && offset == 0) {
-        NFD_LOG_FACE_ERROR("Failed to parse incoming packet or packet too large to process");
-        this->setState(TransportState::FAILED);
-        doClose();
-        return;
-    }
-
-    if (offset > 0) {
-        if (offset != m_receiveBufferSize) {
-            std::copy(m_receiveBuffer + offset, m_receiveBuffer + m_receiveBufferSize, m_receiveBuffer);
-            m_receiveBufferSize -= offset;
-        }
-        else {
-            m_receiveBufferSize = 0;
-        }
-    }
-
-    startReceive();
-}
-#endif
 
 template<class T>
 void

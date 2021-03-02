@@ -236,7 +236,6 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
     asyncRead();
 }
 
-#endif
 
 void
 EthernetTransport::receivePayload(const uint8_t* payload, size_t length,
