@@ -323,6 +323,75 @@ GenericLinkService::checkCongestionLevel(lp::Packet& pkt)
 void
 GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpoint)
 {
+
+#ifndef ETRI_NFD_ORG_ARCH
+	int32_t packetType;
+	int32_t worker;
+	NDN_MSG msg;
+	bool ret __attribute__((unused));
+
+	std::tie(packetType, worker) = dissectNdnPacket( packet.wire(), packet.size() );
+
+	if(worker==DCN_LOCALHOST_PREFIX){
+		//this->receive(element);
+		try {
+			lp::Packet pkt(packet);
+
+			if (m_options.reliabilityOptions.isEnabled) {
+				if (!m_reliability.processIncomingPacket(pkt)) {
+					NFD_LOG_FACE_TRACE("received duplicate fragment: DROP");
+					++this->nDuplicateSequence;
+					return;
+				}
+
+			}
+
+			if (!pkt.has<lp::FragmentField>()) {
+				NFD_LOG_FACE_TRACE("received IDLE packet: DROP");
+				return;
+			}
+
+			if ((pkt.has<lp::FragIndexField>() || pkt.has<lp::FragCountField>()) &&
+					!m_options.allowReassembly) {
+				NFD_LOG_FACE_WARN("received fragment, but reassembly disabled: DROP");
+				return;
+			}
+
+			bool isReassembled = false;
+			Block netPkt;
+			lp::Packet firstPkt;
+			std::tie(isReassembled, netPkt, firstPkt) = m_reassembler.receiveFragment(endpoint, pkt);
+
+			if(isReassembled) {
+				this->decodeNetPacket(netPkt, firstPkt, endpoint);
+			}
+
+
+		}
+		catch (const tlv::Error& e) {
+			++this->nInLpInvalid;
+			NFD_LOG_FACE_WARN("packet parse error (" << e.what() << "): DROP");
+		}
+	}else{
+
+		if(packetType>=0 and worker >=0){
+			msg.buffer = make_shared<ndn::Buffer>( packet.wire(), packet.size() );
+			msg.endpoint = 0;
+			msg.type = 0; // Buffer type
+			if(getFace()!=nullptr)
+				msg.faceId = getFace()->getId();
+			else msg.faceId = 0;
+
+			if(packetType==tlv::Interest)
+				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
+			else
+				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+
+			//if(ret==false) this->enqMiss();
+		}   
+	}  
+
+#else
     try {
         lp::Packet pkt(packet);
 
@@ -361,6 +430,7 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
         ++this->nInLpInvalid;
         NFD_LOG_FACE_WARN("packet parse error (" << e.what() << "): DROP");
     }
+#endif
 }
 
 void

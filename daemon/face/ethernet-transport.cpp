@@ -187,8 +187,6 @@ EthernetTransport::asyncRead()
 
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
-
 void
 EthernetTransport::handleRead(const boost::system::error_code& error)
 {
@@ -227,108 +225,12 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
         }
     }
 
-#ifdef _DEBUG
-    size_t nDropped = m_pcap.getNDropped();
-    if (nDropped - m_nDropped > 0)
-        NFD_LOG_FACE_DEBUG("Detected " << nDropped - m_nDropped << " dropped frame(s)");
-    m_nDropped = nDropped;
-#endif
 
-    asyncRead();
-}
-
-#else
-void EthernetTransport::handleRead(const boost::system::error_code& error)
-{
-    if (error) {
-        // boost::asio::error::operation_aborted must be checked first: in that case, the Transport
-        // may already have been destructed, therefore it's unsafe to call getState() or do logging.
-        if (error != boost::asio::error::operation_aborted &&
-                getState() != TransportState::CLOSING &&
-                getState() != TransportState::FAILED &&
-                getState() != TransportState::CLOSED) {
-            handleError("Receive operation failed: " + error.message());
-        }
-        return;
-    }
-
-    const uint8_t *pkt;
-    size_t len=0;
-    std::string err;
-    bool ret __attribute__((unused))=false;
-    int32_t packetType;
-    int32_t worker;
-
-    std::tie(pkt, len, err) = m_pcap.readNextPacket();
-
-    if (pkt == nullptr) {
-        NFD_LOG_FACE_WARN("Read error: " << err);
-    } else {
-
-        const ether_header* eh;
-        std::tie(eh, err) = ethernet::checkFrameHeader(pkt, len, m_srcAddress,
-                m_destAddress.isMulticast() ? m_destAddress : m_srcAddress);
-        if (eh == nullptr) {
-            NFD_LOG_FACE_WARN(err);
-        } else {
-
-            pkt += ethernet::HDR_LEN;
-            len -= ethernet::HDR_LEN;
-            std::tie(packetType, worker) = dissectNdnPacket(pkt, len);
-
-            int32_t m_iwId = getGlobalIwId();
-
-            if(packetType>=0 and m_iwId >=0){
-                NDN_MSG msg;
-                msg.buffer = make_shared<ndn::Buffer>(pkt, len);
-                msg.faceId = msg.type = 0;
-                if(m_destAddress.isMulticast())
-                    std::memcpy(&msg.endpoint, eh->ether_shost, 6);
-                else
-                    msg.endpoint = 0;
-
-				if(getFace()!=nullptr)
-                msg.faceId = getFace()->getId();
-
-                if(packetType==tlv::Interest){
-                    ret = nfd::g_dcnMoodyMQ[ m_iwId ][worker]->try_enqueue(msg);
-
-                } else{
-                    ret = nfd::g_dcnMoodyMQ[ m_iwId+1 ][worker]->try_enqueue(msg);
-                }   
-
-				++this->nInPackets;
-				this->nInBytes += len;
-
-#ifdef ETRI_DEBUG_COUNTERS
-                if(ret==false) 
-                    nEnqMiss[msg.face->getId()-face::FACEID_RESERVED_MAX] +=1;
-#endif
-            }
-        }
-    }
-
-
-#ifdef ETRI_NFD_ORG_ARCH
 #ifdef _DEBUG
   size_t nDropped = m_pcap.getNDropped();
   if (nDropped - m_nDropped > 0)
     NFD_LOG_FACE_DEBUG("Detected " << nDropped - m_nDropped << " dropped frame(s)");
   m_nDropped = nDropped;
-#endif
-#endif
-
-#ifdef ETRI_DEBUG_COUNTERS
-    size_t nDropped1=0, nIfDropped1=0;
-    std::make_tuple(nDropped1, nIfDropped1) = m_pcap.getNDropped();
-    //if( nDropped1 != 0 or nIfDropped1 != 0)
-     //   std::cout << "nDropped1: " << nDropped1 << ", nIfDropped1:" << nIfDropped1 << std::endl;
-    if (nDropped1 - nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0){
-        nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = nDropped1;
-    }
-    if (nIfDropped1 - nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0){
-        nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = nIfDropped1;
-    }
 #endif
 
     asyncRead();
