@@ -469,7 +469,7 @@ void MwNfd::runWorker()
     NDN_MSG items[DEQUEUE_BULK_MAX];
     int deq=0, idx;
 
-    int32_t inputWorkers = m_inputWorkers *2;
+    int32_t inputMQs = m_inputWorkers *2;
 
     //bulk_test_case_01();
 
@@ -478,14 +478,14 @@ void MwNfd::runWorker()
             handleNfdcCommand();
 		}
 
-		for(iw=0; iw < inputWorkers; iw+=2){
+		for(iw=0; iw < inputMQs; iw+=2){
 			deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
 			for(idx=0;idx<deq;idx++){
 				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
 		}
 
-		for(iw=0; iw < inputWorkers; iw+=2){
+		for(iw=0; iw < inputMQs; iw+=2){
 			deq = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
 			for(idx=0;idx<deq;idx++){
 				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);

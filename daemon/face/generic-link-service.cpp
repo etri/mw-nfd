@@ -325,12 +325,11 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
 {
 
 #ifndef ETRI_NFD_ORG_ARCH
-	int32_t packetType;
-	int32_t worker;
+	int32_t packetType=0;
+	int32_t worker=0;
 	bool isOk=false;
 	NDN_MSG msg;
 	bool ret __attribute__((unused));
-
 	std::tie(isOk, packetType, worker) = dissectNdnPacket( packet.wire(), packet.size() );
 	
 	if( !isOk ){
