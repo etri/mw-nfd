@@ -200,7 +200,7 @@ int32_t computeWorkerId(const uint8_t *wire, size_t size)
         ret=tlv::readType(pos, end, type);
         ret=tlv::readVarNumber(pos, end, length);
 
-	if( !memcmp(pos, "localhost", 9) ){
+	if( !memcmp(pos, "localhost", 9) or g_forwardingWorkers==0){
 		return DCN_LOCALHOST_PREFIX;
 	}
 
@@ -218,7 +218,7 @@ int32_t computeWorkerId(const uint8_t *wire, size_t size)
     return (hash % g_forwardingWorkers);
 }
 
-std::tuple<uint32_t, int32_t> 
+std::tuple<bool, uint32_t, int32_t> 
 dissectNdnPacket( const uint8_t *wire, size_t size  )
 {
     uint32_t type=0;
@@ -239,7 +239,12 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 
         do{   
             ret=tlv::readType(pos, end, type);  
+			if(ret==false)
+    			return std::make_tuple(false, ndn::lp::tlv::LpPacket, worker);
+
             ret=tlv::readVarNumber(pos, end, length);  
+			if(ret==false)
+    			return std::make_tuple(false, ndn::lp::tlv::LpPacket, worker);
 
             if(type == ndn::lp::tlv::FragCount){  
                 if( length == 1 )
@@ -314,7 +319,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
             worker=computeWorkerId(pos, length);  
         }  
     }
-    return std::make_tuple(packetType, worker);
+    return std::make_tuple(true, packetType, worker);
 }
 
 MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};

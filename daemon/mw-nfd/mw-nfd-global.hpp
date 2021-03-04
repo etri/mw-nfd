@@ -106,6 +106,7 @@ enum MwNfdcVerbField{
     MW_NFDC_VERB_CONFIG ,
     MW_NFDC_VERB_ERASE ,
     MW_NFDC_VERB_STATUS ,
+    MW_NFDC_VERB_CREATE ,
     MW_NFDC_VERB_DESTROYED ,
     MW_NFDC_VERB_UNBOUND 
 };
@@ -208,7 +209,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 int32_t getIfIndex(const char *addr);
 int32_t computeWorkerId( const uint8_t *wire, size_t size );
-std::tuple<uint32_t, int32_t> dissectNdnPacket( const uint8_t *wire, size_t size );
+std::tuple<bool, uint32_t, int32_t> dissectNdnPacket( const uint8_t *wire, size_t size );
 
 void setPrefixLength4Distribution(size_t);
 size_t getPrefixLength4Distribution();

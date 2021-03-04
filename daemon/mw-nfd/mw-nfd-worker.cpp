@@ -4,9 +4,9 @@
 #include <memory>
 
 #include "mw-nfd-worker.hpp"
+#include "mw-nfd-global.hpp"
 #include "common/global.hpp"
 #include "common/logger.hpp"
-#include "mw-nfd-global.hpp"
 #include "common/privilege-helper.hpp"
 #include "face/face-system.hpp"
 #include "face/internal-face.hpp"
@@ -61,6 +61,8 @@
 #include "mgmt/cs-manager.hpp"
 #include <ndn-cxx/mgmt/nfd/fib-entry.hpp>
 
+#include <iostream>
+
 nfd::face::Face *face0=nullptr;
 nfd::face::Face *face1=nullptr;
 
@@ -73,55 +75,47 @@ using namespace std;
 NFD_LOG_INIT(MwNfd);
 
 namespace nfd {
-extern shared_ptr<FaceTable> g_faceTable;
-
 
 MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, const nfd::face::GenericLinkService::Options& options, const std::string& conf)
     : m_keyChain(keyChain)
   , m_workerId(wid)
   , m_terminationSignalSet(*ios)
   , m_fibSignalSet(*ios)
-  , nInNetInvalid(0)
-  , nInInterests(1)
-  , nInDatas(1)
-  , nInNacks(0)
     ,m_done(false)
-,m_reassembler(options.reassemblerOptions)
     ,m_configFile(conf)
-    {
-        // Disable automatic verification of parameters digest for decoded Interests.
-    //    Interest::setAutoCheckParametersDigest(false);
-        m_terminationSignalSet.add(SIGINT);
-        m_terminationSignalSet.add(SIGTERM);
+	{
+		// Disable automatic verification of parameters digest for decoded Interests.
+		//    Interest::setAutoCheckParametersDigest(false);
+		m_terminationSignalSet.add(SIGINT);
+		m_terminationSignalSet.add(SIGTERM);
 
 #ifndef ETRI_NFD_ORG_ARCH
-        m_terminationSignalSet.async_wait(bind(&MwNfd::terminate, this, _1, _2));
+		m_terminationSignalSet.async_wait(bind(&MwNfd::terminate, this, _1, _2));
 #endif
-        //m_done = false;
-        m_ios = ios;
+		m_ios = ios;
 
-/*
-* It is necessary to support
-*/
-	struct sockaddr_in servaddr;
-	m_sockNfdcCmd = socket(AF_INET, SOCK_DGRAM, 0);
-	memset(&servaddr, 0, sizeof(servaddr));
-	servaddr.sin_family    = AF_INET; // IPv4 
-    servaddr.sin_addr.s_addr = INADDR_ANY; 
-    servaddr.sin_port = htons(MW_NFDC_PORT+wid); 
-	socklen_t len = sizeof servaddr;
-	if ( bind(m_sockNfdcCmd, (const struct sockaddr *)&servaddr,  len) < 0 ) 
-    { 
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-      
-        fcntl(m_sockNfdcCmd, F_SETFL, O_NONBLOCK); 
+		/*
+		 * It is necessary to support
+		 */
+		struct sockaddr_in servaddr;
+		m_sockNfdcCmd = socket(AF_INET, SOCK_DGRAM, 0);
+		memset(&servaddr, 0, sizeof(servaddr));
+		servaddr.sin_family    = AF_INET; // IPv4 
+		servaddr.sin_addr.s_addr = INADDR_ANY; 
+		servaddr.sin_port = htons(MW_NFDC_PORT+wid); 
+		socklen_t len = sizeof servaddr;
+		if ( bind(m_sockNfdcCmd, (const struct sockaddr *)&servaddr,  len) < 0 ) 
+		{ 
+			perror("mw-nfd bind failed"); 
+			exit(EXIT_FAILURE); 
+		} 
+
+		fcntl(m_sockNfdcCmd, F_SETFL, O_NONBLOCK); 
 
 		//int opt=1;
 		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
 
-    }
+	}
 
 MwNfd::~MwNfd() = default;
 
@@ -167,14 +161,13 @@ Measurements& MwNfd::getMeasurementsTable()
 */
 void MwNfd::handleNfdcCommand()
 {
-	using ndn::nfd::CsFlagBit;
 
 	struct sockaddr_un their_addr;
     char buf[MW_NFD_CMD_BUF_SIZE]={0,};
     int numbytes=-2;
     socklen_t addr_len;
 
-    mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
+    //mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
 
     addr_len = sizeof their_addr;
     numbytes = recvfrom(m_sockNfdcCmd, buf, sizeof(buf) , 0,
@@ -183,7 +176,15 @@ void MwNfd::handleNfdcCommand()
     if (numbytes <= 0) {
         return;
 	}
+	
+	processNfdcCommand(buf);
+	sendto(m_sockNfdcCmd, buf, sizeof(buf), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
+}
 
+void MwNfd::processNfdcCommand( char * cmd)
+{
+	using ndn::nfd::CsFlagBit;
+	mw_nfdc_ptr nfdc = (mw_nfdc_ptr)cmd;
 	if(nfdc->mgr == MW_NFDC_MGR_FIB){
 
 		if(nfdc->verb == MW_NFDC_VERB_ADD){
@@ -244,23 +245,48 @@ void MwNfd::handleNfdcCommand()
 		}else if(nfdc->verb == MW_NFDC_VERB_LIST){
 		}
 	}else if(nfdc->mgr == MW_NFDC_MGR_FACE){
-		if(nfdc->verb == MW_NFDC_VERB_DESTROYED){
+		if(nfdc->verb == MW_NFDC_VERB_CREATE){
+
+				FaceId faceId = nfdc->parameters->getFaceId();
+				NFD_LOG_INFO("Face Created - Face " << faceId << " on CPU " <<  sched_getcpu());
+				nfd::face::GenericLinkService::Options options;
+				auto gsl = std::make_shared<nfd::face::GenericLinkService>(options);
+			
+				gsl->afterReceiveInterest.connect(
+				[this] (const Interest& interest, const EndpointId& endpointId) {
+    				this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
+                    });		
+				gsl->afterReceiveData.connect(
+				[this] (const Data& data, const EndpointId& endpointId) {
+    				this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
+                    });		
+				gsl->afterReceiveNack.connect(
+				[this] (const lp::Nack& nack, const EndpointId& endpointId) {
+					this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
+                    });		
+
+				gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gsl)) );
+
+		}else if(nfdc->verb == MW_NFDC_VERB_DESTROYED){
 			FaceId faceId = nfdc->parameters->getFaceId();
 			Face* face1 = m_faceTable->get(faceId);
 			if(face1!=nullptr){
 				cleanupOnFaceRemoval( m_forwarder->getNameTree(), m_forwarder->getFib(), m_forwarder->getPit(), *face1);
+				NFD_LOG_INFO("Face Destroy - Face " << faceId << " on CPU " <<  sched_getcpu());
 			}else{
 #ifdef __linux__
 				NFD_LOG_INFO("Face Destroy - None Face " << faceId << " on CPU " <<  sched_getcpu());
 #endif
 			}
 
+			gls_map.erase(faceId);
 		}
 	}else if(nfdc->mgr == MW_NFDC_MGR_CS){
 		nfd::cs::Cs &cs = m_forwarder->getCs();
 		if(nfdc->verb == MW_NFDC_VERB_CONFIG){
 			if (nfdc->parameters->hasCapacity()) {
 				cs.setLimit(nfdc->parameters->getCapacity());
+				nfdc->retval = nfdc->parameters->getCapacity();
 			}
 
 			if (nfdc->parameters->hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
@@ -324,7 +350,8 @@ void MwNfd::handleNfdcCommand()
 	}
 
 response:
-	sendto(m_sockNfdcCmd, buf, sizeof(buf), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
+	//sendto(m_sockNfdcCmd, buf, sizeof(buf), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
+	return;
 }
 
 void MwNfd::terminate(const boost::system::error_code& error, int signalNo)
@@ -437,7 +464,6 @@ void MwNfd::runWorker()
 
     NDN_MSG items[DEQUEUE_BULK_MAX];
     int deq=0, idx;
-    //size_t cnt=0;
 
     int32_t inputWorkers = m_inputWorkers *2;
 
@@ -475,8 +501,8 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 		size_t faceId,
 		EndpointId endpoint)
 {
-    nfd::face::Face *face = m_faceTable->get(faceId);
-	if(face==nullptr){
+    m_face = m_faceTable->get(faceId);
+	if(m_face==nullptr){
 #ifdef __linux__
 		NFD_LOG_WARN("There is no face Entry with " << faceId << " on CPU " << sched_getcpu());
 #endif
@@ -485,197 +511,17 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 
     Block packet(buffer->data(), buffer->size()) ;
 
-    try {
-        lp::Packet pkt(packet);
+	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
 
-        if (!pkt.has<lp::FragmentField>()) {
-            NFD_LOG_INFO("received IDLE packet: DROP");
-            return;
-        }   
+	it = gls_map.find(faceId);
+	if( it == gls_map.end() ){
+		NFD_LOG_WARN("There is no LinkService Entry with " << faceId << " on CPU " << sched_getcpu());
+		return;
+	}
 
-        bool isReassembled = false;
-        Block netPkt;
-        lp::Packet firstPkt;
+	std::shared_ptr<nfd::face::GenericLinkService> mw_linkservice = it->second;
 
-        std::tie(isReassembled, netPkt, firstPkt) = m_reassembler.receiveFragment(endpoint, pkt);
-
-        if (isReassembled) {
-            try {
-                switch (netPkt.type()) {
-                    case tlv::Interest:
-                        if (firstPkt.has<lp::NackField>()) {
-                            decodeNack(netPkt, firstPkt, endpoint, face);
-                        }   
-                        else {
-                            decodeInterest(netPkt, firstPkt, endpoint, face);
-                        }   
-                        break;
-                    case tlv::Data:
-                            decodeData(netPkt, firstPkt, endpoint, face);
-                        break;
-                    default:
-                        ++this->nInNetInvalid;
-                        return;
-                }
-            } catch (const tlv::Error& e) {
-                ++this->nInNetInvalid;
-            }
-        }   
-    } catch (const tlv::Error& e) {
-        //++this->nInLpInvalid;
-        NFD_LOG_DEBUG("received LPInvalid packet: DROP");
-    }   
-}
-
-void MwNfd::decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face * face)
-{
-    auto interest = make_shared<Interest>(netPkt);
-
-    auto linkService = dynamic_cast<nfd::face::GenericLinkService*>(face->getLinkService());
-    const auto& options = linkService->getOptions();
-    if (firstPkt.has<lp::NextHopFaceIdField>()) {
-        if (options.allowLocalFields) {
-            interest->setTag(make_shared<lp::NextHopFaceIdTag>(firstPkt.get<lp::NextHopFaceIdField>()));
-        }   
-        else {
-            NFD_LOG_DEBUG("received NextHopFaceId, but local fields disabled: DROP");
-            return;
-        }   
-    }
-
-    if (firstPkt.has<lp::CachePolicyField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received CachePolicy with Interest: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::IncomingFaceIdField>()) {
-        NFD_LOG_DEBUG("received IncomingFaceId: IGNORE");
-    }
-
-    if (firstPkt.has<lp::CongestionMarkField>()) {
-        interest->setTag(make_shared<lp::CongestionMarkTag>(firstPkt.get<lp::CongestionMarkField>()));
-    }
-
-    if (firstPkt.has<lp::NonDiscoveryField>()) {
-        if (options.allowSelfLearning) {
-            interest->setTag(make_shared<lp::NonDiscoveryTag>(firstPkt.get<lp::NonDiscoveryField>()));
-        } else {
-            NFD_LOG_DEBUG("received NonDiscovery, but self-learning disabled: IGNORE");
-        }
-    }
-
-    if (firstPkt.has<lp::PrefixAnnouncementField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received PrefixAnnouncement with Interest: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::PitTokenField>()) { 
-        interest->setTag(make_shared<lp::PitToken>(firstPkt.get<lp::PitTokenField>()));
-    }
-
-    m_forwarder->onIncomingInterest(FaceEndpoint(*face, endpointId), *interest, m_workerId);
-    ++nInInterests;
-}
-
-void MwNfd::decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face * face)
-{
-
-    auto data = make_shared<Data>(netPkt);
-
-    auto linkService = dynamic_cast<nfd::face::GenericLinkService*>(face->getLinkService());
-    const auto& options = linkService->getOptions();
-
-    if (firstPkt.has<lp::NackField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received Nack with Data: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::NextHopFaceIdField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received NextHopFaceId with Data: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::CachePolicyField>()) {
-        // CachePolicy is unprivileged and does not require allowLocalFields option.  
-        // In case of an invalid CachePolicyType, get<lp::CachePolicyField> will throw,
-        // so it's unnecessary to check here.
-        data->setTag(make_shared<lp::CachePolicyTag>(firstPkt.get<lp::CachePolicyField>()));
-    }
-
-    if (firstPkt.has<lp::IncomingFaceIdField>()) {
-        NFD_LOG_DEBUG("received IncomingFaceId: IGNORE");
-    }
-
-    if (firstPkt.has<lp::CongestionMarkField>()) {
-        data->setTag(make_shared<lp::CongestionMarkTag>(firstPkt.get<lp::CongestionMarkField>()));
-    }
-
-    if (firstPkt.has<lp::NonDiscoveryField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received NonDiscovery with Data: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::PrefixAnnouncementField>()) {
-        if (options.allowSelfLearning) {
-            data->setTag(make_shared<lp::PrefixAnnouncementTag>(firstPkt.get<lp::PrefixAnnouncementField>()));
-        }   else {
-            NFD_LOG_DEBUG("received PrefixAnnouncement, but self-learning disabled: IGNORE");
-        }   
-    }
-
-    if (firstPkt.has<lp::PitTokenField>()) {
-        data->setTag(make_shared<lp::PitToken>(firstPkt.get<lp::PitTokenField>()));
-    }
-
-    m_forwarder->onIncomingData(FaceEndpoint(*face, endpointId), *data);
-
-    ++nInDatas;
-}
-
-void MwNfd::decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId endpointId, const Face *face)
-{
-    lp::Nack nack((Interest(netPkt)));
-    nack.setHeader(firstPkt.get<lp::NackField>());
-
-    if (firstPkt.has<lp::NextHopFaceIdField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received NextHopFaceId with Nack: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::CachePolicyField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received CachePolicy with Nack: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::IncomingFaceIdField>()) {
-        NFD_LOG_DEBUG("received IncomingFaceId: IGNORE");
-    }
-
-    if (firstPkt.has<lp::CongestionMarkField>()) {
-        nack.setTag(make_shared<lp::CongestionMarkTag>(firstPkt.get<lp::CongestionMarkField>()));
-    }
-
-    if (firstPkt.has<lp::NonDiscoveryField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received NonDiscovery with Nack: DROP");
-        return;
-    }
-
-    if (firstPkt.has<lp::PrefixAnnouncementField>()) {
-        ++nInNetInvalid;
-        NFD_LOG_DEBUG("received PrefixAnnouncement with Nack: DROP");
-        return;
-    }
-
-    m_forwarder->startProcessNack(FaceEndpoint(*face, endpointId), nack);
-    ++nInNacks;
+	mw_linkservice->receivePacket(packet, endpoint);
 }
 
 bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool dpdk)

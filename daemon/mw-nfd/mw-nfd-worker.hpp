@@ -43,6 +43,7 @@
 #include <string>
 #include <set>
 
+
 namespace nfd {
 
 class CommandAuthenticator;
@@ -57,6 +58,8 @@ class Face;
 class FaceSystem;
 } // namespace face
 
+extern shared_ptr<FaceTable> g_faceTable;
+
 /**
  * \brief Class representing the MW-NFD instance.
  *
@@ -65,24 +68,25 @@ class FaceSystem;
 class MwNfd : noncopyable
 {
 public:
-  ~MwNfd();
+	~MwNfd();
 
-  void initialize(uint32_t);
+	void processNfdcCommand( char * );
+	void initialize(uint32_t);
 
-  void setFaceTable(std::shared_ptr<FaceTable> faceTable)
-  {
-        m_faceTable = faceTable;
-  }
+	void setFaceTable(std::shared_ptr<FaceTable> faceTable)
+	{
+		m_faceTable = faceTable;
+	}
 
-  void handleNfdcCommand();
+	void handleNfdcCommand();
 
-  void runWorker();
+	void runWorker();
 
-  explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options, const std::string&);
+	explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options, const std::string&);
 
-    void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
-            size_t faceId, 
-            EndpointId ep);
+	void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
+			size_t faceId, EndpointId ep);
+	//void processNfdcCommand( void * );
 
 Fib& getFibTable();
 Cs& getCsTable();
@@ -103,12 +107,6 @@ private:
   void configureLogging();
 
   void initializeManagement();
-
-  void decodeInterest(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId , const Face *);
-  void decodeData(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face *);
-  void decodeNack(const Block& netPkt, const lp::Packet& firstPkt, const EndpointId, const Face*);
-
-
 private:
 void bulk_test_case_01();
 void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
@@ -140,26 +138,20 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
 
   enum { max_length = 1024 };
 
-    uint64_t nInNetInvalid;
-    uint64_t nInInterests;
-
-    uint64_t nInDatas;
-    uint64_t nInNacks;
-
+public:
+private:
     int m_face1;
     int m_face0;
-  bool m_done;
+  	bool m_done;
     uint32_t m_inputWorkers;
 
     boost::asio::io_service* m_ios;
     int m_sockNfdcCmd;
 	std::string m_bulkFibPort0;
 	std::string m_bulkFibPort1;
-
-    nfd::face::LpReassembler m_reassembler;
-
 	const std::string& m_configFile;
-
+	std::map<FaceId, std::shared_ptr<nfd::face::GenericLinkService> > gls_map;
+	nfd::face::Face *m_face;
 };
 
 } // namespace nfd

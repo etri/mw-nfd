@@ -28,7 +28,10 @@
 #include "common/logger.hpp"
 #include "face/channel.hpp"
 
+#include "mw-nfd/mw-nfd-global.hpp"
 #include <ndn-cxx/util/concepts.hpp>
+
+#include <ndn-cxx/mgmt/nfd/control-parameters.hpp>
 
 namespace nfd {
 
@@ -64,6 +67,11 @@ FaceTable::add(shared_ptr<Face> face)
   FaceId faceId = ++m_lastFaceId;
   BOOST_ASSERT(faceId > face::FACEID_RESERVED_MAX);
   this->addImpl(std::move(face), faceId);
+#ifndef ETRI_NFD_ORG_ARCH
+    ndn::nfd::ControlParameters param;
+    param.setFaceId(faceId);
+    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_CREATE, param, false); 
+#endif
   return faceId;
 }
 
@@ -108,6 +116,11 @@ FaceTable::remove(FaceId faceId)
                " remote=" << face->getRemoteUri() <<
                " local=" << face->getLocalUri());
 
+#ifndef ETRI_NFD_ORG_ARCH
+    ndn::nfd::ControlParameters param;
+    param.setFaceId(faceId);
+    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, param, false); 
+#endif
   // defer Face deallocation, so that Transport isn't deallocated during afterStateChange signal
   getGlobalIoService().post([face] {});
 }
