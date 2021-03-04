@@ -214,7 +214,7 @@ DatagramTransport<T, U>::handleReceive(const boost::system::error_code& error, s
 
 #ifndef ETRI_NFD_ORG_ARCH
 	if(error){
-		if( getForwardingWorkers() == 0 and getPersistency() != ndn::nfd::FACE_PERSISTENCY_PERMANENT)
+        if( getForwardingWorkers() > 0 )
     		return processErrorCode(error);
 	}
 #endif
