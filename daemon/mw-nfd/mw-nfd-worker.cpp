@@ -254,22 +254,22 @@ void MwNfd::processNfdcCommand( char * cmd)
 				FaceId faceId = nfdc->parameters->getFaceId();
 				NFD_LOG_INFO("Face Created - Face " << faceId << " on CPU " <<  sched_getcpu());
 				nfd::face::GenericLinkService::Options options;
-				auto gsl = std::make_shared<nfd::face::GenericLinkService>(options);
+				auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
 			
-				gsl->afterReceiveInterest.connect(
+				gls->afterReceiveInterest.connect(
 				[this] (const Interest& interest, const EndpointId& endpointId) {
     				this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
                     });		
-				gsl->afterReceiveData.connect(
+				gls->afterReceiveData.connect(
 				[this] (const Data& data, const EndpointId& endpointId) {
     				this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
                     });		
-				gsl->afterReceiveNack.connect(
+				gls->afterReceiveNack.connect(
 				[this] (const lp::Nack& nack, const EndpointId& endpointId) {
 					this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
                     });		
 
-				gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gsl)) );
+				gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
 
 		}else if(nfdc->verb == MW_NFDC_VERB_DESTROYED){
 			FaceId faceId = nfdc->parameters->getFaceId();
@@ -516,7 +516,6 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
     Block packet(buffer->data(), buffer->size()) ;
 
 	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
-
 	it = gls_map.find(faceId);
 	if( it == gls_map.end() ){
 		NFD_LOG_WARN("There is no LinkService Entry with " << faceId << " on CPU " << sched_getcpu());
@@ -678,6 +677,26 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
         //std::cout << "ForwardingWorker[" << m_workerId << "]- Bulk FIB Insertion End(Fib's Entries:"  << getFibTable().size();
 
         return true;
+}
+
+std::tuple<uint64_t,uint64_t,uint64_t> MwNfd::getLinkServiceCounters(FaceId faceId)
+{
+	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
+	it = gls_map.find(faceId);
+	if( it == gls_map.end() ){
+		NFD_LOG_WARN("There is no LinkService Entry with " << faceId << " on CPU " << sched_getcpu());
+		nfd::face::GenericLinkServiceCounters dummy;
+		return std::make_tuple(0,0,0);
+	}
+
+	std::shared_ptr<nfd::face::GenericLinkService> mw_linkservice = it->second;
+
+	const auto& counters = mw_linkservice->getCounters();
+	uint64_t II = counters.nInInterests;
+	uint64_t ID = counters.nInData;
+	uint64_t IN = counters.nInNacks;
+	return std::make_tuple(II, ID, IN);
+
 }
 
  void MwNfd::prepareBulkFibTest(std::string port0, std::string port1)

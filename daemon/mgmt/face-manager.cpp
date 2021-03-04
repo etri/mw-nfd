@@ -391,6 +391,7 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
 
   copyMtu(face, status);
 
+#ifdef ETRI_NFD_ORG_ARCH
   const auto& counters = face.getCounters();
   status.setNInInterests(counters.nInInterests)
         .setNOutInterests(counters.nOutInterests)
@@ -400,6 +401,48 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
         .setNOutNacks(counters.nOutNacks)
         .setNInBytes(counters.nInBytes)
         .setNOutBytes(counters.nOutBytes);
+#else
+	uint64_t nInInterests=0;
+	uint64_t nOutInterests=0;
+	uint64_t nInData=0;
+	uint64_t nOutData=0;
+	uint64_t nInNacks=0;
+	uint64_t nOutNacks=0;
+	uint64_t nInBytes=0;
+	uint64_t nOutBytes=0;
+
+  	const auto& counters = face.getCounters();
+
+  	nInInterests +=counters.nInInterests;
+    nOutInterests +=counters.nOutInterests;
+    nInData +=counters.nInData;
+    nOutData +=counters.nOutData;
+    nInNacks +=counters.nInNacks;
+    nOutNacks +=counters.nOutNacks;
+    nInBytes +=counters.nInBytes;
+    nOutBytes +=counters.nOutBytes;;
+
+	uint64_t nIIs=0;
+	uint64_t nIDs=0;
+	uint64_t nINs=0;
+	for(int i=0;i<getForwardingWorkers();i++){
+		auto worker = getMwNfd(i);
+		if(worker!=nullptr){
+			std::tie(nIIs, nIDs, nINs)=worker->getLinkServiceCounters(face.getId());
+			nInInterests +=nIIs;
+			nInData += nIDs;
+			nInNacks += nINs;
+		}
+	}
+  status.setNInInterests(nInInterests)
+        .setNOutInterests(nOutInterests)
+        .setNInData(nInData)
+        .setNOutData(nOutData)
+        .setNInNacks(nInNacks)
+        .setNOutNacks(nOutNacks)
+        .setNInBytes(nInBytes)
+        .setNOutBytes(nOutBytes);
+#endif
 
   return status;
 }

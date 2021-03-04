@@ -88,6 +88,8 @@ public:
 			size_t faceId, EndpointId ep);
 	//void processNfdcCommand( void * );
 
+	std::tuple<uint64_t,uint64_t,uint64_t> getLinkServiceCounters(FaceId);
+
 Fib& getFibTable();
 Cs& getCsTable();
 const ForwarderCounters &getCountersInfo();

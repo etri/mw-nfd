@@ -90,6 +90,7 @@ TcpChannel::connect(const tcp::Endpoint& remoteEndpoint,
   auto clientSocket = make_shared<ip::tcp::socket>(getGlobalIoService());
 #else
 	int ifIndex = getIfIndex(remoteEndpoint.address().to_string().c_str());
+std::cout << "ifIndex: " << ifIndex << std::endl;
 	auto clientSocket = make_shared<ip::tcp::socket>( *getGlobalIoService(ifIndex) );
 #endif
 
