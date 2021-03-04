@@ -327,12 +327,19 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
 #ifndef ETRI_NFD_ORG_ARCH
 	int32_t packetType;
 	int32_t worker;
+	bool isOk=false;
 	NDN_MSG msg;
 	bool ret __attribute__((unused));
 
-	std::tie(packetType, worker) = dissectNdnPacket( packet.wire(), packet.size() );
+	std::tie(isOk, packetType, worker) = dissectNdnPacket( packet.wire(), packet.size() );
+	
+	if( !isOk ){
+		if(packetType==ndn::lp::tlv::LpPacket)
+			++this->nInLpInvalid;
+		return;
+	}
 
-	if(worker==DCN_LOCALHOST_PREFIX){
+	if( getForwardingWorkers()==0 or getFace()==nullptr or worker==DCN_LOCALHOST_PREFIX ){
 		try {
 			lp::Packet pkt(packet);
 
@@ -377,15 +384,12 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
 			msg.buffer = make_shared<ndn::Buffer>( packet.wire(), packet.size() );
 			msg.endpoint = 0;
 			msg.type = 0; // Buffer type
-			if(getFace()!=nullptr)
-				msg.faceId = getFace()->getId();
-			else msg.faceId = 0;
+			msg.faceId = getFace()->getId();
 
 			if(packetType==tlv::Interest)
 				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
 			else
 				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
-
 			//if(ret==false) this->enqMiss();
 		}   
 	}  

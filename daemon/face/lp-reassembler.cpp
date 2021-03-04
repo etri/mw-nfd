@@ -28,6 +28,7 @@
 #include "common/global.hpp"
 
 #include <numeric>
+#include <iostream>
 
 namespace nfd {
 namespace face {
