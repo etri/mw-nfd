@@ -83,7 +83,7 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
   }
 
 #ifndef ETRI_NFD_ORG_ARCH
-    if( !prefix.compare( 0, 1, "localhost") ){
+    if( !prefix.compare( 0, 1, "localhost") or getForwardingWorkers()==0){
       fib::Entry* entry = m_fib.insert(prefix).first;
       m_fib.addOrUpdateNextHop(*entry, *face, cost);
     }else{
@@ -119,28 +119,28 @@ FibManager::removeNextHop(const Name& topPrefix, const Interest& interest,
     return;
   }
 
-#ifndef ETRI_NFD_ORG_ARCH
-	emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, parameters, getGlobalNetName());
-#else
-   fib::Entry* entry = m_fib.findExactMatch(parameters.getName());
-   if (entry == nullptr) {
-       NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-entry");
-       return;
-   }
+  if(getForwardingWorkers()>0)
+	  emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, parameters, getGlobalNetName());
+  else{
+	  fib::Entry* entry = m_fib.findExactMatch(parameters.getName());
+	  if (entry == nullptr) {
+		  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-entry");
+		  return;
+	  }
 
-   auto status = m_fib.removeNextHop(*entry, *face);
-   switch (status) {
-       case Fib::RemoveNextHopResult::NO_SUCH_NEXTHOP:
-           NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-nexthop");
-           break;
-       case Fib::RemoveNextHopResult::FIB_ENTRY_REMOVED:
-           NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK entry-erased");
-           break;
-       case Fib::RemoveNextHopResult::NEXTHOP_REMOVED:
-           NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK nexthop-removed");
-           break;
-   }
-#endif
+	  auto status = m_fib.removeNextHop(*entry, *face);
+	  switch (status) {
+		  case Fib::RemoveNextHopResult::NO_SUCH_NEXTHOP:
+			  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK no-nexthop");
+			  break;
+		  case Fib::RemoveNextHopResult::FIB_ENTRY_REMOVED:
+			  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK entry-erased");
+			  break;
+		  case Fib::RemoveNextHopResult::NEXTHOP_REMOVED:
+			  NFD_LOG_TRACE("fib/remove-nexthop(" << prefix << ',' << faceId << "): OK nexthop-removed");
+			  break;
+	  }
+  }
 }
 
 void

@@ -25,6 +25,7 @@
 
 #include "face-manager.hpp"
 
+#include "mw-nfd/mw-nfd-global.hpp"
 #include "common/logger.hpp"
 #include "face/generic-link-service.hpp"
 #include "face/protocol-factory.hpp"

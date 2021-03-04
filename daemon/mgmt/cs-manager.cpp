@@ -54,39 +54,42 @@ CsManager::changeConfig(const ControlParameters& parameters,
                         const ndn::mgmt::CommandContinuation& done)
 {
 	using ndn::nfd::CsFlagBit;
+	size_t limits=0;
+	bool admit=false, serve=false;
 
-	int32_t workers = getForwardingWorkers();
-	for(int32_t i=0;i<workers;i++){
-		auto worker = getMwNfd(i);
-		if(worker==nullptr) continue;
+	if (parameters.hasCapacity()) {
+		limits = parameters.getCapacity();
+	}
+	if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) 
+		admit = true;
+	if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) 
+		serve = true;
+
+	if(getForwardingWorkers()>0)
+		limits = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_CONFIG, parameters, false);
+
+	if(getForwardingWorkers()==0){
 		if (parameters.hasCapacity()) {
-			worker->getCsTable().setLimit(parameters.getCapacity()/getForwardingWorkers());
-		}
+			limits = parameters.getCapacity();
+        	m_cs.setLimit(parameters.getCapacity());
+		}else limits = m_cs.getLimit();
 
 		if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
-			worker->getCsTable().enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
-		}
+			admit = parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT);
+        	m_cs.enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
+		}else admit = m_cs.shouldAdmit();
 
 		if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
-			worker->getCsTable().enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
-		}
+			serve = parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE);
+			m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
+		}else serve = m_cs.shouldServe();
 	}
 
-	// for mgmt
-    if (parameters.hasCapacity()) {
-        m_cs.setLimit( parameters.getCapacity() / (workers+1) );
-    }
-    if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
-        m_cs.enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
-    }
-    if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
-        m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
-    }
-
 	ControlParameters body;
-	body.setCapacity( m_cs.getLimit() );
-    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, m_cs.shouldAdmit(), false);
-    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, m_cs.shouldServe(), false);
+	//body.setCapacity( m_cs.getLimit() );
+	body.setCapacity( limits );
+    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, admit, false);
+    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, serve, false);
 	done(ControlResponse(200, "OK").setBody(body.wireEncode()));
 }
 #else
@@ -106,25 +109,25 @@ CsManager::changeConfig(const ControlParameters& parameters,
     }
 
     if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE)) {
-        m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
-    }
+		m_cs.enableServe(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE));
+	}
 
-    ControlParameters body;
-    body.setCapacity(m_cs.getLimit());
-    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, m_cs.shouldAdmit(), false);
-    body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, m_cs.shouldServe(), false);
-    done(ControlResponse(200, "OK").setBody(body.wireEncode()));
+	ControlParameters body;
+	body.setCapacity(m_cs.getLimit());
+	body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT, m_cs.shouldAdmit(), false);
+	body.setFlagBit(CsFlagBit::BIT_CS_ENABLE_SERVE, m_cs.shouldServe(), false);
+	done(ControlResponse(200, "OK").setBody(body.wireEncode()));
 }
 #endif
 
 #ifndef ETRI_NFD_ORG_ARCH
-void
+	void
 CsManager::erase(const ControlParameters& parameters,
-                 const ndn::mgmt::CommandContinuation& done)
+		const ndn::mgmt::CommandContinuation& done)
 {
 	size_t nTotalErased = 0;
-	auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-	nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
+	if(getForwardingWorkers()>0)
+		nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
 
 	size_t count = parameters.hasCount() ?
 		parameters.getCount() :
@@ -156,9 +159,9 @@ CsManager::erase(const ControlParameters& parameters,
 
 #else
 
-    void
+	void
 CsManager::erase(const ControlParameters& parameters,
-        const ndn::mgmt::CommandContinuation& done)
+		const ndn::mgmt::CommandContinuation& done)
 {
 	size_t count = parameters.hasCount() ?
 		parameters.getCount() :
@@ -191,38 +194,38 @@ void
 CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
                      ndn::mgmt::StatusDatasetContext& context) const
 {
-  ndn::nfd::CsInfo info;
+	ndn::nfd::CsInfo info;
 
-  int32_t workers = getForwardingWorkers();
-  size_t NEntries = 0;
-  size_t NHits = 0;
-  size_t NMisses = 0;
-  size_t NCapa = 0;
-  //info.setCapacity(m_cs.getLimit());
+	int32_t workers = getForwardingWorkers();
+	size_t NEntries = 0;
+	size_t NHits = 0;
+	size_t NMisses = 0;
+	size_t NCapa = 0;
+	//info.setCapacity(m_cs.getLimit());
 	NCapa += m_cs.getLimit();
-  info.setEnableAdmit(m_cs.shouldAdmit());
-  info.setEnableServe(m_cs.shouldServe());
+	info.setEnableAdmit(m_cs.shouldAdmit());
+	info.setEnableServe(m_cs.shouldServe());
 
-  for(int32_t i=0;i<workers;i++){
-      auto worker = getMwNfd(i);
-      NCapa += worker->getCsTable().getLimit();
-      NEntries += worker->getCsTable().size();
-      NHits += worker->getCountersInfo().nCsHits;
-      NMisses += worker->getCountersInfo().nCsMisses;
+	for(int32_t i=0;i<workers;i++){
+		auto worker = getMwNfd(i);
+		NCapa += worker->getCsTable().getLimit();
+		NEntries += worker->getCsTable().size();
+		NHits += worker->getCountersInfo().nCsHits;
+		NMisses += worker->getCountersInfo().nCsMisses;
 
-  }
+	}
 
-    NEntries += m_cs.size();
-    NHits += m_fwCounters.nCsHits;
-    NMisses += m_fwCounters.nCsMisses;
+	NEntries += m_cs.size();
+	NHits += m_fwCounters.nCsHits;
+	NMisses += m_fwCounters.nCsMisses;
 
-    info.setNEntries(NEntries);
-    info.setNHits(NHits);
-    info.setNMisses(NMisses);
-  info.setCapacity(NCapa);
+	info.setNEntries(NEntries);
+	info.setNHits(NHits);
+	info.setNMisses(NMisses);
+	info.setCapacity(NCapa);
 
-  context.append(info.wireEncode());
-  context.end();
+	context.append(info.wireEncode());
+	context.end();
 }
 
 #else
