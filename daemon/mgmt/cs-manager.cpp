@@ -74,7 +74,7 @@ CsManager::changeConfig(const ControlParameters& parameters,
 
 	// for mgmt
     if (parameters.hasCapacity()) {
-        m_cs.setLimit(parameters.getCapacity());
+        m_cs.setLimit( parameters.getCapacity() / (workers+1) );
     }
     if (parameters.hasFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT)) {
         m_cs.enableAdmit(parameters.getFlagBit(CsFlagBit::BIT_CS_ENABLE_ADMIT));
@@ -122,12 +122,9 @@ void
 CsManager::erase(const ControlParameters& parameters,
                  const ndn::mgmt::CommandContinuation& done)
 {
-  //ControlParameters body;
-
-// added by ETRI(modori) on 20200914
-  size_t nTotalErased = 0;
-  auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
+	size_t nTotalErased = 0;
+	auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
+	nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
 
 	size_t count = parameters.hasCount() ?
 		parameters.getCount() :

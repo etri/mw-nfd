@@ -25,6 +25,9 @@
 
 #include "face/generic-link-service.hpp"
 #include "face/face.hpp"
+#include "mw-nfd/mw-nfd-worker.hpp"
+#include "mw-nfd/mw-nfd-global.hpp"
+#include "tests/daemon/face/dummy-face.hpp"
 
 #include "tests/test-common.hpp"
 #include "tests/key-chain-fixture.hpp"
@@ -35,6 +38,8 @@
 #include <ndn-cxx/lp/prefix-announcement-header.hpp>
 #include <ndn-cxx/lp/tags.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
+
+#include <iostream>
 
 namespace nfd {
 namespace face {
@@ -76,6 +81,16 @@ protected:
       [this] (const Data& data, const EndpointId&) { receivedData.push_back(data); });
     face->afterReceiveNack.connect(
       [this] (const lp::Nack& nack, const EndpointId&) { receivedNacks.push_back(nack); });
+
+#ifndef ETRI_NFD_ORG_ARCH
+    mw_linkservice = make_unique<GenericLinkService>(options);
+    mw_linkservice->afterReceiveInterest.connect(
+      [this] (const Interest& interest, const EndpointId&) { receivedInterests.push_back(interest); });
+    mw_linkservice->afterReceiveData.connect(
+      [this] (const Data& data, const EndpointId&) { receivedData.push_back(data); });
+    mw_linkservice->afterReceiveNack.connect(
+      [this] (const lp::Nack& nack, const EndpointId&) { receivedNacks.push_back(nack); });
+#endif
   }
 
   lp::PrefixAnnouncementHeader
@@ -88,6 +103,7 @@ protected:
 protected:
   unique_ptr<Face> face;
   GenericLinkService* service = nullptr;
+  unique_ptr<GenericLinkService> mw_linkservice = nullptr;
   DummyTransport* transport = nullptr;
   std::vector<Interest> receivedInterests;
   std::vector<Data> receivedData;
@@ -214,9 +230,14 @@ BOOST_AUTO_TEST_CASE(ReceiveBareInterest)
   initialize(options);
 
   auto interest1 = makeInterest("/23Rd9hEiR");
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(interest1->wireEncode());
-
   BOOST_CHECK_EQUAL(service->getCounters().nInInterests, 1);
+#else
+	mw_linkservice->receivePacket(interest1->wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInInterests, 1);
+#endif
+
   BOOST_REQUIRE_EQUAL(receivedInterests.size(), 1);
   BOOST_CHECK_EQUAL(receivedInterests.back().wireEncode(), interest1->wireEncode());
 }
@@ -234,9 +255,14 @@ BOOST_AUTO_TEST_CASE(ReceiveInterest)
     interest1->wireEncode().begin(), interest1->wireEncode().end()));
   lpPacket.set<lp::SequenceField>(0); // force LpPacket encoding
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(lpPacket.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInInterests, 1);
+#else
+	mw_linkservice->receivePacket(interest1->wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInInterests, 1);
+#endif
   BOOST_REQUIRE_EQUAL(receivedInterests.size(), 1);
   BOOST_CHECK_EQUAL(receivedInterests.back().wireEncode(), interest1->wireEncode());
 }
@@ -249,9 +275,15 @@ BOOST_AUTO_TEST_CASE(ReceiveBareData)
   initialize(options);
 
   auto data1 = makeData("/12345678");
+
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(data1->wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInData, 1);
+#else
+	mw_linkservice->receivePacket(data1->wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInData, 1);
+#endif
   BOOST_REQUIRE_EQUAL(receivedData.size(), 1);
   BOOST_CHECK_EQUAL(receivedData.back().wireEncode(), data1->wireEncode());
 }
@@ -269,9 +301,14 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
     data1->wireEncode().begin(), data1->wireEncode().end()));
   lpPacket.set<lp::SequenceField>(0); // force LpPacket encoding
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(lpPacket.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInData, 1);
+#else
+	mw_linkservice->receivePacket(lpPacket.wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInData, 1);
+#endif
   BOOST_REQUIRE_EQUAL(receivedData.size(), 1);
   BOOST_CHECK_EQUAL(receivedData.back().wireEncode(), data1->wireEncode());
 }
@@ -443,6 +480,7 @@ BOOST_AUTO_TEST_CASE(ReassembleFragments)
     size_t sequence = 1000 + fragIndex;
     frags[fragIndex].add<lp::SequenceField>(sequence);
 
+#ifdef ETRI_NFD_ORG_ARCH
     transport->receivePacket(frags[fragIndex].wireEncode());
 
     if (fragIndex > 0) {
@@ -454,6 +492,21 @@ BOOST_AUTO_TEST_CASE(ReassembleFragments)
       BOOST_CHECK_EQUAL(receivedInterests.back().wireEncode(), interest->wireEncode());
       BOOST_CHECK_EQUAL(service->getCounters().nReassembling, 0);
     }
+
+#else
+    mw_linkservice->receivePacket(frags[fragIndex].wireEncode(), 0);
+
+    if (fragIndex > 0) {
+      BOOST_CHECK(receivedInterests.empty());
+      BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nReassembling, 1);
+    }
+    else {
+      BOOST_CHECK_EQUAL(receivedInterests.size(), 1);
+      BOOST_CHECK_EQUAL(receivedInterests.back().wireEncode(), interest->wireEncode());
+      BOOST_CHECK_EQUAL(service->getCounters().nReassembling, 0);
+    }
+#endif
+
   }
 }
 
@@ -468,9 +521,14 @@ BOOST_AUTO_TEST_CASE(ReassemblyDisabledDropFragIndex)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::FragIndexField>(140);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInLpInvalid, 0); // not an error
+#else
+    mw_linkservice->receivePacket(packet.wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInLpInvalid, 0); // not an error
+#endif
   BOOST_CHECK(receivedInterests.empty());
 }
 
@@ -485,9 +543,15 @@ BOOST_AUTO_TEST_CASE(ReassemblyDisabledDropFragCount)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::FragCountField>(276);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInLpInvalid, 0); // not an error
+#else
+    mw_linkservice->receivePacket(packet.wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInLpInvalid, 0); // not an error
+#endif
+
   BOOST_CHECK(receivedInterests.empty());
 }
 
@@ -565,17 +629,30 @@ BOOST_AUTO_TEST_CASE(DropDuplicatePacket)
   pkt1.add<lp::FragmentField>({interest.wireEncode().begin(), interest.wireEncode().end()});
   pkt1.add<lp::SequenceField>(7);
   pkt1.add<lp::TxSequenceField>(12);
+
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(pkt1.wireEncode());
   BOOST_CHECK_EQUAL(service->getCounters().nInInterests, 1);
   BOOST_CHECK_EQUAL(service->getCounters().nDuplicateSequence, 0);
+#else
+	mw_linkservice->receivePacket(pkt1.wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInInterests, 1);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nDuplicateSequence, 0);
+#endif
 
   lp::Packet pkt2;
   pkt2.add<lp::FragmentField>({interest.wireEncode().begin(), interest.wireEncode().end()});
   pkt2.add<lp::SequenceField>(7);
   pkt2.add<lp::TxSequenceField>(13);
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(pkt2.wireEncode());
   BOOST_CHECK_EQUAL(service->getCounters().nInInterests, 1);
   BOOST_CHECK_EQUAL(service->getCounters().nDuplicateSequence, 1);
+#else
+	mw_linkservice->receivePacket(pkt2.wireEncode(), 0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInInterests, 1);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nDuplicateSequence, 1);
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END() // Reliability
@@ -923,7 +1000,11 @@ BOOST_AUTO_TEST_CASE(ReceiveNextHopFaceId)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::NextHopFaceIdField>(1000);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
 
   BOOST_REQUIRE_EQUAL(receivedInterests.size(), 1);
   auto tag = receivedInterests.back().getTag<lp::NextHopFaceIdTag>();
@@ -941,10 +1022,14 @@ BOOST_AUTO_TEST_CASE(ReceiveNextHopFaceIdDisabled)
   auto interest = makeInterest("/12345678");
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::NextHopFaceIdField>(1000);
-
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 0); // not an error
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 0); // not an error
+#endif
   BOOST_CHECK(receivedInterests.empty());
 }
 
@@ -959,9 +1044,14 @@ BOOST_AUTO_TEST_CASE(ReceiveNextHopFaceIdDropData)
   lp::Packet packet(data->wireEncode());
   packet.set<lp::NextHopFaceIdField>(1000);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedData.empty());
 }
 
@@ -980,9 +1070,14 @@ BOOST_AUTO_TEST_CASE(ReceiveNextHopFaceIdDropNack)
   packet.set<lp::NackField>(nack.getHeader());
   packet.set<lp::NextHopFaceIdField>(1000);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedNacks.empty());
 }
 
@@ -998,8 +1093,11 @@ BOOST_AUTO_TEST_CASE(ReceiveCachePolicy)
   lp::Packet packet(data->wireEncode());
   packet.set<lp::CachePolicyField>(lp::CachePolicy().setPolicy(lp::CachePolicyType::NO_CACHE));
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
-
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_REQUIRE_EQUAL(receivedData.size(), 1);
   auto tag = receivedData.back().getTag<lp::CachePolicyTag>();
   BOOST_REQUIRE(tag != nullptr);
@@ -1019,9 +1117,14 @@ BOOST_AUTO_TEST_CASE(ReceiveCachePolicyDropInterest)
   policy.setPolicy(lp::CachePolicyType::NO_CACHE);
   packet.set<lp::CachePolicyField>(policy);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedInterests.empty());
 }
 
@@ -1040,9 +1143,14 @@ BOOST_AUTO_TEST_CASE(ReceiveCachePolicyDropNack)
   policy.setPolicy(lp::CachePolicyType::NO_CACHE);
   packet.set<lp::CachePolicyField>(policy);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedNacks.empty());
 }
 
@@ -1092,9 +1200,14 @@ BOOST_AUTO_TEST_CASE(ReceiveIncomingFaceIdIgnoreInterest)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::IncomingFaceIdField>(1000);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 0); // not an error
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 0); // not an error
+#endif
   BOOST_REQUIRE_EQUAL(receivedInterests.size(), 1);
   BOOST_CHECK(receivedInterests.back().getTag<lp::IncomingFaceIdTag>() == nullptr);
 }
@@ -1110,9 +1223,14 @@ BOOST_AUTO_TEST_CASE(ReceiveIncomingFaceIdIgnoreData)
   lp::Packet packet(data->wireEncode());
   packet.set<lp::IncomingFaceIdField>(1000);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 0); // not an error
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 0); // not an error
+#endif
   BOOST_REQUIRE_EQUAL(receivedData.size(), 1);
   BOOST_CHECK(receivedData.back().getTag<lp::IncomingFaceIdTag>() == nullptr);
 }
@@ -1130,9 +1248,14 @@ BOOST_AUTO_TEST_CASE(ReceiveIncomingFaceIdIgnoreNack)
   packet.set<lp::NackField>(nack.getHeader());
   packet.set<lp::IncomingFaceIdField>(1000);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 0); // not an error
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 0); // not an error
+#endif
   BOOST_REQUIRE_EQUAL(receivedNacks.size(), 1);
   BOOST_CHECK(receivedNacks.back().getTag<lp::IncomingFaceIdTag>() == nullptr);
 }
@@ -1183,8 +1306,12 @@ BOOST_AUTO_TEST_CASE(ReceiveCongestionMarkInterest)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::CongestionMarkField>(1);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_REQUIRE_EQUAL(receivedInterests.size(), 1);
   auto tag = receivedInterests.back().getTag<lp::CongestionMarkTag>();
   BOOST_REQUIRE(tag != nullptr);
@@ -1197,8 +1324,11 @@ BOOST_AUTO_TEST_CASE(ReceiveCongestionMarkData)
   lp::Packet packet(data->wireEncode());
   packet.set<lp::CongestionMarkField>(1);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
-
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_REQUIRE_EQUAL(receivedData.size(), 1);
   auto tag = receivedData.back().getTag<lp::CongestionMarkTag>();
   BOOST_REQUIRE(tag != nullptr);
@@ -1215,8 +1345,11 @@ BOOST_AUTO_TEST_CASE(ReceiveCongestionMarkNack)
   packet.set<lp::NackField>(nack.getHeader());
   packet.set<lp::CongestionMarkField>(1);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
-
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_REQUIRE_EQUAL(receivedNacks.size(), 1);
   auto tag = receivedNacks.back().getTag<lp::CongestionMarkTag>();
   BOOST_REQUIRE(tag != nullptr);
@@ -1265,8 +1398,12 @@ BOOST_AUTO_TEST_CASE(ReceiveNonDiscovery)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::NonDiscoveryField>(lp::EmptyValue{});
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_REQUIRE_EQUAL(receivedInterests.size(), 1);
   auto tag = receivedInterests.back().getTag<lp::NonDiscoveryTag>();
   BOOST_CHECK(tag != nullptr);
@@ -1282,8 +1419,12 @@ BOOST_AUTO_TEST_CASE(ReceiveNonDiscoveryDisabled)
   lp::Packet packet(interest->wireEncode());
   packet.set<lp::NonDiscoveryField>(lp::EmptyValue{});
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 0); // not an error
   BOOST_CHECK_EQUAL(receivedInterests.size(), 1);
   auto tag = receivedInterests.back().getTag<lp::NonDiscoveryTag>();
@@ -1300,9 +1441,14 @@ BOOST_AUTO_TEST_CASE(ReceiveNonDiscoveryDropData)
   lp::Packet packet(data->wireEncode());
   packet.set<lp::NonDiscoveryField>(lp::EmptyValue{});
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedData.empty());
 }
 
@@ -1320,9 +1466,14 @@ BOOST_AUTO_TEST_CASE(ReceiveNonDiscoveryDropNack)
   packet.set<lp::NackField>(nack.getHeader());
   packet.set<lp::NonDiscoveryField>(lp::EmptyValue{});
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedNacks.empty());
 }
 
@@ -1370,9 +1521,12 @@ BOOST_AUTO_TEST_CASE(ReceivePrefixAnnouncement)
   lp::Packet packet(data->wireEncode());
   auto pah = makePrefixAnnHeader("/local/ndn/prefix");
   packet.set<lp::PrefixAnnouncementField>(pah);
-
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_REQUIRE_EQUAL(receivedData.size(), 1);
   auto tag = receivedData.back().getTag<lp::PrefixAnnouncementTag>();
   BOOST_CHECK_EQUAL(tag->get().getPrefixAnn()->getAnnouncedName(), "/local/ndn/prefix");
@@ -1389,8 +1543,12 @@ BOOST_AUTO_TEST_CASE(ReceivePrefixAnnouncementDisabled)
   auto pah = makePrefixAnnHeader("/local/ndn/prefix");
   packet.set<lp::PrefixAnnouncementField>(pah);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+#endif
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 0); // not an error
   BOOST_CHECK_EQUAL(receivedData.size(), 1);
   auto tag = receivedData.back().getTag<lp::PrefixAnnouncementTag>();
@@ -1408,9 +1566,14 @@ BOOST_AUTO_TEST_CASE(ReceivePrefixAnnouncementDropInterest)
   auto pah = makePrefixAnnHeader("/local/ndn/prefix");
   packet.set<lp::PrefixAnnouncementField>(pah);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedInterests.empty());
 }
 
@@ -1429,9 +1592,14 @@ BOOST_AUTO_TEST_CASE(ReceivePrefixAnnouncementDropNack)
   auto pah = makePrefixAnnHeader("/local/ndn/prefix");
   packet.set<lp::PrefixAnnouncementField>(pah);
 
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet.wireEncode());
 
   BOOST_CHECK_EQUAL(service->getCounters().nInNetInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet.wireEncode(),0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInNetInvalid, 1);
+#endif
   BOOST_CHECK(receivedNacks.empty());
 }
 
@@ -1447,9 +1615,14 @@ BOOST_AUTO_TEST_CASE(WrongTlvType)
   initialize(options);
 
   auto packet = ndn::encoding::makeEmptyBlock(tlv::Name);
+#ifdef ETRI_NFD_ORG_ARCH
   transport->receivePacket(packet);
 
   BOOST_CHECK_EQUAL(service->getCounters().nInLpInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet,0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInLpInvalid, 1);
+#endif
   BOOST_CHECK_EQUAL(receivedInterests.size(), 0);
   BOOST_CHECK_EQUAL(receivedData.size(), 0);
   BOOST_CHECK_EQUAL(receivedNacks.size(), 0);
@@ -1464,9 +1637,15 @@ BOOST_AUTO_TEST_CASE(Unparsable)
 
   auto packet = ndn::encoding::makeStringBlock(lp::tlv::LpPacket, "x");
   BOOST_CHECK_THROW(packet.parse(), tlv::Error);
-  transport->receivePacket(packet);
 
+#ifdef ETRI_NFD_ORG_ARCH
+  transport->receivePacket(packet);
   BOOST_CHECK_EQUAL(service->getCounters().nInLpInvalid, 1);
+#else
+	mw_linkservice->receivePacket(packet,0);
+  BOOST_CHECK_EQUAL(mw_linkservice->getCounters().nInLpInvalid, 1);
+#endif
+
   BOOST_CHECK_EQUAL(receivedInterests.size(), 0);
   BOOST_CHECK_EQUAL(receivedData.size(), 0);
   BOOST_CHECK_EQUAL(receivedNacks.size(), 0);

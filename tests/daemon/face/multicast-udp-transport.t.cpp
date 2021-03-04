@@ -92,11 +92,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveMultipleRemoteEndpoints, T, MulticastUdp
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, buf1.size() + buf2.size());
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 
-#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_REQUIRE_EQUAL(this->receivedPackets->size(), 2);
   BOOST_CHECK_EQUAL(this->receivedPackets->at(0).endpoint,
                     this->receivedPackets->at(1).endpoint);
-#endif
 
   this->sendToGroup(remoteSockTx2, buf1);
   this->sendToGroup(remoteSockTx2, buf2);
@@ -106,13 +104,11 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(ReceiveMultipleRemoteEndpoints, T, MulticastUdp
   BOOST_CHECK_EQUAL(this->transport->getCounters().nInBytes, 2 * buf1.size() + 2 * buf2.size());
   BOOST_CHECK_EQUAL(this->transport->getState(), TransportState::UP);
 
-#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_REQUIRE_EQUAL(this->receivedPackets->size(), 4);
   BOOST_CHECK_EQUAL(this->receivedPackets->at(2).endpoint,
                     this->receivedPackets->at(3).endpoint);
   BOOST_CHECK_NE(this->receivedPackets->at(0).endpoint,
                  this->receivedPackets->at(2).endpoint);
-#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END() // TestMulticastUdpTransport

@@ -205,16 +205,12 @@ BOOST_AUTO_TEST_CASE(ImplicitFaceId)
   testAddNextHop(ControlParameters().setName("/hello").setCost(100).setFaceId(0), face1);
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, face1, 100), CheckNextHopResult::OK);
-#endif
 
   testAddNextHop(ControlParameters().setName("/hello").setCost(100), face2);
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 2, face2, 100), CheckNextHopResult::OK);
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(InitialAdd)
@@ -229,9 +225,7 @@ BOOST_AUTO_TEST_CASE(InitialAdd)
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, req.getName(), makeResponse(200, "Success", parameters)),
                     CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, addedFaceId, 101), CheckNextHopResult::OK);
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(ImplicitCost)
@@ -247,9 +241,7 @@ BOOST_AUTO_TEST_CASE(ImplicitCost)
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, req.getName(), makeResponse(200, "Success", parameters)),
                     CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, addedFaceId, 0), CheckNextHopResult::OK);
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(AddToExisting)
@@ -277,11 +269,9 @@ BOOST_AUTO_TEST_CASE(AddToExisting)
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
 
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 2, face, 102), CheckNextHopResult::WRONG_N_NEXTHOPS);
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, face, 101), CheckNextHopResult::WRONG_COST);
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, face, 102), CheckNextHopResult::OK);
-#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END() // AddNextHop
@@ -315,23 +305,17 @@ BOOST_AUTO_TEST_CASE(Basic)
   testRemoveNextHop(makeParameters("/hello", face1));
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 2, face1, 101), CheckNextHopResult::NO_NEXTHOP);
-#endif
 
   testRemoveNextHop(makeParameters("/hello", face2));
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, face2, 202), CheckNextHopResult::NO_NEXTHOP);
-#endif
 
   testRemoveNextHop(makeParameters("/hello", face3));
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 0, face3, 303), CheckNextHopResult::NO_FIB_ENTRY);
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(PrefixNotFound)
@@ -373,16 +357,12 @@ BOOST_AUTO_TEST_CASE(ImplicitFaceId)
   testWithImplicitFaceId(ControlParameters().setName("/hello").setFaceId(0), face1);
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 1, face1, 101), CheckNextHopResult::NO_NEXTHOP);
-#endif
 
   testWithImplicitFaceId(ControlParameters().setName("/hello"), face2);
   BOOST_REQUIRE_EQUAL(m_responses.size(), 1);
   BOOST_CHECK_EQUAL(checkResponse(0, expectedName, expectedResponse), CheckResponseResult::OK);
-#ifdef ETRI_NFD_ROG_ARCH
   BOOST_CHECK_EQUAL(checkNextHop("/hello", 0, face2, 202), CheckNextHopResult::NO_FIB_ENTRY);
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(RecordNotExist)

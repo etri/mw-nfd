@@ -29,6 +29,11 @@
 
 #include <ndn-cxx/mgmt/nfd/cs-info.hpp>
 
+#include "mw-nfd/mw-nfd-global.hpp"
+#include "face/generic-link-service.hpp"
+#include "face/face.hpp"
+#include "tests/daemon/face/dummy-face.hpp"
+
 namespace nfd {
 namespace tests {
 
@@ -196,7 +201,6 @@ BOOST_AUTO_TEST_CASE(Erase)
 
   // one Data each under /A, /G, /H remain, all other Data are erased
   BOOST_CHECK_EQUAL(m_cs.size(), 3);
-
 }
 
 BOOST_AUTO_TEST_CASE(Info)

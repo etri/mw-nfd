@@ -170,9 +170,7 @@ BOOST_FIXTURE_TEST_CASE(RemoteClosePermanent, RemoteCloseFixture)
 
   BOOST_CHECK_EQUAL(transport->getCounters().nInPackets, 1);
   BOOST_CHECK_EQUAL(transport->getCounters().nInBytes, block2.size());
-#if defined(ETRI_NFD_ORG_ARCH)
   BOOST_CHECK_EQUAL(receivedPackets->size(), 1);
-#endif
   BOOST_CHECK_EQUAL(transport->getState(), TransportState::UP);
 }
 
