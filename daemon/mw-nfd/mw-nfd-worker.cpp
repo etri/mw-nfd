@@ -115,6 +115,10 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 		//int opt=1;
 		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
 
+
+           getScheduler().schedule(3_s, [this] {
+                bulk_test_case_01();
+                   });
 	}
 
 MwNfd::~MwNfd() = default;
@@ -467,7 +471,7 @@ void MwNfd::runWorker()
 
     int32_t inputWorkers = m_inputWorkers *2;
 
-    bulk_test_case_01();
+    //bulk_test_case_01();
 
     do{
 		if(getCommandRx(m_workerId)==true){
