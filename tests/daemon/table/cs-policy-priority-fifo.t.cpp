@@ -31,8 +31,6 @@ namespace nfd {
 namespace cs {
 namespace tests {
 
-#ifndef ETRI_DUAL_CS
-
 BOOST_AUTO_TEST_SUITE(Table)
 BOOST_AUTO_TEST_SUITE(TestCsPriorityFifo)
 
@@ -100,8 +98,6 @@ BOOST_FIXTURE_TEST_CASE(Refresh, CsFixture)
 
 BOOST_AUTO_TEST_SUITE_END() // TestCsPriorityFifo
 BOOST_AUTO_TEST_SUITE_END() // Table
-
-#endif
 
 } // namespace tests
 } // namespace cs

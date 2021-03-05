@@ -62,11 +62,28 @@ protected:
       modifyData(*data);
     }
 
-#if 1  // pit_token test
+    data->wireEncode();
+    cs.insert(*data, isUnsolicited);
+
+    return data->getFullName();
+  }
+
+  Name
+  mw_insert(uint32_t id, const Name& name, const std::function<void(Data&)>& modifyData = nullptr,
+         bool isUnsolicited = false, bool isCanBePrefix = false)
+  {
+    auto data = makeData(name);
+    data->setContent(reinterpret_cast<const uint8_t*>(&id), sizeof(id));
+
+    if (modifyData != nullptr) {
+      modifyData(*data);
+    }
+
+#ifdef ETRI_DUAL_CS   // pit_token test
 		auto b = make_shared<ndn::Buffer>(32);
 		ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
 		pitToken->workerId = id;
-		pitToken->CanBePrefix = 0;
+		pitToken->CanBePrefix = isCanBePrefix;
 		data->setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
 #endif
 
@@ -80,7 +97,7 @@ protected:
   startInterest(const Name& name)
   {
     interest = make_shared<Interest>(name);
-#if 0  // pit_token test
+#ifdef ETRI_DUAL_CS   
     interest->setCanBePrefix(true);
 #else
     interest->setCanBePrefix(false);

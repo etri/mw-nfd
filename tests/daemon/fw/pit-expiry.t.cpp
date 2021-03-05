@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(ResetTimerBeforeSatisfyInterest)
 #ifdef ETRI_NFD_ORG_ARCH
   auto interest2 = makeInterest("/A/0", false, 90_ms);
 #else
-	// dual-cs mode using CanBePrefix flag for lpm/exact match
+	// dual-cs mode using CanBePrefix flag for prefix/exact match
   auto interest2 = makeInterest("/A/0", true, 90_ms);
 #endif
   auto data = makeData("/A/0");
