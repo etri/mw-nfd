@@ -46,7 +46,12 @@ BOOST_AUTO_TEST_CASE(ExactName)
   insert(4, "/A/C");
   insert(5, "/D");
 
+#ifndef ETRI_DUAL_CS
   startInterest("/A");
+#else
+  startInterest("/A")
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(2);
 }
 
@@ -68,10 +73,20 @@ BOOST_AUTO_TEST_CASE(FullName)
   Name n1 = insert(1, "/A");
   Name n2 = insert(2, "/A");
 
+#ifndef ETRI_DUAL_CS
   startInterest(n1);
+#else
+  startInterest(n1)
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(1);
 
+#ifndef ETRI_DUAL_CS
   startInterest(n2);
+#else
+  startInterest(n2)
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(2);
 }
 
@@ -80,10 +95,20 @@ BOOST_AUTO_TEST_CASE(FullName_EmptyDataName)
   Name n1 = insert(1, "/");
   Name n2 = insert(2, "/");
 
+#ifndef ETRI_DUAL_CS
   startInterest(n1);
+#else
+  startInterest(n1)
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(1);
 
+#ifndef ETRI_DUAL_CS
   startInterest(n2);
+#else
+  startInterest(n2)
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(2);
 }
 
@@ -106,11 +131,7 @@ BOOST_AUTO_TEST_CASE(PrefixName_NoCanBePrefix)
   insert(1, "/B/p/1");
 
   startInterest("/B");
-#ifndef ETRI_DUAL_CS
   CHECK_CS_FIND(0);
-#else
-  CHECK_CS_FIND(1);
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(MustBeFresh)
@@ -162,6 +183,7 @@ BOOST_AUTO_TEST_CASE(Erase)
   BOOST_CHECK_EQUAL(erase("/A", 3), 3);
   BOOST_CHECK_EQUAL(cs.size(), 3);
   int nDataUnderA = 0;
+#ifndef ETRI_DUAL_CS
   startInterest("/A/B/1");
   find([&] (uint32_t found) { nDataUnderA += static_cast<int>(found > 0); });
   startInterest("/A/B/2");
@@ -171,6 +193,21 @@ BOOST_AUTO_TEST_CASE(Erase)
   startInterest("/A/C/4");
   find([&] (uint32_t found) { nDataUnderA += static_cast<int>(found > 0); });
   BOOST_CHECK_EQUAL(nDataUnderA, 1);
+#else
+  startInterest("/A/B/1")
+    .setCanBePrefix(true);
+  find([&] (uint32_t found) { nDataUnderA += static_cast<int>(found > 0); });
+  startInterest("/A/B/2")
+    .setCanBePrefix(true);
+  find([&] (uint32_t found) { nDataUnderA += static_cast<int>(found > 0); });
+  startInterest("/A/C/3")
+    .setCanBePrefix(true);
+  find([&] (uint32_t found) { nDataUnderA += static_cast<int>(found > 0); });
+  startInterest("/A/C/4")
+    .setCanBePrefix(true);
+  find([&] (uint32_t found) { nDataUnderA += static_cast<int>(found > 0); });
+  BOOST_CHECK_EQUAL(nDataUnderA, 1);
+#endif
 
   BOOST_CHECK_EQUAL(erase("/D", 2), 1);
   BOOST_CHECK_EQUAL(cs.size(), 2);
@@ -196,7 +233,12 @@ BOOST_AUTO_TEST_CASE(ZeroCapacity)
   insert(1, "/A");
   BOOST_CHECK_EQUAL(cs.size(), 0);
 
+#ifndef ETRI_DUAL_CS
   startInterest("/A");
+#else
+  startInterest("/A")
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(0);
 }
 
@@ -211,6 +253,7 @@ BOOST_AUTO_TEST_CASE(EnablementFlags)
   cs.enableAdmit(true);
   insert(3, "/C");
 
+#ifndef ETRI_DUAL_CS
   startInterest("/A");
   CHECK_CS_FIND(1);
   startInterest("/B");
@@ -229,6 +272,33 @@ BOOST_AUTO_TEST_CASE(EnablementFlags)
   CHECK_CS_FIND(1);
   startInterest("/C");
   CHECK_CS_FIND(3);
+#else
+  startInterest("/A")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(1);
+  startInterest("/B")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(0);
+  startInterest("/C")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(3);
+
+  cs.enableServe(false);
+  startInterest("/A")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(0);
+  startInterest("/C")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(0);
+
+  cs.enableServe(true);
+  startInterest("/A")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(1);
+  startInterest("/C")
+    .setCanBePrefix(true);
+  CHECK_CS_FIND(3);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(CachePolicyNoCache)

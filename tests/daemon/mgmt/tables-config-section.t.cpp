@@ -170,7 +170,6 @@ BOOST_AUTO_TEST_CASE(Default)
   NFD_CHECK_TYPEID_EQUAL(*currentPolicy, cs::LruPolicy);
 }
 
-#if 0
 BOOST_AUTO_TEST_CASE(Known)
 {
   const std::string CONFIG = R"CONFIG(
@@ -188,7 +187,6 @@ BOOST_AUTO_TEST_CASE(Known)
   currentPolicy = cs.getPolicy();
   NFD_CHECK_TYPEID_EQUAL(*currentPolicy, cs::PriorityFifoPolicy);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(Unknown)
 {
