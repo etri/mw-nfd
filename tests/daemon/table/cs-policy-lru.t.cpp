@@ -53,13 +53,29 @@ BOOST_FIXTURE_TEST_CASE(EvictOne, CsFixture)
   // evict A
   insert(4, "/D");
   BOOST_CHECK_EQUAL(cs.size(), 3);
+#ifndef ETRI_DUAL_CS
   startInterest("/A");
+#else
+  startInterest("/A")
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(0);
 
   // use C then B
+#ifndef ETRI_DUAL_CS
   startInterest("/C");
+#else
+  startInterest("/C")
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(3);
+
+#ifndef ETRI_DUAL_CS
   startInterest("/B");
+#else
+  startInterest("/B")
+    .setCanBePrefix(true);
+#endif
   CHECK_CS_FIND(2);
 
   // evict D then C

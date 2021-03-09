@@ -204,32 +204,29 @@ public: // enumeration
   using const_iterator = Table::const_iterator;
   using const_iterator_exact = TableExact::const_iterator;
 
-#ifndef ETRI_DUAL_CS
   const_iterator
   begin() const
   {
     return m_table.begin();
 	}
-#else
-  const_iterator_exact
-  begin() const
-  {
-    return m_tableExact.begin();
-  }
-#endif
 
-#ifndef ETRI_DUAL_CS
   const_iterator
   end() const
   {
     return m_table.end();
   }
-#else
+
+#ifdef ETRI_DUAL_CS
   const_iterator_exact
-  end() const
+  exact_end() const
   {
     return m_tableExact.end();
 	}
+  const_iterator_exact
+  exact_begin() const
+  {
+    return m_tableExact.begin();
+  }
 #endif
 
 private:

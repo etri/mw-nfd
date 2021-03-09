@@ -73,7 +73,6 @@ public:
   static const std::string POLICY_NAME;
 
 private:
-#ifndef ETRI_DUAL_CS 
   void
   doAfterInsert(EntryRef i) override;
 
@@ -88,6 +87,22 @@ private:
 
   void
   evictEntries() override;
+
+#ifdef ETRI_DUAL_CS
+  void
+  doAfterInsertExact(EntryRefExact i) {} ;
+
+  void
+  doAfterRefreshExact(EntryRefExact i) {} ;
+
+  void
+  doBeforeEraseExact(EntryRefExact i) {} ;
+
+  void
+  doBeforeUseExact(EntryRefExact i) {} ;
+
+  void
+  evictEntriesExact() {} ;
 #endif
 
 private:
