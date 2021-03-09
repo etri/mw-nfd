@@ -137,24 +137,25 @@ void
 StrategyChoiceManager::listChoices(ndn::mgmt::StatusDatasetContext& context)
 {
 
-  auto worker = getMwNfd(0);
-if(worker!=nullptr){
-  for (const auto& i : worker->getStrategyChoiceTable()) {
-    ndn::nfd::StrategyChoice entry;
-    entry.setName(i.getPrefix())
-         .setStrategy(i.getStrategyInstanceName());
-    context.append(entry.wireEncode());
-  }
-}
+	auto worker = getMwNfd(0);
+	if(worker!=nullptr){
+		for (const auto& i : worker->getStrategyChoiceTable()) {
+			ndn::nfd::StrategyChoice entry;
+			entry.setName(i.getPrefix())
+				.setStrategy(i.getStrategyInstanceName());
+			context.append(entry.wireEncode());
+		}
+	}else{
 
-  for (const auto& i : m_table) {
-    ndn::nfd::StrategyChoice entry;
-    entry.setName(i.getPrefix())
-         .setStrategy(i.getStrategyInstanceName());
-    context.append(entry.wireEncode());
-  }
+		for (const auto& i : m_table) {
+			ndn::nfd::StrategyChoice entry;
+			entry.setName(i.getPrefix())
+				.setStrategy(i.getStrategyInstanceName());
+			context.append(entry.wireEncode());
+		}
+	}
 
-  context.end();
+	context.end();
 }
 
 } // namespace nfd
