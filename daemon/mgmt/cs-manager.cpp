@@ -192,7 +192,7 @@ CsManager::erase(const ControlParameters& parameters,
 #ifndef ETRI_NFD_ORG_ARCH
 void
 CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
-                     ndn::mgmt::StatusDatasetContext& context) const
+		ndn::mgmt::StatusDatasetContext& context) const
 {
 	ndn::nfd::CsInfo info;
 
@@ -201,18 +201,21 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
 	size_t NHits = 0;
 	size_t NMisses = 0;
 	size_t NCapa = 0;
-	//info.setCapacity(m_cs.getLimit());
-	NCapa += m_cs.getLimit();
-	info.setEnableAdmit(m_cs.shouldAdmit());
-	info.setEnableServe(m_cs.shouldServe());
 
-	for(int32_t i=0;i<workers;i++){
-		auto worker = getMwNfd(i);
-		NCapa += worker->getCsTable().getLimit();
-		NEntries += worker->getCsTable().size();
-		NHits += worker->getCountersInfo().nCsHits;
-		NMisses += worker->getCountersInfo().nCsMisses;
+	if(workers==0){
+		NCapa += m_cs.getLimit();
+		info.setEnableAdmit(m_cs.shouldAdmit());
+		info.setEnableServe(m_cs.shouldServe());
+	}else{
 
+		for(int32_t i=0;i<workers;i++){
+			auto worker = getMwNfd(i);
+			NCapa += worker->getCsTable().getLimit();
+			NEntries += worker->getCsTable().size();
+			NHits += worker->getCountersInfo().nCsHits;
+			NMisses += worker->getCountersInfo().nCsMisses;
+
+		}
 	}
 
 	NEntries += m_cs.size();
