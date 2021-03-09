@@ -77,6 +77,7 @@ bool getGlobalNetName()
     return g_mwNfdParameters;
 }
 
+#if 0
 void setFibSharding(bool val)
 {
 		g_fibSharding= val;
@@ -86,7 +87,7 @@ bool getFibSharding()
 {
 		return g_fibSharding;
 }
-
+#endif
 void setBulkFibFilePath(std::string val)
 {
 	g_bulkFibFilePath=val;

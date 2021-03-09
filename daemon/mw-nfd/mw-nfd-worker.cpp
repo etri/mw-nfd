@@ -76,13 +76,13 @@ NFD_LOG_INIT(MwNfd);
 
 namespace nfd {
 
-MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, const nfd::face::GenericLinkService::Options& options, const std::string& conf)
-    : m_keyChain(keyChain)
-  , m_workerId(wid)
+MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const std::string& conf)
+  : m_workerId(wid)
   , m_terminationSignalSet(*ios)
   , m_fibSignalSet(*ios)
     ,m_done(false)
     ,m_configFile(conf)
+,m_wantFibSharding(fibSharding)
 	{
 		// Disable automatic verification of parameters digest for decoded Interests.
 		//    Interest::setAutoCheckParametersDigest(false);
@@ -114,7 +114,6 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, ndn::KeyChain& keyChain, 
 
 		//int opt=1;
 		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
-
 
            getScheduler().schedule(3_s, [this] {
                 bulk_test_case_01();
@@ -215,13 +214,15 @@ void MwNfd::processNfdcCommand( char * cmd)
 				goto response;
 			}
 
-			if(prefix.size() >= getPrefixLength4Distribution() and getFibSharding() ){
-				auto block = prefix.wireEncode();
-				int32_t wid;//, ndnType;
-				wid = computeWorkerId(block.wire(), block.size());
-				if(wid!=m_workerId){
-					nfdc->ret = MW_NFDC_CMD_NOK;
-					goto response;
+			if(m_wantFibSharding){
+				if(prefix.size() >= getPrefixLength4Distribution() and m_wantFibSharding ){
+					auto block = prefix.wireEncode();
+					int32_t wid;//, ndnType;
+					wid = computeWorkerId(block.wire(), block.size());
+					if(wid!=m_workerId){
+						nfdc->ret = MW_NFDC_CMD_NOK;
+						goto response;
+					}
 				}
 			}
 			fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
@@ -452,7 +453,7 @@ void MwNfd::bulk_test_case_01()
 			}
 
 			if( faceId0 != 0 and faceId1 != 0 ){
-				config_bulk_fib(faceId0, faceId1, getFibSharding());
+				config_bulk_fib( faceId0, faceId1, m_wantFibSharding );
 				done = true;
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -657,7 +658,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 
 				Face* face = m_faceTable->get(nextHopId);
 
-                if(prefix.size() >= getPrefixLength4Distribution() and sharding ){
+                if( sharding and prefix.size() >= getPrefixLength4Distribution() ){
                     wid = computeWorkerId(prefix.wireEncode().wire(), prefix.wireEncode().size());
                     if(wid!=m_workerId){
 				        ndx++;
@@ -674,8 +675,8 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 				memset(line, '\0', sizeof(line));
 		}
 		fclose(fp);
-        //std::cout << "ForwardingWorker[" << m_workerId << "]- Bulk FIB Insertion End(Fib's Entries:"  << getFibTable().size();
 
+		NFD_LOG_INFO("Worker(" << m_workerId << ") Fib Size: " << getFibTable().size() << " on CPU " << sched_getcpu());
         return true;
 }
 

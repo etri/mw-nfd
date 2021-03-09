@@ -69,6 +69,7 @@ std::set<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
+bool g_wantFibSharding=false;
 
 static void configMwNfdConfig(const std::string configFileName)
 {
@@ -123,6 +124,10 @@ static void configMwNfdConfig(const std::string configFileName)
 
 
             alreadyProcessForwarding = true;
+        }else if( section.first == "fib-sharding"){
+            std::string wantFibSharding = config.get("mw-nfd.fib-sharding","no");
+			if(wantFibSharding=="yes")
+				g_wantFibSharding=true;
         }else if( section.first == "prefix-length-for-distribution"){
 
             setPrefixLength4Distribution(config.get<std::size_t>("mw-nfd.prefix-length-for-distribution",2));
@@ -140,7 +145,6 @@ static void configMwNfdConfig(const std::string configFileName)
             }
         }
     }
-    setFibSharding(true);
 
     if( g_inputWorkerList.size() > 0 and g_dcnWorkerList.size() > 0){
 
@@ -664,7 +668,6 @@ int main(int argc, char** argv)
 
         tg.create_thread( [ workerId, coreId, &cv, &m, &retval, configFile]{
 
-                ndn::KeyChain           m_nfdKeyChain;
 #if defined(__linux__)
                 cpu_set_t cpuset;
                 CPU_ZERO(&cpuset);
@@ -681,9 +684,8 @@ int main(int argc, char** argv)
                 //processor_assign(getpid(), mask, true);
 #endif
 
-                const nfd::face::GenericLinkService::Options options;
                 try{
-                    auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), m_nfdKeyChain, options, configFile);
+                    auto mwNfd = std::make_shared<nfd::MwNfd>(workerId, &getGlobalIoService(), g_wantFibSharding, configFile);
                     {
                         std::unique_lock<std::mutex> lock(m);
                         cv.wait(lock, [&retval] { return retval == 1; });

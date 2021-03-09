@@ -82,7 +82,7 @@ public:
 
 	void runWorker();
 
-	explicit MwNfd(int8_t wid, boost::asio::io_service*, ndn::KeyChain&, const nfd::face::GenericLinkService::Options& options, const std::string&);
+	explicit MwNfd(int8_t wid, boost::asio::io_service*, bool,const std::string&);
 
 	void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
 			size_t faceId, EndpointId ep);
@@ -122,7 +122,7 @@ void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
   unique_ptr<face::FaceSystem> m_faceSystem;
   unique_ptr<Forwarder> m_forwarder;
 
-  ndn::KeyChain& m_keyChain;
+//  ndn::KeyChain& m_keyChain;
   shared_ptr<face::Face> m_internalFace;
   shared_ptr<ndn::Face> m_internalClientFace;
   unique_ptr<ndn::mgmt::Dispatcher> m_dispatcher;
@@ -154,6 +154,7 @@ private:
 	const std::string& m_configFile;
 	std::map<FaceId, std::shared_ptr<nfd::face::GenericLinkService> > gls_map;
 	nfd::face::Face *m_face;
+	bool m_wantFibSharding;
 };
 
 } // namespace nfd

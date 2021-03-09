@@ -215,8 +215,8 @@ void setPrefixLength4Distribution(size_t);
 size_t getPrefixLength4Distribution();
 void setForwardingWorkers(int8_t);
 int8_t  getForwardingWorkers();
-void setFibSharding(bool);
-bool getFibSharding();
+//void setFibSharding(bool);
+//bool getFibSharding();
 
 boost::asio::io_service*
 getGlobalIoService(int);

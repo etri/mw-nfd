@@ -491,6 +491,7 @@ mw-nfd
     ; Default prefix-length-for-distribution is 2.
     prefix-length-for-distribution 2
 
+	fib-sharding yes
 
     ; ; bulk-fib-test is only used for MW-NFD forwarding test environment specified
     ; ; in the MW-NFD paper (ICN 2020).
