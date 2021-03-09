@@ -491,19 +491,19 @@ mw-nfd
     ; Default prefix-length-for-distribution is 2.
     prefix-length-for-distribution 2
 
-	; If fib-sharding is enabled, router's FIB is distributed to each forwarding worker's FIB based on the 
-	; hash of the "prefix-length-for-distribution" name components of the fib entry.  
-	; Interest with forwading hint which doesn't match to network region of the router is forwarded by forwarding hint,
-	; but, packet distribution to forwarding workers is based on Interest name.
-	; Thus, forwarding hint prefix should be installed to all forwarding worker FIBs. 
-	; You can add forwarding hint prefix with new nfdc command as follows: 
-	;		ndfc route add prefix <forwarding-hint-prefix> nexthop <facd-id> net-name 
-	;
-	; If you want to add forwarding-hint prefix with routing protocol like NLSR, 
-	; disable fib-sharding (fib-sharding no) to install all FIB entries including forwarding hint prefixes 
-	; to each forwarding worker FIB. 
-	; Default is "fib-sharding yes".
-	fib-sharding yes	; or no 
+    ; If fib-sharding is enabled, router's FIB is distributed to each forwarding worker's FIB based on the 
+    ; hash of the "prefix-length-for-distribution" name components of the fib entry.  
+    ; Interest with forwading hint which doesn't match to network region of the router is forwarded by forwarding hint,
+    ; but, packet distribution to forwarding workers is based on Interest name.
+    ; Thus, forwarding hint prefix should be installed to all forwarding worker FIBs. 
+    ; You can add forwarding hint prefix with new nfdc command as follows: 
+    ;		ndfc route add prefix <forwarding-hint-prefix> nexthop <facd-id> net-name 
+    ;
+    ; If you want to add forwarding-hint prefix with routing protocol like NLSR, 
+    ; disable fib-sharding (fib-sharding no) to install all FIB entries including forwarding hint prefixes 
+    ; to each forwarding worker FIB. 
+    ; Default is "fib-sharding yes".
+    fib-sharding yes	; or no 
 
     ; ; bulk-fib-test is only used for MW-NFD forwarding test environment specified
     ; ; in the MW-NFD paper (ICN 2020).
