@@ -201,8 +201,8 @@ void MwNfd::processNfdcCommand( char * cmd)
 				goto response;
 			}
 
-			if(prefix.size() <=0){
-				NFD_LOG_INFO("prefix.size({}) is " << prefix.size());
+			if(prefix.size() > Fib::getMaxDepth()){
+				NFD_LOG_WARN("prefix.size({}) is " << prefix.size());
 				nfdc->ret = MW_NFDC_CMD_NOK;
 				goto response;
 			}
