@@ -484,14 +484,26 @@ mw-nfd
     ; So, Data with PIT token will be send to the worker-id encoded in the PIT token.
     ;
     ; Currently, local application doesn't return Data with PIT token.
-    ; So, the local producer Data shall be distrubted based on the name prefix.
+    ; So, the local producer Data shall be distributed based on the name prefix.
     ; If the minimum namespace length of local applications using prefix matching between Interest and Data is K,
     ; prefix-length-for-distribution should not be larger than K.
     ; ( prefix-length-for-distribution <= K )
     ; Default prefix-length-for-distribution is 2.
     prefix-length-for-distribution 2
 
-	fib-sharding yes
+    ; If fib-sharding is enabled, router's FIB is distributed to each forwarding worker's FIB based on the 
+    ; hash of the "prefix-length-for-distribution" name components of the fib entry.  
+    ; Interest with forwading hint which doesn't match to network region of the router is forwarded by forwarding hint,
+    ; but, packet distribution to forwarding workers is based on Interest name.
+    ; Thus, forwarding hint prefix should be installed to all forwarding worker FIBs. 
+    ; You can add forwarding hint prefix with new nfdc command as follows: 
+    ;		ndfc route add prefix <forwarding-hint-prefix> nexthop <facd-id> net-name 
+    ;
+    ; If you want to add forwarding-hint prefix with routing protocol like NLSR, 
+    ; disable fib-sharding (fib-sharding no) to install all FIB entries including forwarding hint prefixes 
+    ; to each forwarding worker FIB. 
+    ; Default is "fib-sharding yes".
+    fib-sharding yes	; or no 
 
     ; ; bulk-fib-test is only used for MW-NFD forwarding test environment specified
     ; ; in the MW-NFD paper (ICN 2020).
