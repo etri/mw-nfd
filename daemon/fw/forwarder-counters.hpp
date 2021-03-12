@@ -50,7 +50,7 @@ public:
   PacketCounter nCsMisses;
 
 #ifdef ETRI_DEBUG_COUNTERS
-  PacketCounter nFaceCounters[128][16]; // 0: inInt, outInt, inData, outData
+  PacketCounter nFaceCounters[COUNTERS_MAX][16]; // 0: inInt, outInt, inData, outData
 #endif
 
 };

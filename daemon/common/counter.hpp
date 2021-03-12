@@ -30,6 +30,8 @@
 
 namespace nfd {
 
+#define COUNTERS_MAX 128
+
 /** \brief represents a counter that encloses an integer value
  *
  *  SimpleCounter is noncopyable, because increment should be called on the counter,
