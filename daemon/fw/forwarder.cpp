@@ -392,7 +392,7 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   ++m_counters.nOutInterests;
 
 #ifdef ETRI_DEBUG_COUNTERS
-    ++m_counters.nFaceCounters[egress.face.getId()-face::FACEID_RESERVED_MAX][1];
+    ++m_counters.nFaceCounters[egress.getId()-face::FACEID_RESERVED_MAX][1];
 #endif
 	return &*it;
 }
@@ -695,7 +695,7 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
   ++m_counters.nOutData;
 
 #ifdef ETRI_DEBUG_COUNTERS
-    ++m_counters.nFaceCounters[egress.face.getId()-face::FACEID_RESERVED_MAX][3];
+    ++m_counters.nFaceCounters[egress.getId()-face::FACEID_RESERVED_MAX][3];
 #endif
 
 	return true;

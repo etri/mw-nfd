@@ -136,17 +136,17 @@ ForwarderStatusManager::collectGeneralStatus()
 #ifdef ETRI_DEBUG_COUNTERS
     for(int i=0;i<128;i++){
         if( inInt[i]!=0 or outInt[i]!= 0 or inData[i]!=0 or outData[i]!=0){
-            NFD_LOG_INFO(("Face(" << i+face::FACEID_RESERVED_MAX << ") - Total nFaceCounters: " << inInt[i] << "/" << outInt[i] <<
-                        "/" << inData[i] << "/" << outData[i] );
+            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - Total nFaceCounters: " << inInt[i] << "/" << outInt[i] <<
+                        "/" << inData[i] << "/" << outData[i] << std::endl;
         }
 
         if(nEnqMiss[i]!=0)
-            NFD_LOG_INFO("Face(" <<  i+face::FACEID_RESERVED_MAX << ") - nEnqueueMiss: " << nEnqMiss[i]);
+            std::cout << "Face(" <<  i+face::FACEID_RESERVED_MAX << ") - nEnqueueMiss: " << nEnqMiss[i] << std::endl;
 
         if(nDropped[i]!=0)
-            NFD_LOG_INFO("Face(" << i+face::FACEID_RESERVED_MAX << ") - nDrooped Packets: " << nDropped[i]);
+            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nDrooped Packets: " << nDropped[i] << std::endl;
         if(nDropped[i]!=0)
-            NFD_LOG_INFO("Face(" << i+face::FACEID_RESERVED_MAX << ") - nIfDrooped Packets: " << nIfDropped[i]);
+            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nIfDrooped Packets: " << nIfDropped[i] << std::endl;
     }
 #endif
 
