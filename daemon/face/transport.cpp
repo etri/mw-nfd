@@ -122,6 +122,8 @@ Transport::receive(const Block& packet, const EndpointId& endpoint)
   ++this->nInPackets;
   this->nInBytes += packet.size();
 
+//ETRI(modori) on 2k210312
+	if(m_service!=nullptr)
   m_service->receivePacket(packet, endpoint);
 }
 

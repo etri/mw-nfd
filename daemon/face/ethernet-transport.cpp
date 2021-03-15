@@ -50,9 +50,11 @@
 
 #include <boost/endian/conversion.hpp>
 
-extern size_t nEnqMiss[128];
-extern size_t nDropped[128];
-extern size_t nIfDropped[128];
+#ifdef ETRI_DEBUG_COUNTERS
+extern size_t g_nEnqMiss[128];
+extern size_t g_nDropped[128];
+extern size_t g_nIfDropped[128];
+#endif
 
 namespace nfd {
 namespace face {
@@ -225,6 +227,16 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
         }
     }
 
+#ifdef ETRI_DEBUG_COUNTERS
+	if(getFace()!=nullptr){
+  		size_t dropped=0, iFdropped=0;
+		std::tie(dropped, iFdropped) = m_pcap.getNDropped();
+  		if (dropped - g_nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0)
+  			g_nDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = dropped;
+  		if (iFdropped - g_nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] > 0)
+  			g_nIfDropped[getFace()->getId()-face::FACEID_RESERVED_MAX] = iFdropped;
+	}
+#endif
 
 #ifdef _DEBUG
   size_t nDropped = m_pcap.getNDropped();

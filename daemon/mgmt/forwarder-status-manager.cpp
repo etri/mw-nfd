@@ -30,9 +30,9 @@
 #include "mw-nfd/mw-nfd-global.hpp"
 
 #ifdef ETRI_DEBUG_COUNTERS
-size_t nEnqMiss[128];
-size_t nDropped[128];
-size_t nIfDropped[128];
+size_t g_nEnqMiss[COUNTERS_MAX];
+size_t g_nDropped[COUNTERS_MAX];
+size_t g_nIfDropped[COUNTERS_MAX];
 #endif
 
 NFD_LOG_INIT(ForwarderStatusManager);
@@ -48,6 +48,11 @@ ForwarderStatusManager::ForwarderStatusManager(Forwarder& forwarder, Dispatcher&
 {
   m_dispatcher.addStatusDataset("status/general", ndn::mgmt::makeAcceptAllAuthorization(),
                                 bind(&ForwarderStatusManager::listGeneralStatus, this, _1, _2, _3));
+#ifdef ETRI_DEBUG_COUNTERS
+	memset(g_nEnqMiss, '\0',sizeof(size_t)*COUNTERS_MAX);
+memset(g_nDropped,'\0',sizeof(size_t)*COUNTERS_MAX);
+memset(g_nIfDropped,'\0',sizeof(size_t)*COUNTERS_MAX);
+#endif
 }
 
 ndn::nfd::ForwarderStatus
@@ -119,8 +124,8 @@ ForwarderStatusManager::collectGeneralStatus()
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
 
 
-#ifdef ETRI_DEBUG_COUNTERS
-    for(int i=0;i<8;i++){
+#if 0 //def ETRI_DEBUG_COUNTERS
+    for(int i=0;i<COUNTERS_MAX;i++){
         if( counters.nFaceCounters[i][0] != 0 or counters.nFaceCounters[i][1] != 0 or counters.nFaceCounters[i][2] != 0 or counters.nFaceCounters[i][3] != 0)
         {
             inInt[i] += counters.nFaceCounters[i][0];
@@ -134,19 +139,19 @@ ForwarderStatusManager::collectGeneralStatus()
   }
 
 #ifdef ETRI_DEBUG_COUNTERS
-    for(int i=0;i<128;i++){
+    for(int i=0;i<COUNTERS_MAX;i++){
         if( inInt[i]!=0 or outInt[i]!= 0 or inData[i]!=0 or outData[i]!=0){
             std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - Total nFaceCounters: " << inInt[i] << "/" << outInt[i] <<
                         "/" << inData[i] << "/" << outData[i] << std::endl;
         }
 
-        if(nEnqMiss[i]!=0)
-            std::cout << "Face(" <<  i+face::FACEID_RESERVED_MAX << ") - nEnqueueMiss: " << nEnqMiss[i] << std::endl;
+        if(g_nEnqMiss[i]!=0)
+            std::cout << "Face(" <<  i+face::FACEID_RESERVED_MAX << ") - nEnqueueMiss: " << g_nEnqMiss[i] << std::endl;
 
-        if(nDropped[i]!=0)
-            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nDrooped Packets: " << nDropped[i] << std::endl;
-        if(nDropped[i]!=0)
-            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nIfDrooped Packets: " << nIfDropped[i] << std::endl;
+        if(g_nDropped[i]!=0)
+            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nDrooped(Pcap) Packets: " << g_nDropped[i] << std::endl;
+        if(g_nIfDropped[i]!=0)
+            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nIfDrooped(Pcap) Packets: " << g_nIfDropped[i] << std::endl;
     }
 #endif
 

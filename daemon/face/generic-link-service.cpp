@@ -34,6 +34,12 @@
 #include <iostream>
 #include <sched.h>
 
+
+#ifdef ETRI_DEBUG_COUNTERS
+ extern size_t g_nEnqMiss[128];
+ extern size_t g_nDropped[128];
+ extern size_t g_nIfDropped[128];
+ #endif
 namespace nfd {
 namespace face {
 
@@ -389,7 +395,9 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
 				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
 			else
 				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
-			//if(ret==false) this->enqMiss();
+#ifdef ETRI_DEBUG_COUNTERS
+			if(ret==false) g_nEnqMiss[getFace()->getId()-face::FACEID_RESERVED_MAX]+=1;
+#endif
 		}   
 	}  
 
