@@ -271,9 +271,9 @@ void MwNfd::processNfdcCommand( char * cmd)
 					this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
                     });		
 
-				gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
+				m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
 
-				if(!m_setReservedFace){
+				if(m_setReservedFace==false){
 					m_face =m_faceTable->get(face::FACEID_NULL);	
 					auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
 
@@ -290,45 +290,7 @@ void MwNfd::processNfdcCommand( char * cmd)
 							this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
 							});		
 
-					gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
-
-					m_face =m_faceTable->get(face::FACEID_CONTENT_STORE);	
-					gls = std::make_shared<nfd::face::GenericLinkService>(options);
-
-					gls->afterReceiveInterest.connect(
-							[this] (const Interest& interest, const EndpointId& endpointId) {
-							this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
-							});		
-					gls->afterReceiveData.connect(
-							[this] (const Data& data, const EndpointId& endpointId) {
-							this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
-							});		
-					gls->afterReceiveNack.connect(
-							[this] (const lp::Nack& nack, const EndpointId& endpointId) {
-							this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
-							});		
-
-					gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
-
-					m_face =m_faceTable->get(face::FACEID_INTERNAL_FACE);	
-
-					gls = std::make_shared<nfd::face::GenericLinkService>(options);
-
-					gls->afterReceiveInterest.connect(
-							[this] (const Interest& interest, const EndpointId& endpointId) {
-							this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
-							});		
-					gls->afterReceiveData.connect(
-							[this] (const Data& data, const EndpointId& endpointId) {
-							this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
-							});		
-					gls->afterReceiveNack.connect(
-							[this] (const lp::Nack& nack, const EndpointId& endpointId) {
-							this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
-							});		
-
-					gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
-			
+					m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(face::FACEID_NULL,std::move(gls)) );
 					m_setReservedFace = true;
 				}
 
@@ -344,7 +306,7 @@ void MwNfd::processNfdcCommand( char * cmd)
 #endif
 			}
 
-			gls_map.erase(faceId);
+			m_genericLinkServiceList.erase(faceId);
 		}
 	}else if(nfdc->mgr == MW_NFDC_MGR_CS){
 		nfd::cs::Cs &cs = m_forwarder->getCs();
@@ -577,9 +539,9 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
     Block packet(buffer->data(), buffer->size()) ;
 
 	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
-	it = gls_map.find(faceId);
-	if( it == gls_map.end() ){
-		NFD_LOG_WARN("There is no LinkService Entry with " << faceId << " on CPU " << sched_getcpu());
+	it = m_genericLinkServiceList.find(faceId);
+	if( it == m_genericLinkServiceList.end() ){
+		NFD_LOG_WARN("There is no LinkService(for decodeNetPacketFromMq) Entry with " << faceId << " on CPU " << sched_getcpu());
 		return;
 	}
 
@@ -742,10 +704,9 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 
 std::tuple<uint64_t,uint64_t,uint64_t> MwNfd::getLinkServiceCounters(FaceId faceId)
 {
-	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
-	it = gls_map.find(faceId);
-	if( it == gls_map.end() ){
-		NFD_LOG_WARN("There is no LinkService Entry with " << faceId << " on CPU " << sched_getcpu());
+	auto it = m_genericLinkServiceList.find(faceId);
+	if( it == m_genericLinkServiceList.end() ){
+		NFD_LOG_WARN("There is no LinkService(for Counters) Entry with " << faceId << " on CPU " << sched_getcpu());
 		nfd::face::GenericLinkServiceCounters dummy;
 		return std::make_tuple(0,0,0);
 	}

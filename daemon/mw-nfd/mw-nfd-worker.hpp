@@ -152,9 +152,10 @@ private:
 	std::string m_bulkFibPort0;
 	std::string m_bulkFibPort1;
 	const std::string& m_configFile;
-	std::map<FaceId, std::shared_ptr<nfd::face::GenericLinkService> > gls_map;
+	std::map<FaceId, std::shared_ptr<nfd::face::GenericLinkService> > m_genericLinkServiceList;
 	nfd::face::Face *m_face;
 	bool m_wantFibSharding;
+	bool m_setReservedFace;
 };
 
 } // namespace nfd

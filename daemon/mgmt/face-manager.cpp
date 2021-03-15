@@ -427,7 +427,9 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
 	uint64_t nINs=0;
 	for(int i=0;i<getForwardingWorkers();i++){
 		auto worker = getMwNfd(i);
-		if(worker!=nullptr){
+		if(face.getId()==face::FACEID_INTERNAL_FACE) continue;
+		if(face.getId()==face::FACEID_CONTENT_STORE) continue;
+	 	if(worker!=nullptr){
 			std::tie(nIIs, nIDs, nINs)=worker->getLinkServiceCounters(face.getId());
 			nInInterests +=nIIs;
 			nInData += nIDs;
