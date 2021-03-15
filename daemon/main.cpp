@@ -69,7 +69,7 @@ std::set<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
-bool g_wantFibSharding=false;
+bool g_wantFibSharding=true;
 
 static void configMwNfdConfig(const std::string configFileName)
 {
@@ -126,8 +126,8 @@ static void configMwNfdConfig(const std::string configFileName)
             alreadyProcessForwarding = true;
         }else if( section.first == "fib-sharding"){
             std::string wantFibSharding = config.get("mw-nfd.fib-sharding","no");
-			if(wantFibSharding=="yes")
-				g_wantFibSharding=true;
+			if(wantFibSharding=="no")
+				g_wantFibSharding=false;
         }else if( section.first == "prefix-length-for-distribution"){
 
             setPrefixLength4Distribution(config.get<std::size_t>("mw-nfd.prefix-length-for-distribution",2));
