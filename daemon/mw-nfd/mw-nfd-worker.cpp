@@ -83,6 +83,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
     ,m_done(false)
     ,m_configFile(conf)
 ,m_wantFibSharding(fibSharding)
+,m_setReservedFace(false)
 	{
 		// Disable automatic verification of parameters digest for decoded Interests.
 		//    Interest::setAutoCheckParametersDigest(false);
@@ -271,6 +272,65 @@ void MwNfd::processNfdcCommand( char * cmd)
                     });		
 
 				gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
+
+				if(!m_setReservedFace){
+					m_face =m_faceTable->get(face::FACEID_NULL);	
+					auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
+
+					gls->afterReceiveInterest.connect(
+							[this] (const Interest& interest, const EndpointId& endpointId) {
+							this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
+							});		
+					gls->afterReceiveData.connect(
+							[this] (const Data& data, const EndpointId& endpointId) {
+							this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
+							});		
+					gls->afterReceiveNack.connect(
+							[this] (const lp::Nack& nack, const EndpointId& endpointId) {
+							this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
+							});		
+
+					gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
+
+					m_face =m_faceTable->get(face::FACEID_CONTENT_STORE);	
+					gls = std::make_shared<nfd::face::GenericLinkService>(options);
+
+					gls->afterReceiveInterest.connect(
+							[this] (const Interest& interest, const EndpointId& endpointId) {
+							this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
+							});		
+					gls->afterReceiveData.connect(
+							[this] (const Data& data, const EndpointId& endpointId) {
+							this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
+							});		
+					gls->afterReceiveNack.connect(
+							[this] (const lp::Nack& nack, const EndpointId& endpointId) {
+							this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
+							});		
+
+					gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
+
+					m_face =m_faceTable->get(face::FACEID_INTERNAL_FACE);	
+
+					gls = std::make_shared<nfd::face::GenericLinkService>(options);
+
+					gls->afterReceiveInterest.connect(
+							[this] (const Interest& interest, const EndpointId& endpointId) {
+							this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
+							});		
+					gls->afterReceiveData.connect(
+							[this] (const Data& data, const EndpointId& endpointId) {
+							this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
+							});		
+					gls->afterReceiveNack.connect(
+							[this] (const lp::Nack& nack, const EndpointId& endpointId) {
+							this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
+							});		
+
+					gls_map.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(faceId,std::move(gls)) );
+			
+					m_setReservedFace = true;
+				}
 
 		}else if(nfdc->verb == MW_NFDC_VERB_DESTROYED){
 			FaceId faceId = nfdc->parameters->getFaceId();
