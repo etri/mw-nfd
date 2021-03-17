@@ -26,6 +26,7 @@
 #include "ndn-cxx/mgmt/nfd/controller.hpp"
 #include "ndn-cxx/mgmt/nfd/control-response.hpp"
 #include "ndn-cxx/transport/transport.hpp"
+#include "ndn-cxx/lp/pit-token.hpp"
 
 #include <boost/asio/io_service.hpp>
 
@@ -153,6 +154,8 @@ DummyClientFace::construct(const Options& options)
       else {
         addTagFromField<lp::NextHopFaceIdTag, lp::NextHopFaceIdField>(*interest, lpPacket);
         addTagFromField<lp::CongestionMarkTag, lp::CongestionMarkField>(*interest, lpPacket);
+//dmsul test code
+        addTagFromField<lp::PitToken, lp::PitTokenField>(*interest, lpPacket);
         onSendInterest(*interest);
       }
     }
@@ -160,6 +163,8 @@ DummyClientFace::construct(const Options& options)
       shared_ptr<Data> data = make_shared<Data>(block);
       addTagFromField<lp::CachePolicyTag, lp::CachePolicyField>(*data, lpPacket);
       addTagFromField<lp::CongestionMarkTag, lp::CongestionMarkField>(*data, lpPacket);
+//dmsul test code
+        addTagFromField<lp::PitToken, lp::PitTokenField>(*data, lpPacket);
       onSendData(*data);
     }
   });

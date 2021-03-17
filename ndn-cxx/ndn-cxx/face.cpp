@@ -305,6 +305,8 @@ extractLpLocalFields(NetPkt& netPacket, const lp::Packet& lpPacket)
 {
   addTagFromField<lp::IncomingFaceIdTag, lp::IncomingFaceIdField>(netPacket, lpPacket);
   addTagFromField<lp::CongestionMarkTag, lp::CongestionMarkField>(netPacket, lpPacket);
+// Modified by dmsul for PitToken
+  addTagFromField<lp::PitToken, lp::PitTokenField>(netPacket, lpPacket);
 }
 
 void

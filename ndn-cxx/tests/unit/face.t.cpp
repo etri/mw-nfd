@@ -982,6 +982,43 @@ BOOST_FIXTURE_TEST_CASE(ExplicitTransport, WithEnvAndConfig)
 
 BOOST_AUTO_TEST_SUITE_END() // Transport
 
+BOOST_AUTO_TEST_CASE(TestPitToken)
+{
+  bool hasInterest1 = false, hasData = false;
+  const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
+  auto b= make_shared<Buffer>(VALUE, sizeof(VALUE));
+  lp::PitToken pitToken(std::make_pair(b->begin(), b->end()) );
+
+  // first InterestFilter allows loopback and should receive Interest
+  face.setInterestFilter("/", [&] (const InterestFilter&, const Interest& interest) {
+    hasInterest1 = true;
+    // do not respond with Data right away, so Face must send Interest to forwarder
+  });
+
+  auto interest = makeInterest("/A/B", false);
+  interest->setTag(make_shared<lp::PitToken>(pitToken));
+
+  face.expressInterest(*interest,
+                       bind([&] { hasData = true; }),
+                       bind([] { BOOST_FAIL("Unexpected nack"); }),
+                       bind([] { BOOST_FAIL("Unexpected timeout"); }));
+  advanceClocks(1_ms);
+  BOOST_CHECK_EQUAL(hasInterest1, true); // Interest looped back
+  BOOST_CHECK_EQUAL(face.sentInterests.size(), 1); // Interest sent to forwarder
+  BOOST_CHECK_EQUAL(hasData, false); // waiting for Data
+
+  BOOST_CHECK(face.sentInterests[0].getTag<lp::PitToken>() != nullptr);
+
+  lp::PitToken& pitToken1 = *face.sentInterests[0].getTag<lp::PitToken>();
+  BOOST_CHECK_EQUAL(pitToken, pitToken1);
+
+  face.put(*makeData("/A/B")); // first InterestFilter responds with Data
+  advanceClocks(1_ms);
+  BOOST_CHECK_EQUAL(hasData, true);
+  BOOST_CHECK_EQUAL(face.sentData.size(), 0); // do not spill Data to forwarder
+}
+
+
 BOOST_AUTO_TEST_SUITE_END() // TestFace
 
 } // namespace tests
