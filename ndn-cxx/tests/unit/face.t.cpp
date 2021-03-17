@@ -26,6 +26,9 @@
 #include "ndn-cxx/util/dummy-client-face.hpp"
 #include "ndn-cxx/util/scheduler.hpp"
 
+#include "ndn-cxx/lp/pit-token.hpp"
+#include "ndn-cxx/lp/packet.hpp"
+
 #include "tests/boost-test.hpp"
 #include "tests/make-interest-data.hpp"
 #include "tests/unit/identity-management-time-fixture.hpp"
