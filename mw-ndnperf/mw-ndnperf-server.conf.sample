@@ -1,0 +1,10 @@
+master-core 2
+process-core 4,6,8,10,12,14
+signature-type DigestSha256
+; signature-type SignatureSha256WithRsa
+; signature-type SignatureSha256WithEcdsa
+chunk-size 8192
+rsa-key-size 2048
+ec-key-size 256
+freshness 1; unit: ms
+

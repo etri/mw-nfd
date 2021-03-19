@@ -1,0 +1,5 @@
+window-size 32
+digest 0
+interval 0
+master-core 2
+process-core 3,4

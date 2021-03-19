@@ -1,0 +1,42 @@
+[Unit]
+Description=NDN Perf Client
+BindsTo=nfd.service
+After=nfd.service
+
+[Service]
+Environment=HOME=%S/ndn/ndnperf-client
+EnvironmentFile=-@SYSCONFDIR@/default/ndnperf-client
+ExecStart=@BINDIR@/ndnperf-client @SYSCONFDIR@/ndn/ndnperf-client.conf $FLAGS
+Restart=on-failure
+RestartPreventExitStatus=2
+User=ndnperf-generator
+
+CapabilityBoundingSet=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+PrivateUsers=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+# systemd older than v232 doesn't support a value of "strict" for ProtectSystem,
+# so it will ignore that line and use ProtectSystem=full; with newer systemd,
+# the latter assignment is recognized and takes precedence, resulting in an
+# effective setting of ProtectSystem=strict
+ProtectSystem=full
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+StateDirectory=ndn/ndnperf-client
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=~@aio @chown @clock @cpu-emulation @debug @keyring @module @mount @obsolete @privileged @raw-io @reboot @resources @setuid @swap
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=nfd.service
