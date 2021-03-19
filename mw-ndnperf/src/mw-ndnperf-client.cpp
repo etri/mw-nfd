@@ -27,6 +27,7 @@
 #include <chrono>
 #include <iostream>
 #include <csignal>
+#include <thread>
 
 static const int DEFAULT_WINDOW = 32;
 static const int DEFAULT_INTERVAL = 100;
