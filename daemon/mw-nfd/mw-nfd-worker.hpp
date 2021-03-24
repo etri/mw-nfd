@@ -156,6 +156,7 @@ private:
 	nfd::face::Face *m_face;
 	bool m_wantFibSharding;
 	bool m_setReservedFace;
+	struct sockaddr_un m_localAddr;
 };
 
 } // namespace nfd

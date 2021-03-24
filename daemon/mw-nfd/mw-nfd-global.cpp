@@ -131,15 +131,78 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
     int i,numbytes;
     char buf[MW_NFD_CMD_BUF_SIZE]={0,};
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
-    struct sockaddr_in worker, their;
     size_t retval=0;
     size_t ret=0;
+	auto params = make_shared<ndn::nfd::ControlParameters>(parameters);
+#if 1
 
+	#define  SOCK_LOCALFILE   "/tmp/.mw-nfd-cli"
+	
+	int    sock;
+   	struct sockaddr_un   local_addr;
+   	struct sockaddr_un   target_addr;
+
+	for(i=0;i<g_forwardingWorkers;i++){
+
+		std::string SOCK_WORKERFILE = "/tmp/.mw-nfd-" + std::to_string(i);
+
+		if ( 0 == access( SOCK_LOCALFILE, F_OK))
+      		unlink( SOCK_LOCALFILE);
+
+		sock  = socket( PF_FILE, SOCK_DGRAM, 0);
+   
+		if( -1 == sock)
+		{
+			printf( "failed to create socket\n");
+			continue;
+		}
+
+		memset( &local_addr, 0, sizeof( local_addr));
+		local_addr.sun_family        = AF_UNIX;
+		strcpy( local_addr.sun_path, SOCK_LOCALFILE);
+
+		if( -1 == bind( sock, (struct sockaddr*)&local_addr, sizeof( local_addr))) {
+			printf( "failed for bind()\n");
+			close(sock);
+			continue;
+		}
+
+		memset( &target_addr, 0, sizeof( target_addr));
+		target_addr.sun_family        = AF_UNIX;
+		strcpy( target_addr.sun_path, SOCK_WORKERFILE.c_str());
+
+		nfdc->mgr = mgr;
+		nfdc->verb = verb;
+		nfdc->ret = MW_NFDC_CMD_OK;
+		nfdc->netName = netName;
+		nfdc->parameters = params;
+
+		numbytes = sendto(sock, buf, sizeof(buf), 0,
+				(struct sockaddr*)&target_addr, sizeof( target_addr));
+
+		setCommandRx(i, true);
+		if( numbytes == sizeof(buf)){
+			memset(buf, '\0', sizeof(buf));
+			numbytes = 0;
+			numbytes = recvfrom(sock, buf, sizeof(buf), 0, NULL,0);
+
+			if(numbytes){
+				retval += nfdc->retval;
+				ret = nfdc->ret;
+			}
+		}else{
+            //std::cout << "mgmt::Can't send worker: " << i << " command." << std::cout ;
+        }
+
+		setCommandRx(i, false);
+		close(sock);
+	}
+
+#else
+	int addr_len;
 	memset(&worker, 0, sizeof(worker));
 	worker.sin_family = AF_INET;
 	worker.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-	socklen_t addr_len;
 
 	if(g_nfdcSocket==0){
 		g_nfdcSocket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -147,7 +210,6 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
 
 	addr_len = sizeof worker;
 
-	auto params = make_shared<ndn::nfd::ControlParameters>(parameters);
 
 	for(i=0;i<g_forwardingWorkers;i++){
 		worker.sin_port = htons(MW_NFDC_PORT+i);
@@ -178,7 +240,7 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
 
 		setCommandRx(i, false);
 	}
-
+#endif
 	if( mgr == MW_NFDC_MGR_CS and verb == MW_NFDC_VERB_ERASE)
 		return retval;
 

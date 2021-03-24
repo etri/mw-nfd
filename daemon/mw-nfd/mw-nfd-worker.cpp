@@ -95,6 +95,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 #endif
 		m_ios = ios;
 
+#if 0
 		/*
 		 * It is necessary to support
 		 */
@@ -110,15 +111,28 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 			perror("mw-nfd bind failed"); 
 			exit(EXIT_FAILURE); 
 		} 
+#else
 
-		fcntl(m_sockNfdcCmd, F_SETFL, O_NONBLOCK); 
+	m_sockNfdcCmd = socket(PF_LOCAL, SOCK_DGRAM, 0);
 
-		//int opt=1;
-		//setsockopt(m_sockNfdcCmd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
+	std::string SOCK_LOCALFILE = "/tmp/.mw-nfd-" + std::to_string(wid);
 
-           getScheduler().schedule(3_s, [this] {
-                bulk_test_case_01();
-                   });
+	if ( 0 == access( SOCK_LOCALFILE.c_str(), F_OK))
+      unlink( SOCK_LOCALFILE.c_str());
+
+	memset(&m_localAddr, 0, sizeof(m_localAddr));
+	m_localAddr.sun_family = AF_UNIX;
+	strcpy(m_localAddr.sun_path, SOCK_LOCALFILE.c_str());
+	if (bind(m_sockNfdcCmd, (struct sockaddr *)&m_localAddr, sizeof(m_localAddr)) < 0) {
+		perror("bind");
+	}
+#endif
+
+	if(getBulkFibTest()){
+		getScheduler().schedule(3_s, [this] {
+				bulk_test_case_01();
+				});
+	}
 	}
 
 MwNfd::~MwNfd() = default;
@@ -182,7 +196,7 @@ void MwNfd::handleNfdcCommand()
 	}
 	
 	processNfdcCommand(buf);
-	sendto(m_sockNfdcCmd, buf, sizeof(buf), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
+	numbytes = sendto(m_sockNfdcCmd, buf, sizeof(buf), 0, (struct sockaddr*)&their_addr, sizeof(their_addr));
 }
 
 void MwNfd::processNfdcCommand( char * cmd)
