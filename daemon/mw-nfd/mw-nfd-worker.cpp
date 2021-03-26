@@ -84,6 +84,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
     ,m_configFile(conf)
 ,m_wantFibSharding(fibSharding)
 ,m_setReservedFace(false)
+,m_doneBulk(false)
 	{
 		// Disable automatic verification of parameters digest for decoded Interests.
 		//    Interest::setAutoCheckParametersDigest(false);
@@ -128,11 +129,6 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 	}
 #endif
 
-	if(getBulkFibTest()){
-		getScheduler().schedule(3_s, [this] {
-				bulk_test_case_01();
-				});
-	}
 	}
 
 MwNfd::~MwNfd() = default;
@@ -414,9 +410,15 @@ void MwNfd::initialize(uint32_t input_workers)
 
   initializeManagement();
 
-	NFD_LOG_INFO("The ForwardingWorker(" << m_workerId << ") is running with inputWorkers[mgmt+worker:" << input_workers << "]");
+	NFD_LOG_INFO("The ForwardingWorker(" << m_workerId << ") is running with inputWorkers[mgmt+input:" << input_workers << "]");
   m_inputWorkers = input_workers;
 
+#if 0
+	Name rtPrefix("/RouterName333/nfd");
+	fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
+    auto m_internalFace = m_faceTable->get(face::FACEID_INTERNAL_FACE);
+	m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
+#endif
 }
 
 void
@@ -464,37 +466,36 @@ MwNfd::initializeManagement()
 
 }
 
-void MwNfd::bulk_test_case_01()
+bool MwNfd::bulk_test_case_01()
 {
 	if(getBulkFibTest()){
-		bool done = false;
 		FaceId faceId0 = 0;
 		FaceId faceId1 = 0;
 
-		do{
-			FaceTable::const_iterator it;
-			FaceUri uri;
+		FaceTable::const_iterator it;
+		FaceUri uri;
 
-			for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) {
+		for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) {
 
-				uri = it->getLocalUri();
+			uri = it->getLocalUri();
 
-				if( uri.getHost() == m_bulkFibPort0 ){
-					faceId0 = it->getId();
-				}
-
-				if( uri.getHost() == m_bulkFibPort1 ){
-					faceId1 = it->getId();
-				}
+			if( uri.getHost() == m_bulkFibPort0 ){
+				faceId0 = it->getId();
 			}
 
-			if( faceId0 != 0 and faceId1 != 0 ){
-				config_bulk_fib( faceId0, faceId1, m_wantFibSharding );
-				done = true;
+			if( uri.getHost() == m_bulkFibPort1 ){
+				faceId1 = it->getId();
 			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
-		}while(!done);
-	}
+		}
+
+		if( faceId0 != 0 and faceId1 != 0 ){
+			config_bulk_fib( faceId0, faceId1, m_wantFibSharding );
+			return true;
+		}else
+			return false;
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+	}else
+		return true;
 }
 
 void MwNfd::runWorker()
@@ -509,6 +510,7 @@ void MwNfd::runWorker()
     int32_t inputMQs = m_inputWorkers *2;
 
     //bulk_test_case_01();
+		//getScheduler().schedule(2_s, [this] { bulk_test_case_01(); });
 
     do{
 		if(getCommandRx(m_workerId)==true){
@@ -532,6 +534,10 @@ void MwNfd::runWorker()
         if(g_workerTimerTriggerList[m_workerId]){
             m_ios->poll();
             g_workerTimerTriggerList[m_workerId] = false;
+			if(m_doneBulk==false){
+				NFD_LOG_INFO("Setting for Bulk Test... on CPU " <<  sched_getcpu());
+				m_doneBulk= bulk_test_case_01(); 
+			}
         }
 
     }while(!m_done);
@@ -554,6 +560,7 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 
 	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
 	it = m_genericLinkServiceList.find(faceId);
+	//if( faceId != face::FACEID_INTERNAL_FACE and it == m_genericLinkServiceList.end() ){
 	if( it == m_genericLinkServiceList.end() ){
 		NFD_LOG_WARN("There is no LinkService(for decodeNetPacketFromMq) Entry with " << faceId << " on CPU " << sched_getcpu());
 		return;
@@ -564,88 +571,9 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 	mw_linkservice->receivePacket(packet, endpoint);
 }
 
-bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding, bool dpdk)
-{
-		NFD_LOG_INFO("MW-NFD is setting the bulk fib: face0:" << faceId0 << "/face1:" << faceId1);
-		FILE *fp;
-		char line[1024]={0,};
-		uint64_t cost = 0;
-		int ndx = 0;
-		int line_cnt=0;
-		FaceUri uri;
-		FaceId nextHopId;
-		int32_t wid;//, ndnType;
-
-		fp =  fopen (getBulkFibFilePath().c_str(), "r");
-        char* ptr __attribute__((unused));
-
-		if (fp==NULL) {
-			NFD_LOG_DEBUG("MW-NFD: bulk_fib_test: can't read bulk-fib-file:" << getBulkFibFilePath());
-            return false;
-		}
-
-		while ( !feof(fp) ) {
-            ptr=fgets(line, sizeof(line), fp);
-            line_cnt ++;
-		}
-		line_cnt -=1;
-		fclose(fp);
-
-		fp =  fopen (getBulkFibFilePath().c_str(), "r");
-
-		while ( !feof(fp) ) {
-				ptr=fgets(line, sizeof(line), fp);
-				if(strlen(line)==0) continue;
-				if(line[0]=='"') continue;
-
-				line[strlen(line)-1]='\0';
-				Name prefix(line);
-
-				if(prefix.size() <=0){
-						NFD_LOG_DEBUG("prefix.size(" << prefix << ") is " << prefix.size());
-						ndx++;
-						continue;
-				}
-
-                nextHopId = 0;
-
-				if(dpdk == true and ndx >= line_cnt/2){
-                    nextHopId = faceId0;
-				}else if(dpdk == false){ 
-                    if(ndx >= line_cnt/2)
-                        nextHopId = faceId0;
-                    else
-                        nextHopId = faceId1;
-				}
-
-				Face* face = m_faceTable->get(nextHopId);
-
-                if(prefix.size() >= getPrefixLength4Distribution() and sharding ){
-                    //std::tie(ndnType, wid) = dissectNdnPacket(prefix.wireEncode().wire(), prefix.wireEncode().size());
-                    wid = computeWorkerId(prefix.wireEncode().wire(), prefix.wireEncode().size());
-                    if(wid!=m_workerId){
-				        ndx++;
-                        continue;
-                    }
-                }
-
-                fib::Entry * entry = getFibTable().insert(prefix).first;
-				if( entry !=nullptr){
-					getFibTable().addOrUpdateNextHop(*entry, *face, cost);
-				}
-
-				ndx++;
-				memset(line, '\0', sizeof(line));
-		}
-		fclose(fp);
-		NFD_LOG_DEBUG("ForwardingWorker[" << m_workerId << "] - Bulk FIB Insertion End(Fib's Entries:" << getFibTable().size() << ")..." );
-
-        return true;
-}
-
 bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 {
-		//getGlobalLogger().info("MW-NFD is setting the bulk fib: face0:{}/face1:{}, sharding:{}", faceId0, faceId1, sharding);
+		NFD_LOG_INFO("MW-NFD is setting the bulk fib: face0:"<< faceId0 <<  "/face1:" << faceId1 <<", sharding:" << sharding);
 		FILE *fp;
 		char line[1024]={0,};
 		uint64_t cost = 0;
@@ -712,7 +640,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 		}
 		fclose(fp);
 
-		NFD_LOG_INFO("Worker(" << m_workerId << ") Fib Size: " << getFibTable().size() << " on CPU " << sched_getcpu());
+		NFD_LOG_INFO("Worker(" << sched_getcpu() << ") Fib Size: " << getFibTable().size());
         return true;
 }
 

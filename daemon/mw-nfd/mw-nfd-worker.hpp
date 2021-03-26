@@ -100,7 +100,6 @@ Measurements& getMeasurementsTable();
   void prepareBulkFibTest(std::string port0, std::string port1);
 
   bool config_bulk_fib(FaceId faceId0, FaceId faceId1, bool);
-  bool config_bulk_fib(FaceId faceId0, FaceId faceId1, bool, bool);
 
   uint8_t getWorkerId(){return m_workerId;}
 
@@ -110,7 +109,7 @@ private:
 
   void initializeManagement();
 private:
-void bulk_test_case_01();
+bool bulk_test_case_01();
 void nfdc_process(const boost::system::error_code& error, size_t bytes_recvd);
 #ifndef ETRI_NFD_ORG_ARCH
  void terminate(const boost::system::error_code& error, int signalNo);
@@ -157,6 +156,7 @@ private:
 	bool m_wantFibSharding;
 	bool m_setReservedFace;
 	struct sockaddr_un m_localAddr;
+	bool m_doneBulk;
 };
 
 } // namespace nfd
