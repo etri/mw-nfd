@@ -47,6 +47,9 @@ private:
   ndn::nfd::ForwarderStatus
   collectGeneralStatus();
 
+  void
+  listGeneralRemoteStatus(const Name& topPrefix, const Interest& interest,
+                    ndn::mgmt::StatusDatasetContext& context);
   /** \brief provide general status dataset
    */
   void

@@ -75,6 +75,8 @@ public:
    */
   Nfd(const ConfigSection& config, ndn::KeyChain& keyChain);
 
+void onIInterest(const Interest& interest);
+
   /**
    * \brief Destructor.
    */
@@ -129,6 +131,8 @@ private:
   ndn::KeyChain& m_keyChain;
   shared_ptr<face::Face> m_internalFace;
   shared_ptr<ndn::Face> m_internalClientFace;
+  shared_ptr<face::Face> m_internalFace2;
+  shared_ptr<ndn::Face> m_internalClientFace2;
   unique_ptr<ndn::mgmt::Dispatcher> m_dispatcher;
   shared_ptr<CommandAuthenticator> m_authenticator;
   unique_ptr<ForwarderStatusManager> m_forwarderStatusManager;

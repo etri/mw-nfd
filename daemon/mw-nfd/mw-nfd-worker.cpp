@@ -76,6 +76,8 @@ NFD_LOG_INIT(MwNfd);
 
 namespace nfd {
 
+std::shared_ptr<nfd::Face> g_internalFace=nullptr;
+
 MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const std::string& conf)
   : m_workerId(wid)
   , m_terminationSignalSet(*ios)
@@ -145,6 +147,23 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 	}
 */
 #endif
+				nfd::face::GenericLinkService::Options options;
+				auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
+			
+				gls->afterReceiveInterest.connect(
+				[this] (const Interest& interest, const EndpointId& endpointId) {
+    				this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
+                    });		
+				gls->afterReceiveData.connect(
+				[this] (const Data& data, const EndpointId& endpointId) {
+    				this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
+                    });		
+				gls->afterReceiveNack.connect(
+				[this] (const lp::Nack& nack, const EndpointId& endpointId) {
+					this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
+                    });		
+
+				m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(1,std::move(gls)) );
 
 	}
 
@@ -430,8 +449,9 @@ void MwNfd::initialize(uint32_t input_workers)
 	NFD_LOG_INFO("The ForwardingWorker(" << m_workerId << ") is running with inputWorkers[mgmt+input:" << input_workers << "]");
   m_inputWorkers = input_workers;
 
-#if 0
-	Name rtPrefix(getRouterName()+"/nfd");
+#if 1
+	//Name rtPrefix(getRouterName()+"/nfd");
+	Name rtPrefix("/DCN08/nfd");
 	fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
     auto m_internalFace = m_faceTable->get(face::FACEID_INTERNAL_FACE);
 	m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
@@ -550,7 +570,6 @@ void MwNfd::runWorker()
             g_workerTimerTriggerList[m_workerId] = false;
 			if(m_doneBulk==false){
 				m_doneBulk= bulk_test_case_01(); 
-				NFD_LOG_INFO("Setting for Bulk Test... on CPU " <<  sched_getcpu());
 			}
         }
 
@@ -562,6 +581,7 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 		size_t faceId,
 		EndpointId endpoint)
 {
+		NFD_LOG_INFO("MW-NFD decodeNetPacketFromMq inFace:"<< faceId);
     m_face = m_faceTable->get(faceId);
 	if(m_face==nullptr){
 #ifdef __linux__

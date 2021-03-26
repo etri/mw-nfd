@@ -56,6 +56,8 @@ extern int32_t g_dcnWorkerCapacity;
 namespace nfd {
 
 std::shared_ptr<FaceTable> g_faceTable=nullptr;
+extern std::shared_ptr<nfd::Face> g_internalFace;
+std::shared_ptr<ndn::Face> g_internalClientFace;
 
 NFD_LOG_INIT(Nfd);
 
@@ -267,11 +269,22 @@ ignoreRibAndLogSections(const std::string& filename, const std::string& sectionN
   }
 }
 
+void Nfd::onIInterest(const Interest& interest)
+{
+    std::cout << "ForwarderStatusManager::onIInterest - " << interest.toUri() << std::endl;
+}
+
 void
 Nfd::initializeManagement()
 {
   std::tie(m_internalFace, m_internalClientFace) = face::makeInternalFace(m_keyChain);
   m_faceTable->addReserved(m_internalFace, face::FACEID_INTERNAL_FACE);
+
+  //ETRI(modori)
+  //std::tie(m_internalFace2, m_internalClientFace2) = face::makeInternalFace(m_keyChain);
+  //m_faceTable->addReserved(m_internalFace2, face::FACEID_INTERNAL_FACE+1);
+  g_internalClientFace = m_internalClientFace;
+
 
   m_dispatcher = make_unique<ndn::mgmt::Dispatcher>(*m_internalClientFace, m_keyChain);
   m_authenticator = CommandAuthenticator::create();
@@ -284,7 +297,6 @@ Nfd::initializeManagement()
                                        *m_dispatcher, *m_authenticator);
   m_strategyChoiceManager = make_unique<StrategyChoiceManager>(m_forwarder->getStrategyChoice(),
                                                                *m_dispatcher, *m_authenticator);
-
   ConfigFile config(&ignoreRibAndLogSections);
   general::setConfigFile(config);
 
@@ -312,6 +324,14 @@ Nfd::initializeManagement()
   m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
   m_dispatcher->addTopPrefix(topPrefix, false);
 
+	Name rtPrefix("/DCN08/nfd");
+  m_dispatcher->addTopPrefix(rtPrefix, false);
+#if 0
+
+	auto m_registeredPrefix2 = m_internalClientFace2->setInterestFilter(
+                         rtPrefix,
+                         bind(&Nfd::onIInterest, rtPrefix, _2));
+#endif
 }
 
 void
