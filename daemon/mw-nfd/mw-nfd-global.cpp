@@ -77,17 +77,17 @@ bool getGlobalNetName()
     return g_mwNfdParameters;
 }
 
-#if 0
-void setFibSharding(bool val)
+std::string g_routerName;
+void setRouterName(std::string val)
 {
-		g_fibSharding= val;
+		g_routerName= val;
 }
 
-bool getFibSharding()
+std::string getRouterName()
 {
-		return g_fibSharding;
+		return g_routerName;
 }
-#endif
+
 void setBulkFibFilePath(std::string val)
 {
 	g_bulkFibFilePath=val;
@@ -128,13 +128,13 @@ std::shared_ptr<nfd::MwNfd> getMwNfd(int8_t wid)
 size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
     ndn::nfd::ControlParameters parameters, bool netName)
 {
+#if 0
     int i,numbytes;
     char buf[MW_NFD_CMD_BUF_SIZE]={0,};
     mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
     size_t retval=0;
     size_t ret=0;
 	auto params = make_shared<ndn::nfd::ControlParameters>(parameters);
-#if 1
 
 	#define  SOCK_LOCALFILE   "/tmp/.mw-nfd-cli"
 	
@@ -199,10 +199,19 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
 	}
 
 #else
-	int addr_len;
+
+ int i,numbytes;
+    char buf[MW_NFD_CMD_BUF_SIZE]={0,};
+    mw_nfdc_ptr nfdc = (mw_nfdc_ptr)buf;
+    struct sockaddr_in worker, their;
+    size_t retval=0;
+    size_t ret=0;
+
 	memset(&worker, 0, sizeof(worker));
 	worker.sin_family = AF_INET;
 	worker.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+	socklen_t addr_len;
 
 	if(g_nfdcSocket==0){
 		g_nfdcSocket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -210,6 +219,7 @@ size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
 
 	addr_len = sizeof worker;
 
+	auto params = make_shared<ndn::nfd::ControlParameters>(parameters);
 
 	for(i=0;i<g_forwardingWorkers;i++){
 		worker.sin_port = htons(MW_NFDC_PORT+i);

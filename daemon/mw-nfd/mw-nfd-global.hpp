@@ -231,6 +231,9 @@ void resetCommandRx();
 
 void print_payload(const u_char *payload,int len);
 
+std::string getRouterName();
+void setRouterName(std::string);
+
 } // namespace mw-nfd
 
 #endif // MW_NFD_DAEMON_COMMON_GLOBAL_HPP

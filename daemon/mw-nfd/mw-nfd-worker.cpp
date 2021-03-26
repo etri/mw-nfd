@@ -114,6 +114,22 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 		} 
 #else
 
+		struct sockaddr_in servaddr;
+		m_sockNfdcCmd = socket(AF_INET, SOCK_DGRAM, 0);
+		memset(&servaddr, 0, sizeof(servaddr));
+		servaddr.sin_family    = AF_INET; // IPv4 
+		servaddr.sin_addr.s_addr = INADDR_ANY; 
+		servaddr.sin_port = htons(MW_NFDC_PORT+wid); 
+		socklen_t len = sizeof servaddr;
+		if ( bind(m_sockNfdcCmd, (const struct sockaddr *)&servaddr,  len) < 0 ) 
+		{ 
+			perror("mw-nfd bind failed"); 
+			exit(EXIT_FAILURE); 
+		} 
+
+		fcntl(m_sockNfdcCmd, F_SETFL, O_NONBLOCK); 
+
+/*
 	m_sockNfdcCmd = socket(PF_LOCAL, SOCK_DGRAM, 0);
 
 	std::string SOCK_LOCALFILE = "/tmp/.mw-nfd-" + std::to_string(wid);
@@ -127,6 +143,7 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 	if (bind(m_sockNfdcCmd, (struct sockaddr *)&m_localAddr, sizeof(m_localAddr)) < 0) {
 		perror("bind");
 	}
+*/
 #endif
 
 	}
@@ -414,7 +431,7 @@ void MwNfd::initialize(uint32_t input_workers)
   m_inputWorkers = input_workers;
 
 #if 0
-	Name rtPrefix("/RouterName333/nfd");
+	Name rtPrefix(getRouterName()+"/nfd");
 	fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
     auto m_internalFace = m_faceTable->get(face::FACEID_INTERNAL_FACE);
 	m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
@@ -509,14 +526,11 @@ void MwNfd::runWorker()
 
     int32_t inputMQs = m_inputWorkers *2;
 
-    //bulk_test_case_01();
-		//getScheduler().schedule(2_s, [this] { bulk_test_case_01(); });
-
     do{
+
 		if(getCommandRx(m_workerId)==true){
             handleNfdcCommand();
 		}
-
 		for(iw=0; iw < inputMQs; iw+=2){
 			deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
 			for(idx=0;idx<deq;idx++){
@@ -535,8 +549,8 @@ void MwNfd::runWorker()
             m_ios->poll();
             g_workerTimerTriggerList[m_workerId] = false;
 			if(m_doneBulk==false){
-				NFD_LOG_INFO("Setting for Bulk Test... on CPU " <<  sched_getcpu());
 				m_doneBulk= bulk_test_case_01(); 
+				NFD_LOG_INFO("Setting for Bulk Test... on CPU " <<  sched_getcpu());
 			}
         }
 
