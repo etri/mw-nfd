@@ -36,6 +36,7 @@
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
 #include <ndn-cxx/mgmt/nfd/face-status.hpp>
+#include <ndn-cxx/mgmt/nfd/fib-entry.hpp>
 
 #include <sstream>
 #include <map>
@@ -396,7 +397,64 @@ void ForwarderStatusRemoteManager::formatRibJson( ptree& parent )
 void ForwarderStatusRemoteManager::formatFibJson( ptree& parent )
 {
 	ptree pt;
-	parent.add_child("nfdStatus.fib", pt);
+
+  for (const auto& entry : m_forwarder.getFib()) {
+    const auto& nexthops = entry.getNextHops() |
+                           boost::adaptors::transformed([] (const fib::NextHop& nh) {
+                             return ndn::nfd::NextHopRecord()
+                                 .setFaceId(nh.getFace().getId())
+                                 .setCost(nh.getCost());
+                           });
+
+    ndn::nfd::FibEntry fib;
+	   fib.setPrefix(entry.getPrefix());
+	   fib.setNextHopRecords(std::begin(nexthops), std::end(nexthops)) ;
+	ptree fib_node;
+    	fib_node.put("prefix", fib.getPrefix());
+
+#if 1
+ 	for (const ndn::nfd::NextHopRecord& nh : fib.getNextHopRecords()) {
+    		fib_node.put("nextHops.nexthop.faceId", nh.getFaceId());
+    		fib_node.put("nextHops.nexthop.cost", nh.getCost());
+  	}
+#endif
+
+    	pt.push_back(std::make_pair("", fib_node));
+  }
+
+
+	int32_t workers = getForwardingWorkers();
+
+  for(int32_t i=0;i<workers;i++){
+      auto worker = getMwNfd(i);
+      if(worker==nullptr){
+          continue;
+	}
+
+	  for (const auto& entry : worker->getFibTable()) {
+		  const auto& nexthops = entry.getNextHops() |
+		  boost::adaptors::transformed([] (const fib::NextHop& nh) {
+			  return ndn::nfd::NextHopRecord()
+			  .setFaceId(nh.getFace().getId())
+			  .setCost(nh.getCost());
+		  });
+
+    ndn::nfd::FibEntry fib;
+	   fib.setPrefix(entry.getPrefix());
+	   fib.setNextHopRecords(std::begin(nexthops), std::end(nexthops)) ;
+
+	ptree fib_node;
+    	fib_node.put("prefix", fib.getPrefix());
+
+ 	for (const ndn::nfd::NextHopRecord& nh : fib.getNextHopRecords()) {
+    		fib_node.put("nextHops.nexthop.faceId", nh.getFaceId());
+    		fib_node.put("nextHops.nexthop.cost", nh.getCost());
+  	}
+    	pt.push_back(std::make_pair("", fib_node));
+
+  }
+}
+	parent.add_child("nfdStatus.fib.fibEntry", pt);
 }
 
 void ForwarderStatusRemoteManager::formatScJson( ptree& parent )
