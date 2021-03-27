@@ -25,12 +25,25 @@
 
 #include "forwarder-status-manager.hpp"
 #include "fw/forwarder.hpp"
+#include "face/face.hpp"
 #include "core/version.hpp"
 
 #include "mw-nfd/mw-nfd-global.hpp"
 
+
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
+
+
+#include <sstream>
+#include <map>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
+using boost::property_tree::ptree;
+using boost::property_tree::read_json;
+using boost::property_tree::write_json;
+
 
 #ifdef ETRI_DEBUG_COUNTERS
 size_t g_nEnqMiss[COUNTERS_MAX];
@@ -55,8 +68,6 @@ ForwarderStatusManager::ForwarderStatusManager(Forwarder& forwarder, Dispatcher&
 {
   m_dispatcher.addStatusDataset("status/general", ndn::mgmt::makeAcceptAllAuthorization(),
                                 bind(&ForwarderStatusManager::listGeneralStatus, this, _1, _2, _3));
-  m_dispatcher.addStatusDataset("info", ndn::mgmt::makeAcceptAllAuthorization(),
-                                bind(&ForwarderStatusManager::listGeneralRemoteStatus, this, _1, _2, _3));
 #ifdef ETRI_DEBUG_COUNTERS
 	memset(g_nEnqMiss, '\0',sizeof(size_t)*COUNTERS_MAX);
 memset(g_nDropped,'\0',sizeof(size_t)*COUNTERS_MAX);
@@ -199,39 +210,6 @@ ForwarderStatusManager::collectGeneralStatus()
   return status;
 }
 
-extern std::shared_ptr<ndn::Face> g_internalClientFace;
-
-void
-ForwarderStatusManager::listGeneralRemoteStatus(const Name& topPrefix, const Interest& interest,
-                                          ndn::mgmt::StatusDatasetContext& context)
-{
-
-	std::cout << "listGeneralRemoteStatus = " << interest << std::endl;
-#if 0
-  context.setExpiry(STATUS_FRESHNESS);
-
-  auto status = this->collectGeneralStatus();
-  const Block& wire = status.wireEncode();
-  wire.parse();
-  for (const auto& subblock : wire.elements()) {
-    context.append(subblock);
-  }
-  context.end();
-#endif
-	Name name = interest.getName();
-	//name.append("viper");
-//	auto data = make_shared<Data>(name);
-	Data data(name);
-	KeyChain keychain;
-	//Block content(55);
-//data->setContent(content);
-	data.setFreshnessPeriod(1_s);
-
-	keychain.sign(data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-
-	
-	g_internalClientFace->put(data);
-}
 void
 ForwarderStatusManager::listGeneralStatus(const Name& topPrefix, const Interest& interest,
                                           ndn::mgmt::StatusDatasetContext& context)

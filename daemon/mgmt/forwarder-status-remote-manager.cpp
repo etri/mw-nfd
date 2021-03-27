@@ -28,13 +28,14 @@
 #include "face/face.hpp"
 #include "core/version.hpp"
 #include "face/face-system.hpp"
+#include "face/protocol-factory.hpp"
 
 #include "mw-nfd/mw-nfd-global.hpp"
 
 
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
-
+#include <ndn-cxx/mgmt/nfd/face-status.hpp>
 
 #include <sstream>
 #include <map>
@@ -175,9 +176,6 @@ ForwarderStatusRemoteManager::collectGeneralStatus()
   return status;
 }
 
-extern std::shared_ptr<ndn::Face> g_internalClientFace;
-extern std::shared_ptr<Face> g_internalFace;
-
 void ForwarderStatusRemoteManager::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
 {
 	ptree pt;
@@ -207,12 +205,188 @@ parent.add_child("nfdStatus.generalStatus", pt);
 void ForwarderStatusRemoteManager::formatChannelsJson( ptree& parent )
 {
 	ptree pt;
-	parent.add_child("nfdStatus.channels", pt);
+#if 0
+// Add a list
+pt::ptree fruits_node;
+for (auto &fruit : fruits)
+{
+    // Create an unnamed node containing the value
+    pt::ptree fruit_node;
+    fruit_node.put("localUri", fruit);
+
+    // Add this node to the list.
+    fruits_node.push_back(std::make_pair("", fruit_node));
+}
+root.add_child("fruits", fruits_node);
+#endif
+
+auto factories = m_faceSystem.listProtocolFactories();
+  for (const auto* factory : factories) {
+    for (const auto& channel : factory->getChannels()) {
+    	ptree ch_node;
+    	ch_node.put("localUri", channel->getUri().toString());
+    	pt.push_back(std::make_pair("", ch_node));
+    }
+  }
+
+	parent.add_child("nfdStatus.channels.channel", pt);
+}
+
+template<typename T>
+static void
+copyMtu(const Face& face, T& to)
+{
+  if (face.getMtu() >= 0) {
+    to.setMtu(std::min<size_t>(face.getMtu(), ndn::MAX_NDN_PACKET_SIZE));
+  }
+  else if (face.getMtu() == face::MTU_UNLIMITED) {
+    to.setMtu(ndn::MAX_NDN_PACKET_SIZE);
+  }
+}
+
+template<typename T>
+static void
+copyFaceProperties(const Face& face, T& to)
+{
+  to.setFaceId(face.getId())
+    .setRemoteUri(face.getRemoteUri().toString())
+    .setLocalUri(face.getLocalUri().toString())
+    .setFaceScope(face.getScope())
+    .setFacePersistency(face.getPersistency())
+    .setLinkType(face.getLinkType());
+
+  auto linkService = dynamic_cast<face::GenericLinkService*>(face.getLinkService());
+  if (linkService != nullptr) {
+    const auto& options = linkService->getOptions();
+    to.setFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED, options.allowLocalFields)
+      .setFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED, options.reliabilityOptions.isEnabled)
+      .setFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED, options.allowCongestionMarking);
+  }
+}
+
+static ndn::nfd::FaceStatus
+makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
+{
+  ndn::nfd::FaceStatus status;
+  copyFaceProperties(face, status);
+
+  auto expirationTime = face.getExpirationTime();
+  if (expirationTime != time::steady_clock::TimePoint::max()) {
+    status.setExpirationPeriod(std::max(0_ms,
+                                        time::duration_cast<time::milliseconds>(expirationTime - now)));
+  }
+
+  auto linkService = dynamic_cast<face::GenericLinkService*>(face.getLinkService());
+  if (linkService != nullptr) {
+    const auto& options = linkService->getOptions();
+    status.setBaseCongestionMarkingInterval(options.baseCongestionMarkingInterval)
+          .setDefaultCongestionThreshold(options.defaultCongestionThreshold);
+  }
+
+  copyMtu(face, status);
+  uint64_t nInInterests=0;
+        uint64_t nOutInterests=0;
+        uint64_t nInData=0;
+        uint64_t nOutData=0;
+        uint64_t nInNacks=0;
+        uint64_t nOutNacks=0;
+        uint64_t nInBytes=0;
+        uint64_t nOutBytes=0;
+
+        const auto& counters = face.getCounters();
+
+        nInInterests +=counters.nInInterests;
+    nOutInterests +=counters.nOutInterests;
+    nInData +=counters.nInData;
+    nOutData +=counters.nOutData;
+    nInNacks +=counters.nInNacks;
+    nOutNacks +=counters.nOutNacks;
+    nInBytes +=counters.nInBytes;
+    nOutBytes +=counters.nOutBytes;;
+
+
+    uint64_t nIIs=0;
+        uint64_t nIDs=0;
+        uint64_t nINs=0;
+        for(int i=0;i<getForwardingWorkers();i++){
+                auto worker = getMwNfd(i);
+                if(face.getId()==face::FACEID_INTERNAL_FACE) continue;
+                if(face.getId()==face::FACEID_CONTENT_STORE) continue;
+                if(worker!=nullptr){
+                        std::tie(nIIs, nIDs, nINs)=worker->getLinkServiceCounters(face.getId());
+                        nInInterests +=nIIs;
+                        nInData += nIDs;
+                        nInNacks += nINs;
+                }
+        }
+  status.setNInInterests(nInInterests)
+        .setNOutInterests(nOutInterests)
+        .setNInData(nInData)
+        .setNOutData(nOutData)
+        .setNInNacks(nInNacks)
+        .setNOutNacks(nOutNacks)
+        .setNInBytes(nInBytes)
+        .setNOutBytes(nOutBytes);
+
+  return status;
 }
 void ForwarderStatusRemoteManager::formatFacesJson( ptree& parent )
 {
 	ptree pt;
-	parent.add_child("nfdStatus.faces", pt);
+	auto now = time::steady_clock::now();
+
+for (const auto& face : m_faceTable) {
+
+    	ptree face_node;
+	ndn::nfd::FaceStatus status = makeFaceStatus(face, now);
+    	face_node.put("faceId", status.getFaceId());
+    	face_node.put("remoteUri", status.getRemoteUri());
+    	face_node.put("localUri", status.getLocalUri());
+
+	if (status.hasExpirationPeriod()) {
+    		face_node.put("expirationPeriod", status.getExpirationPeriod());
+  	}
+
+    	face_node.put("faceScope", status.getFaceScope());
+    	face_node.put("facePersistency", status.getFacePersistency());
+    	face_node.put("linkeType", status.getLinkType());
+
+ if (!status.hasBaseCongestionMarkingInterval() && !status.hasDefaultCongestionThreshold()) {
+    	face_node.put("congestion", "null");
+  } else {
+    if (status.hasBaseCongestionMarkingInterval()) {
+    	face_node.put("congestion.baseMarkingInterval", status.getBaseCongestionMarkingInterval());
+    }
+    if (status.hasDefaultCongestionThreshold()) {
+    	face_node.put("congestion.defaultThreshold", status.getDefaultCongestionThreshold());
+    }
+  }
+
+	 if (status.hasMtu()) {
+    	face_node.put("mtu", status.getMtu());
+  }
+
+  if (status.getFlags() == 0) {
+    	face_node.put("flags", "null");
+  }
+  else {
+    	face_node.put("flags.localFieldsEnabled", status.getFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED));
+    	face_node.put("flags.lpReliabilityEnabled", status.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED));
+    	face_node.put("flags.congestionMarkingEnabled", status.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED));
+  }
+
+    	face_node.put("packetCounters.incomingPackets.nInterests", status.getNInInterests());
+    	face_node.put("packetCounters.incomingPackets.nData", status.getNInData());
+    	face_node.put("packetCounters.incomingPackets.nNacks", status.getNInNacks());
+    	face_node.put("packetCounters.outgoingPackets.nInterests", status.getNOutInterests());
+    	face_node.put("packetCounters.outgoingPackets.nData", status.getNOutData());
+    	face_node.put("packetCounters.outgoingPackets.nNacks", status.getNOutNacks());
+
+    	face_node.put("byteCounters.incomingBytes", status.getNInBytes());
+    	face_node.put("byteCounters.outgoingBytes", status.getNOutBytes());
+    	pt.push_back(std::make_pair("", face_node));
+}
+	parent.add_child("nfdStatus.faces.face", pt);
 }
 void ForwarderStatusRemoteManager::formatRibJson( ptree& parent )
 {
@@ -224,10 +398,31 @@ void ForwarderStatusRemoteManager::formatFibJson( ptree& parent )
 	ptree pt;
 	parent.add_child("nfdStatus.fib", pt);
 }
+
 void ForwarderStatusRemoteManager::formatScJson( ptree& parent )
 {
 	ptree pt;
-	parent.add_child("nfdStatus.strategyChoices", pt);
+#if 1
+ auto worker = getMwNfd(0);
+        if(worker!=nullptr){
+                for (const auto& i : worker->getStrategyChoiceTable()) {
+    	ptree ns;
+    	ns.put("namespace", i.getPrefix().toUri());
+    	ns.put("strategy.name", i.getStrategyInstanceName().toUri());
+    	pt.push_back(std::make_pair("", ns));
+
+                }
+        }else{
+                for (const auto& i : m_forwarder.getStrategyChoice()) {
+    	ptree ns;
+    	ns.put("namespace", i.getPrefix().toUri());
+    	ns.put("strategy.name", i.getStrategyInstanceName().toUri());
+    	pt.push_back(std::make_pair("", ns));
+
+		}
+        }
+#endif
+	parent.add_child("nfdStatus.strategyChoices.strategyChoice", pt);
 }
 void ForwarderStatusRemoteManager::formatCsJson( ptree& parent )
 {
@@ -309,15 +504,16 @@ ForwarderStatusRemoteManager::listGeneralRemoteStatus(const Name& topPrefix, con
   std::string json = buf.str(); 
 
 std::ofstream file;
-        file.open("/tmp/json.json");
+        file.open("/tmp/json1.json");
         file << json;
         file.close();
 
 	std::cout << "JSON: " << std::endl;
 	std::cout << json << std::endl;
 
-	g_internalFace->getLinkService()->receivePacket(data->wireEncode(), 1);
-	//g_internalClientFace->put(*data);
+	auto internalFace = m_faceTable.get(face::FACEID_INTERNAL_FACE);
+	if(internalFace!=nullptr)
+		internalFace->getLinkService()->receivePacket(data->wireEncode(), 1);
 }
 
 } // namespace nfd

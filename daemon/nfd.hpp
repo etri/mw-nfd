@@ -28,6 +28,7 @@
 
 #include "common/config-file.hpp"
 #include "fw/face-table.hpp"
+#include "mgmt/forwarder-status-remote-manager.hpp"
 
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
@@ -41,6 +42,8 @@ class Forwarder;
 
 class CommandAuthenticator;
 class ForwarderStatusManager;
+//ETRI
+class ForwarderStatusRemoteManager;
 class FaceManager;
 class FibManager;
 class CsManager;
@@ -136,6 +139,8 @@ private:
   unique_ptr<ndn::mgmt::Dispatcher> m_dispatcher;
   shared_ptr<CommandAuthenticator> m_authenticator;
   unique_ptr<ForwarderStatusManager> m_forwarderStatusManager;
+//ETRI
+  unique_ptr<ForwarderStatusRemoteManager> m_forwarderStatusRemoteManager;
   unique_ptr<FaceManager> m_faceManager;
   unique_ptr<FibManager> m_fibManager;
   unique_ptr<CsManager> m_csManager;

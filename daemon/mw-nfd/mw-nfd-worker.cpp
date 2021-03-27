@@ -76,8 +76,6 @@ NFD_LOG_INIT(MwNfd);
 
 namespace nfd {
 
-std::shared_ptr<nfd::Face> g_internalFace=nullptr;
-
 MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const std::string& conf)
   : m_workerId(wid)
   , m_terminationSignalSet(*ios)
@@ -581,7 +579,6 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 		size_t faceId,
 		EndpointId endpoint)
 {
-		NFD_LOG_INFO("MW-NFD decodeNetPacketFromMq inFace:"<< faceId);
     m_face = m_faceTable->get(faceId);
 	if(m_face==nullptr){
 #ifdef __linux__

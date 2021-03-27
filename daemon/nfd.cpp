@@ -57,7 +57,6 @@ namespace nfd {
 
 std::shared_ptr<FaceTable> g_faceTable=nullptr;
 extern std::shared_ptr<nfd::Face> g_internalFace;
-std::shared_ptr<ndn::Face> g_internalClientFace;
 
 NFD_LOG_INIT(Nfd);
 
@@ -280,16 +279,9 @@ Nfd::initializeManagement()
   std::tie(m_internalFace, m_internalClientFace) = face::makeInternalFace(m_keyChain);
   m_faceTable->addReserved(m_internalFace, face::FACEID_INTERNAL_FACE);
 
-  //ETRI(modori)
-  //std::tie(m_internalFace2, m_internalClientFace2) = face::makeInternalFace(m_keyChain);
-  //m_faceTable->addReserved(m_internalFace2, face::FACEID_INTERNAL_FACE+1);
-  g_internalClientFace = m_internalClientFace;
-
-
   m_dispatcher = make_unique<ndn::mgmt::Dispatcher>(*m_internalClientFace, m_keyChain);
   m_authenticator = CommandAuthenticator::create();
 
-  m_forwarderStatusManager = make_unique<ForwarderStatusManager>(*m_forwarder, *m_dispatcher);
   m_faceManager = make_unique<FaceManager>(*m_faceSystem, *m_dispatcher, *m_authenticator);
   m_fibManager = make_unique<FibManager>(m_forwarder->getFib(), *m_faceTable,
                                          *m_dispatcher, *m_authenticator);
@@ -297,6 +289,12 @@ Nfd::initializeManagement()
                                        *m_dispatcher, *m_authenticator);
   m_strategyChoiceManager = make_unique<StrategyChoiceManager>(m_forwarder->getStrategyChoice(),
                                                                *m_dispatcher, *m_authenticator);
+
+  m_forwarderStatusManager = make_unique<ForwarderStatusManager>(*m_forwarder, *m_dispatcher);
+
+  m_forwarderStatusRemoteManager = make_unique<ForwarderStatusRemoteManager>(*m_forwarder, *m_dispatcher,
+	*m_faceSystem);
+
   ConfigFile config(&ignoreRibAndLogSections);
   general::setConfigFile(config);
 
@@ -326,12 +324,6 @@ Nfd::initializeManagement()
 
 	Name rtPrefix("/DCN08/nfd");
   m_dispatcher->addTopPrefix(rtPrefix, false);
-#if 0
-
-	auto m_registeredPrefix2 = m_internalClientFace2->setInterestFilter(
-                         rtPrefix,
-                         bind(&Nfd::onIInterest, rtPrefix, _2));
-#endif
 }
 
 void
