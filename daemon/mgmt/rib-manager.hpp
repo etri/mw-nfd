@@ -215,6 +215,9 @@ private: // management Dispatcher related
   void
   listEntries(const Name& topPrefix, const Interest& interest,
               ndn::mgmt::StatusDatasetContext& context);
+  void
+  listEntries2(const Name& topPrefix, const Interest& interest,
+              ndn::mgmt::StatusDatasetContext& context);
 
   void
   setFaceForSelfRegistration(const Interest& request, ControlParameters& parameters);
@@ -255,6 +258,7 @@ private:
   bool m_isLocalhopEnabled;
 
   scheduler::ScopedEventId m_activeFaceFetchEvent;
+	ndn::Face &m_face;
 };
 
 std::ostream&

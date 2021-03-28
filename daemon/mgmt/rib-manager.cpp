@@ -36,6 +36,11 @@
 #include <ndn-cxx/mgmt/nfd/rib-entry.hpp>
 #include <ndn-cxx/security/certificate-fetcher-direct-fetch.hpp>
 
+#include <ndn-cxx/security/key-chain.hpp>
+#include <ndn-cxx/security/signing-info.hpp>
+#include <ndn-cxx/security/signing-helpers.hpp>
+
+
 #include <iostream>
 
 namespace nfd {
@@ -63,6 +68,7 @@ RibManager::RibManager(rib::Rib& rib, ndn::Face& face, ndn::KeyChain& keyChain,
   , m_localhopValidator(make_unique<ndn::security::CertificateFetcherDirectFetch>(face))
   , m_paValidator(make_unique<ndn::security::CertificateFetcherDirectFetch>(face))
   , m_isLocalhopEnabled(false)
+	,m_face(face)
 {
   registerCommandHandler<ndn::nfd::RibRegisterCommand>("register",
     bind(&RibManager::registerEntry, this, _2, _3, _4, _5));
@@ -70,6 +76,7 @@ RibManager::RibManager(rib::Rib& rib, ndn::Face& face, ndn::KeyChain& keyChain,
     bind(&RibManager::unregisterEntry, this, _2, _3, _4, _5));
 
   registerStatusDatasetHandler("list", bind(&RibManager::listEntries, this, _1, _2, _3));
+  registerStatusDatasetHandler("info", bind(&RibManager::listEntries2, this, _1, _2, _3));
 }
 
 void
@@ -105,6 +112,12 @@ RibManager::registerWithNfd()
   if (m_isLocalhopEnabled) {
     registerTopPrefix(LOCALHOP_TOP_PREFIX);
   }
+
+#if 1
+//ETRI
+	std::string routerName=getRouterName();
+    registerTopPrefix(routerName);
+#endif
 
   NFD_LOG_INFO("Start monitoring face create/destroy events");
   m_faceMonitor.onNotification.connect(bind(&RibManager::onNotification, this, _1));
@@ -277,6 +290,40 @@ RibManager::unregisterEntry(const Name& topPrefix, const Interest& interest,
 
   beginRemoveRoute(parameters.getName(), route, [] (RibUpdateResult) {});
 }
+
+void
+RibManager::listEntries2(const Name& topPrefix, const Interest& interest,
+                        ndn::mgmt::StatusDatasetContext& context)
+{
+
+#if 1
+  auto now = time::steady_clock::now();
+  for (const auto& kv : m_rib) {
+    const rib::RibEntry& entry = *kv.second;
+    ndn::nfd::RibEntry item;
+    item.setName(entry.getName());
+std::cout << "RibManager::Entry=" << entry.getName() << std::endl;
+    for (const Route& route : entry.getRoutes()) {
+      ndn::nfd::Route r;
+      r.setFaceId(route.faceId);
+      r.setOrigin(route.origin);
+      r.setCost(route.cost);
+      r.setFlags(route.flags);
+      if (route.expires) {
+        r.setExpirationPeriod(time::duration_cast<time::milliseconds>(*route.expires - now));
+      }
+      item.addRoute(r);
+    }
+    context.append(item.wireEncode());
+  }
+  context.end();
+#endif
+	Data data(interest.getName());
+ndn::KeyChain m_keyChain;
+m_keyChain.sign(data, ndn::signingWithSha256());
+	m_face.put(data);
+}
+
 
 void
 RibManager::listEntries(const Name& topPrefix, const Interest& interest,

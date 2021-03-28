@@ -78,6 +78,8 @@ public:
    */
   ~Service();
 
+//ETRI
+	void ribInfo(const Interest&);
   /**
    * \brief Get a reference to the only instance of this class
    * \throw std::logic_error No instance has been constructed

@@ -33,6 +33,7 @@
 
 #include "common/global.hpp"
 #include "common/logger.hpp"
+#include "mw-nfd/mw-nfd-global.hpp"
 
 #include <boost/property_tree/info_parser.hpp>
 #include <ndn-cxx/transport/tcp-transport.hpp>
@@ -109,6 +110,12 @@ Service::Service(const ConfigSection& configSection, ndn::KeyChain& keyChain)
 {
 }
 
+void Service::ribInfo(const Interest& interest)
+{
+//	std::cout << "RibInfo=" << interest << std::endl;	
+}
+
+
 template<typename ConfigParseFunc>
 Service::Service(ndn::KeyChain& keyChain, shared_ptr<ndn::Transport> localNfdTransport,
                  const ConfigParseFunc& configParse)
@@ -134,6 +141,12 @@ Service::Service(ndn::KeyChain& keyChain, shared_ptr<ndn::Transport> localNfdTra
 
   m_ribManager.registerWithNfd();
   m_ribManager.enableLocalFields();
+
+//ETRI
+	Name name(getRouterName() + "/rib");
+#if 1
+	
+#endif
 }
 
 Service::~Service()
