@@ -322,7 +322,7 @@ Nfd::initializeManagement()
   m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
   m_dispatcher->addTopPrefix(topPrefix, false);
 
-	Name rtPrefix("/DCN08/nfd");
+	Name rtPrefix(getRouterName()+"/nfd");
   m_dispatcher->addTopPrefix(rtPrefix, false);
 }
 

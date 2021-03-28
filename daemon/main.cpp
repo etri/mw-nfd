@@ -124,6 +124,10 @@ static void configMwNfdConfig(const std::string configFileName)
 
 
             alreadyProcessForwarding = true;
+        }else if( section.first == "router-name"){
+            std::string routerName = config.get("mw-nfd.router-name","N/A");
+                std::cerr << "Router Name=" << routerName << "\n";
+		setRouterName(routerName);
         }else if( section.first == "fib-sharding"){
             std::string wantFibSharding = config.get("mw-nfd.fib-sharding","no");
 			if(wantFibSharding=="no")
