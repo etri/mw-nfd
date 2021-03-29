@@ -216,7 +216,7 @@ private: // management Dispatcher related
   listEntries(const Name& topPrefix, const Interest& interest,
               ndn::mgmt::StatusDatasetContext& context);
   void
-  listEntries2(const Name& topPrefix, const Interest& interest,
+  ribStatus(const Name& topPrefix, const Interest& interest,
               ndn::mgmt::StatusDatasetContext& context);
 
   void

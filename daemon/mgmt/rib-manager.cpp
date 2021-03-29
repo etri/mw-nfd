@@ -40,6 +40,13 @@
 #include <ndn-cxx/security/signing-info.hpp>
 #include <ndn-cxx/security/signing-helpers.hpp>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+ 
+using boost::property_tree::ptree;
+using boost::property_tree::read_json;
+using boost::property_tree::write_json;
+
 
 #include <iostream>
 
@@ -76,7 +83,7 @@ RibManager::RibManager(rib::Rib& rib, ndn::Face& face, ndn::KeyChain& keyChain,
     bind(&RibManager::unregisterEntry, this, _2, _3, _4, _5));
 
   registerStatusDatasetHandler("list", bind(&RibManager::listEntries, this, _1, _2, _3));
-  registerStatusDatasetHandler("info", bind(&RibManager::listEntries2, this, _1, _2, _3));
+  registerStatusDatasetHandler("info/status", bind(&RibManager::ribStatus, this, _1, _2, _3));
 }
 
 void
@@ -292,33 +299,53 @@ RibManager::unregisterEntry(const Name& topPrefix, const Interest& interest,
 }
 
 void
-RibManager::listEntries2(const Name& topPrefix, const Interest& interest,
+RibManager::ribStatus(const Name& topPrefix, const Interest& interest,
                         ndn::mgmt::StatusDatasetContext& context)
 {
+	ptree pt;
 
 #if 1
   auto now = time::steady_clock::now();
   for (const auto& kv : m_rib) {
-    const rib::RibEntry& entry = *kv.second;
-    ndn::nfd::RibEntry item;
-    item.setName(entry.getName());
-std::cout << "RibManager::Entry=" << entry.getName() << std::endl;
-    for (const Route& route : entry.getRoutes()) {
-      ndn::nfd::Route r;
-      r.setFaceId(route.faceId);
-      r.setOrigin(route.origin);
-      r.setCost(route.cost);
-      r.setFlags(route.flags);
-      if (route.expires) {
-        r.setExpirationPeriod(time::duration_cast<time::milliseconds>(*route.expires - now));
-      }
-      item.addRoute(r);
-    }
-    context.append(item.wireEncode());
+	  const rib::RibEntry& entry = *kv.second;
+	  ptree rib_node;
+	  rib_node.put("prefix", entry.getName());
+	  for (const Route& route : entry.getRoutes()) {
+		  rib_node.put("routers.router.faceId", route.faceId);
+		  rib_node.put("routers.router.origin", route.origin);
+		  rib_node.put("routers.router.cost", route.cost);
+
+		  if (route.isChildInherit()) {
+			  rib_node.put("routers.router.flags.childInherit", "null");
+		  }
+		  if (route.isRibCapture()) {
+			  rib_node.put("routers.router.flags.ribCapture", "null");
+		  }
+
+		  if (route.expires) {
+			  rib_node.put("routers.router.expirationPeriod", time::duration_cast<time::milliseconds>(*route.expires - now));
+		  }
+		  pt.push_back(std::make_pair("", rib_node));
+	  }
   }
   context.end();
 #endif
+
+	ptree rib_node;
+	rib_node.add_child("nfdStatus.rib.ribEntry", pt);
+
+ 	std::ostringstream buf;
+   write_json (buf, rib_node, false);
+   std::string json = buf.str();
+ 
+ std::ofstream file;
+         file.open("/tmp/rib.json");
+         file << json;
+         file.close();
+
+
 	Data data(interest.getName());
+	data.setFreshnessPeriod(1_s);
 ndn::KeyChain m_keyChain;
 m_keyChain.sign(data, ndn::signingWithSha256());
 	m_face.put(data);
@@ -329,6 +356,8 @@ void
 RibManager::listEntries(const Name& topPrefix, const Interest& interest,
                         ndn::mgmt::StatusDatasetContext& context)
 {
+	ptree rib_info;
+	ptree pt;
   auto now = time::steady_clock::now();
   for (const auto& kv : m_rib) {
     const rib::RibEntry& entry = *kv.second;
@@ -348,6 +377,7 @@ RibManager::listEntries(const Name& topPrefix, const Interest& interest,
     context.append(item.wireEncode());
   }
   context.end();
+	rib_info.add_child("nfdStatus.fib.fibEntry", pt);
 }
 
 void

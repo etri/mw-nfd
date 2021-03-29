@@ -514,4 +514,7 @@ mw-nfd
     ;   bulk-fib-test-port0 enp7s0f0
     ;   bulk-fib-test-port1 enp7s0f1
     ; }
+
+	;
+	router-name DCN09
 }

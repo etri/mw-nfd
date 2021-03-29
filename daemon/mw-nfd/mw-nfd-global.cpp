@@ -77,7 +77,7 @@ bool getGlobalNetName()
     return g_mwNfdParameters;
 }
 
-std::string g_routerName;
+std::string g_routerName="N/A";
 void setRouterName(std::string val)
 {
 		g_routerName= val;
