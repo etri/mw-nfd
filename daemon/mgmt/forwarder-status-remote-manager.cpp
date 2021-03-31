@@ -530,25 +530,13 @@ ForwarderStatusRemoteManager::listGeneralRemoteStatus(const Name& topPrefix, con
 {
 
 	std::cout << "listGeneralRemoteStatus = " << interest << std::endl;
-  auto status = this->collectGeneralStatus();
+	auto status = this->collectGeneralStatus();
 
+	context.end();
 
-  context.end();
-	Name name = interest.getName();
-	//name.append("viper");
-	auto data = make_shared<Data>(name);
-//	Data data(name);
-	KeyChain keychain;
-	//Block content(55);
-//data->setContent(content);
-	data->setFreshnessPeriod(1_s);
+	// Write json.
+	ptree nfd_info;
 
-	keychain.sign(*data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-
-// Write json.
-  ptree nfd_info;
-
-	
 	formatStatusJson(nfd_info, status);
 	formatChannelsJson(nfd_info);
 	formatFacesJson(nfd_info);
@@ -557,21 +545,28 @@ ForwarderStatusRemoteManager::listGeneralRemoteStatus(const Name& topPrefix, con
 	formatCsJson(nfd_info);
 	formatScJson(nfd_info);
 
-  std::ostringstream buf; 
-  write_json (buf, nfd_info, false);
-  std::string json = buf.str(); 
-
-std::ofstream file;
-        file.open("/tmp/json1.json");
-        file << json;
-        file.close();
-
+	std::ostringstream buf; 
+	write_json (buf, nfd_info, false);
+	std::string json = buf.str(); 
+#if 0
+	std::ofstream file;
+	file.open("/tmp/json1.json");
+	file << json;
+	file.close();
 	std::cout << "JSON: " << std::endl;
 	std::cout << json << std::endl;
+#endif
 
 	auto internalFace = m_faceTable.get(face::FACEID_INTERNAL_FACE);
-	if(internalFace!=nullptr)
-		internalFace->getLinkService()->receivePacket(data->wireEncode(), 1);
+	if(internalFace!=nullptr){
+		Name name = interest.getName();
+		Data data(name);
+		KeyChain keychain;
+		data.setContent((uint8_t*)json.c_str(), json.length());
+		data.setFreshnessPeriod(1_s);
+		keychain.sign(data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
+		internalFace->getLinkService()->receivePacket(data.wireEncode(), 1);
+	}
 }
 
 } // namespace nfd

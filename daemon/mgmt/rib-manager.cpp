@@ -305,49 +305,50 @@ RibManager::ribStatus(const Name& topPrefix, const Interest& interest,
 	ptree pt;
 
 #if 1
-  auto now = time::steady_clock::now();
-  for (const auto& kv : m_rib) {
-	  const rib::RibEntry& entry = *kv.second;
-	  ptree rib_node;
-	  rib_node.put("prefix", entry.getName());
-	  for (const Route& route : entry.getRoutes()) {
-		  rib_node.put("routers.router.faceId", route.faceId);
-		  rib_node.put("routers.router.origin", route.origin);
-		  rib_node.put("routers.router.cost", route.cost);
+	auto now = time::steady_clock::now();
+	for (const auto& kv : m_rib) {
+		const rib::RibEntry& entry = *kv.second;
+		ptree rib_node;
+		rib_node.put("prefix", entry.getName());
+		for (const Route& route : entry.getRoutes()) {
+			rib_node.put("routers.router.faceId", route.faceId);
+			rib_node.put("routers.router.origin", route.origin);
+			rib_node.put("routers.router.cost", route.cost);
 
-		  if (route.isChildInherit()) {
-			  rib_node.put("routers.router.flags.childInherit", "null");
-		  }
-		  if (route.isRibCapture()) {
-			  rib_node.put("routers.router.flags.ribCapture", "null");
-		  }
+			if (route.isChildInherit()) {
+				rib_node.put("routers.router.flags.childInherit", "null");
+			}
+			if (route.isRibCapture()) {
+				rib_node.put("routers.router.flags.ribCapture", "null");
+			}
 
-		  if (route.expires) {
-			  rib_node.put("routers.router.expirationPeriod", time::duration_cast<time::milliseconds>(*route.expires - now));
-		  }
-		  pt.push_back(std::make_pair("", rib_node));
-	  }
-  }
-  context.end();
+			if (route.expires) {
+				rib_node.put("routers.router.expirationPeriod", time::duration_cast<time::milliseconds>(*route.expires - now));
+			}
+			pt.push_back(std::make_pair("", rib_node));
+		}
+	}
+	context.end();
 #endif
 
 	ptree rib_node;
 	rib_node.add_child("nfdStatus.rib.ribEntry", pt);
 
- 	std::ostringstream buf;
-   write_json (buf, rib_node, false);
-   std::string json = buf.str();
- 
- std::ofstream file;
-         file.open("/tmp/rib.json");
-         file << json;
-         file.close();
-
+	std::ostringstream buf;
+	write_json (buf, rib_node, false);
+	std::string json = buf.str();
+#if 0
+	std::ofstream file;
+	file.open("/tmp/rib.json");
+	file << json;
+	file.close();
+#endif
 
 	Data data(interest.getName());
 	data.setFreshnessPeriod(1_s);
-ndn::KeyChain m_keyChain;
-m_keyChain.sign(data, ndn::signingWithSha256());
+	data.setContent((uint8_t *)json.c_str(), json.length());
+	ndn::KeyChain m_keyChain;
+	m_keyChain.sign(data, ndn::signingWithSha256());
 	m_face.put(data);
 }
 
