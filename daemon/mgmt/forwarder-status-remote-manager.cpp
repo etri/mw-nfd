@@ -314,7 +314,9 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
                 if(face.getId()==face::FACEID_INTERNAL_FACE) continue;
                 if(face.getId()==face::FACEID_CONTENT_STORE) continue;
                 if(worker!=nullptr){
+#ifndef ETRI_NFD_ORG_ARCH
                         std::tie(nIIs, nIDs, nINs)=worker->getLinkServiceCounters(face.getId());
+#endif
                         nInInterests +=nIIs;
                         nInData += nIDs;
                         nInNacks += nINs;
@@ -425,6 +427,7 @@ void ForwarderStatusRemoteManager::formatFibJson( ptree& parent )
 
 	int32_t workers = getForwardingWorkers();
 
+#ifndef ETRI_NFD_ORG_ARCH
   for(int32_t i=0;i<workers;i++){
       auto worker = getMwNfd(i);
       if(worker==nullptr){
@@ -454,13 +457,14 @@ void ForwarderStatusRemoteManager::formatFibJson( ptree& parent )
 
   }
 }
+#endif
 	parent.add_child("nfdStatus.fib.fibEntry", pt);
 }
 
 void ForwarderStatusRemoteManager::formatScJson( ptree& parent )
 {
 	ptree pt;
-#if 1
+#ifndef ETRI_NFD_ORG_ARCH
  auto worker = getMwNfd(0);
         if(worker!=nullptr){
                 for (const auto& i : worker->getStrategyChoiceTable()) {
@@ -493,6 +497,7 @@ void ForwarderStatusRemoteManager::formatCsJson( ptree& parent )
         size_t NMisses = 0;
         size_t NCapa = 0;
 
+#ifndef ETRI_NFD_ORG_ARCH
         if(workers==0){
           //      NCapa += m_cs.getLimit();
            //     info.setEnableAdmit(m_cs.shouldAdmit());
@@ -508,6 +513,7 @@ void ForwarderStatusRemoteManager::formatCsJson( ptree& parent )
 
                 }
         }
+#endif
 
         NEntries += m_forwarder.getCs().size();
         //NHits += m_forwarder.getCountersInfo().nCsHits;

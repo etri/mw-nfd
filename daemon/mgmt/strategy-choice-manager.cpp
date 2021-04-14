@@ -137,6 +137,7 @@ void
 StrategyChoiceManager::listChoices(ndn::mgmt::StatusDatasetContext& context)
 {
 
+#ifndef ETRI_NFD_ORG_ARCH
 	auto worker = getMwNfd(0);
 	if(worker!=nullptr){
 		for (const auto& i : worker->getStrategyChoiceTable()) {
@@ -145,15 +146,15 @@ StrategyChoiceManager::listChoices(ndn::mgmt::StatusDatasetContext& context)
 				.setStrategy(i.getStrategyInstanceName());
 			context.append(entry.wireEncode());
 		}
-	}else{
-
+	}
+#endif
 		for (const auto& i : m_table) {
 			ndn::nfd::StrategyChoice entry;
 			entry.setName(i.getPrefix())
 				.setStrategy(i.getStrategyInstanceName());
 			context.append(entry.wireEncode());
 		}
-	}
+
 
 	context.end();
 }
