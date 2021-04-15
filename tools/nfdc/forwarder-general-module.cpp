@@ -23,6 +23,7 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
 #include "forwarder-general-module.hpp"
 #include "format-helpers.hpp"
 
@@ -116,6 +117,10 @@ ForwarderGeneralModule::formatItemText(std::ostream& os, const ForwarderStatus& 
      << ia("currentTime") << text::formatTimestamp(item.getCurrentTimestamp())
      << ia("uptime") << text::formatDuration<time::seconds>(calculateUptime(item), true);
 
+	size_t nCsEntries = item.getNCsEntries();
+	size_t nCs= (nCsEntries >>32 );
+	size_t nExCs= (nCsEntries & 0x00000000ffffffff);
+
   os << ia("nNameTreeEntries") << item.getNNameTreeEntries()
      << ia("nFibEntries") << item.getNFibEntries()
      << ia("nPitEntries") << item.getNPitEntries()
@@ -123,8 +128,8 @@ ForwarderGeneralModule::formatItemText(std::ostream& os, const ForwarderStatus& 
 #if defined(WITH_TESTS) || !defined(ETRI_DUAL_CS)
      << ia("nCsEntries") << item.getNCsEntries();
 #else
-     << ia("nExactMatching-CsEntries") << item.getNCsEntries()
-     << ia("nPrefixMatching-CsEntries") << item.getNCsEntries();
+     << ia("nExactMatching-CsEntries") << (nExCs) 
+     << ia("nPrefixMatching-CsEntries") << (nCs-nExCs);
 #endif
 
   os << ia("nInInterests") << item.getNInInterests()

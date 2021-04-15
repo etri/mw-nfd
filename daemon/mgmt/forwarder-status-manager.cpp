@@ -90,6 +90,7 @@ ForwarderStatusManager::collectGeneralStatus()
   size_t nPit=0;
   size_t nM=0;
   size_t nCs=0;
+  size_t nExCs=0;
   size_t nInInterests=0;
   size_t nOutInterests=0;
   size_t nInData=0;
@@ -111,6 +112,7 @@ ForwarderStatusManager::collectGeneralStatus()
   nPit += m_forwarder.getPit().size();
   nM +=  m_forwarder.getMeasurements().size();
   nCs +=m_forwarder.getCs().size();
+  nExCs +=m_forwarder.getCs().sizeExact();
 
   const ForwarderCounters& counters = m_forwarder.getCounters();
   nInInterests+=(counters.nInInterests);
@@ -131,6 +133,7 @@ ForwarderStatusManager::collectGeneralStatus()
       nPit += worker->getPitTable().size();
       nM += worker->getMeasurementsTable().size();
       nCs += worker->getCsTable().size();
+      nExCs += worker->getCsTable().sizeExact();
 
 
     const ForwarderCounters& counters = worker->getCountersInfo();
@@ -179,7 +182,16 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setNFibEntries(nFib);
   status.setNPitEntries(nPit);
   status.setNMeasurementsEntries(nM);
-  status.setNCsEntries(nCs);
+
+	size_t nCsEntries = 0;
+	int size = sizeof(size_t);
+	nCsEntries = (nCs << ((size/2)*8));
+	nCsEntries |= nExCs;
+	//std::cout << "nCs:" << nCs << std::endl;
+	//std::cout << "nExCs:" << nExCs << std::endl;
+	//std::cout << std::bitset<64>(nCsEntries) << std::endl;
+
+  status.setNCsEntries(nCsEntries);
 
   status.setNInInterests(nInInterests)
         .setNOutInterests(nOutInterests)
@@ -215,7 +227,7 @@ ForwarderStatusManager::listGeneralStatus(const Name& topPrefix, const Interest&
                                           ndn::mgmt::StatusDatasetContext& context)
 {
 
-	std::cout << "listGeneralStatus : " << interest << std::endl;
+	//std::cout << "listGeneralStatus : " << interest << std::endl;
   context.setExpiry(STATUS_FRESHNESS);
 
   auto status = this->collectGeneralStatus();
