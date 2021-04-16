@@ -49,6 +49,12 @@ public:
   PacketCounter nCsHits;
   PacketCounter nCsMisses;
 
+  PacketCounter nCsPrefixHits;
+  PacketCounter nCsPrefixMisses;
+
+  PacketCounter nCsExactHits;
+  PacketCounter nCsExactMisses;
+
 #ifdef ETRI_DEBUG_COUNTERS
   PacketCounter nFaceCounters[COUNTERS_MAX][16]; // 0: inInt, outInt, inData, outData
 #endif

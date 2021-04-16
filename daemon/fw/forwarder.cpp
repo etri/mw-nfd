@@ -312,6 +312,14 @@ Forwarder::onContentStoreMiss(const FaceEndpoint& ingress,
   NFD_LOG_DEBUG("onContentStoreMiss interest=" << interest.getName());
   ++m_counters.nCsMisses;
 
+#ifdef ETRI_DUAL_CS
+	if(interest.getCanBePrefix()) {
+		++m_counters.nCsExactMisses;
+	} else {
+		++m_counters.nCsPrefixMisses;
+	}
+#endif
+
   // insert in-record
   pitEntry->insertOrUpdateInRecord(ingress.face, interest);
 
@@ -353,6 +361,14 @@ Forwarder::onContentStoreHit(const FaceEndpoint& ingress, const shared_ptr<pit::
 {
   NFD_LOG_DEBUG("onContentStoreHit interest=" << interest.getName());
   ++m_counters.nCsHits;
+
+#ifdef ETRI_DUAL_CS
+	if(interest.getCanBePrefix()) {
+		++m_counters.nCsExactHits;
+	} else {
+		++m_counters.nCsPrefixHits;
+	}
+#endif
 
   data.setTag(make_shared<lp::IncomingFaceIdTag>(face::FACEID_CONTENT_STORE));
   data.setTag(interest.getTag<lp::PitToken>());
