@@ -177,10 +177,10 @@ Cs::findImplExact(const Interest& interest) const
 			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
 			return m_tableExact.end();
 		}
-		if (!match->canSatisfy(interest)) {
-			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-canSatisfy");
+  	if (interest.getMustBeFresh() && !match->isFresh()) {
+			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " MustBeFresh");
 			return m_tableExact.end();
-  	}
+		}
 		NFD_LOG_DEBUG("findImplExact " << interest.getName() << " matching ");
 		m_policy->beforeUseExact(match);
 		return match;
@@ -193,10 +193,10 @@ Cs::findImplExact(const Interest& interest) const
 			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
 			return m_tableExact.end();
 		}
-		if (!match->canSatisfy(interest)) {
-			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-canSatisfy");
+  	if (interest.getMustBeFresh() && !match->isFresh()) {
+			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " MustBeFresh");
 			return m_tableExact.end();
-  	}
+		}
 		NFD_LOG_DEBUG("findImplExact " << interest.getName() << " matching ");
 		m_policy->beforeUseExact(match);
 		return match;
