@@ -137,10 +137,10 @@ namespace nfd {
 extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 	typedef struct st_msg {
-		uint8_t workerId;
+		uint64_t workerId;
         size_t hashValue;
-		uint8_t CanBePrefix;
-	} ST_PIT_TOKEN;
+		uint64_t CanBePrefix;
+	} ST_PIT_TOKEN ;
 
     using namespace moodycamel;
     using namespace boost::lockfree;

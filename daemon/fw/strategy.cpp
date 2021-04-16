@@ -211,8 +211,8 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
 pit::OutRecord*
 Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
 {
-    auto b = make_shared<ndn::Buffer>(sizeof(ST_PIT_TOKEN));
-    //auto b = make_shared<ndn::Buffer>(32);
+    //auto b = make_shared<ndn::Buffer>(sizeof(ST_PIT_TOKEN));
+    auto b = make_shared<ndn::Buffer>(32);
     ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
     pitToken->workerId = pitEntry->m_workerId;
 #if defined(ETRI_DUAL_CS)

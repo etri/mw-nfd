@@ -708,6 +708,9 @@ int main(int argc, char** argv)
         workerId +=1;
     }
 
+	std::cout << "ST-PIT-:" << sizeof(ST_PIT_TOKEN) << std::endl;
+	std::cout << "uint8_t:" << sizeof(uint8_t) << std::endl;
+
     try {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	    {
