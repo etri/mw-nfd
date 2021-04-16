@@ -27,14 +27,10 @@
 #include "fw/forwarder.hpp"
 #include "face/face.hpp"
 #include "core/version.hpp"
-
 #include "mw-nfd/mw-nfd-global.hpp"
-
 
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
-
-
 #include <sstream>
 #include <map>
 #include <boost/property_tree/ptree.hpp>
@@ -44,7 +40,6 @@ using boost::property_tree::ptree;
 using boost::property_tree::read_json;
 using boost::property_tree::write_json;
 
-
 #ifdef ETRI_DEBUG_COUNTERS
 size_t g_nEnqMiss[COUNTERS_MAX];
 size_t g_nDropped[COUNTERS_MAX];
@@ -52,7 +47,6 @@ size_t g_nIfDropped[COUNTERS_MAX];
 #endif
 
 #include <iostream>
-
 
 using namespace ndn;
 NFD_LOG_INIT(ForwarderStatusManager);
@@ -84,7 +78,7 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setStartTimestamp(m_startTimestamp);
   status.setCurrentTimestamp(time::system_clock::now());
 
-#ifndef ETRI_NFD_ORG_ARCH
+#ifndef WITHOUT_DUAL_CS
   size_t nNameTree=0;
   size_t nFib=m_forwarder.getFib().size();
   size_t nPit=0;
@@ -100,7 +94,6 @@ ForwarderStatusManager::collectGeneralStatus()
   size_t nSatisfiedInterests=0;
   size_t nUnsatisfiedInterests=0;
 
-  int32_t workers = getForwardingWorkers();
 
   uint64_t __attribute__((unused)) inInt[16]={0,};
   uint64_t __attribute__((unused)) outInt[16]={0,};
@@ -124,6 +117,8 @@ ForwarderStatusManager::collectGeneralStatus()
         nSatisfiedInterests += (counters.nSatisfiedInterests);
         nUnsatisfiedInterests +=(counters.nUnsatisfiedInterests);
 
+#ifndef ETRI_NFD_ORG_ARCH
+  int32_t workers = getForwardingWorkers();
   for(int32_t i=0;i<workers;i++){
 
       auto worker = getMwNfd(i);
@@ -145,21 +140,8 @@ ForwarderStatusManager::collectGeneralStatus()
     nOutNacks += counters.nOutNacks;
     nSatisfiedInterests += counters.nSatisfiedInterests;
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
-
-
-#if 0 //def ETRI_DEBUG_COUNTERS
-    for(int i=0;i<COUNTERS_MAX;i++){
-        if( counters.nFaceCounters[i][0] != 0 or counters.nFaceCounters[i][1] != 0 or counters.nFaceCounters[i][2] != 0 or counters.nFaceCounters[i][3] != 0)
-        {
-            inInt[i] += counters.nFaceCounters[i][0];
-            outInt[i] += counters.nFaceCounters[i][1];
-            inData[i] += counters.nFaceCounters[i][2];
-            outData[i] += counters.nFaceCounters[i][3];
-        }
-    }
-#endif
-
   }
+#endif
 
 #ifdef ETRI_DEBUG_COUNTERS
     for(int i=0;i<COUNTERS_MAX;i++){
@@ -227,7 +209,6 @@ ForwarderStatusManager::listGeneralStatus(const Name& topPrefix, const Interest&
                                           ndn::mgmt::StatusDatasetContext& context)
 {
 
-	//std::cout << "listGeneralStatus : " << interest << std::endl;
   context.setExpiry(STATUS_FRESHNESS);
 
   auto status = this->collectGeneralStatus();
