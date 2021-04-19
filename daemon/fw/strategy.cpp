@@ -196,18 +196,6 @@ Strategy::onDroppedInterest(const Face& egress, const Interest& interest)
   NFD_LOG_DEBUG("onDroppedInterest out=" << egress.getId() << " name=" << interest.getName());
 }
 
-#ifdef ETRI_NFD_ORG_ARCH
-pit::OutRecord*
-Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
-{
-  if (interest.getTag<lp::PitToken>() != nullptr) {
-    Interest interest2 = interest; // make a copy to preserve tag on original packet
-    interest2.removeTag<lp::PitToken>();
-    return m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
-  }
-  return m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
-}
-#else
 pit::OutRecord*
 Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
 {
@@ -233,11 +221,12 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
     return m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
   }
 
+#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
 	interest.setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) )); 
+#endif
 
   return m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
 }
-#endif
 
 void
 Strategy::afterNewNextHop(const fib::NextHop& nextHop, const shared_ptr<pit::Entry>& pitEntry)

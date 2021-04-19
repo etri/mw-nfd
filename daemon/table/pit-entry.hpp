@@ -235,11 +235,9 @@ public:
    */
   time::milliseconds dataFreshnessPeriod = 0_ms;
 
-#ifndef ETRI_NFD_ORG_ARCH
   //modori 20200602
   uint8_t m_workerId;
   shared_ptr<ndn::Block> m_lpBlock;
-#endif
 
 private:
   shared_ptr<const Interest> m_interest;
@@ -249,7 +247,8 @@ private:
   name_tree::Entry* m_nameTreeEntry = nullptr;
 
   friend class name_tree::Entry;
-#ifndef ETRI_NFD_ORG_ARCH
+
+#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
   // added by ETRI(MODORI) on 20201218
   friend class fw::Strategy;
 #endif
