@@ -37,6 +37,8 @@
 #include "ndn-cxx/util/logger.hpp"
 #include "ndn-cxx/util/scheduler.hpp"
 #include "ndn-cxx/util/signal.hpp"
+// dmsul add for pit-token
+#include "ndn-cxx/lp/pit-token.hpp"
 
 NDN_LOG_INIT(ndn.Face);
 // INFO level: prefix registration, etc.
@@ -224,6 +226,8 @@ public: // producer
     lp::Packet lpPacket;
     addFieldFromTag<lp::CachePolicyField, lp::CachePolicyTag>(lpPacket, data);
     addFieldFromTag<lp::CongestionMarkField, lp::CongestionMarkTag>(lpPacket, data);
+// Modified by dmsul ETRI for PitToken Add 
+    addFieldFromTag<lp::PitTokenField, lp::PitToken>(lpPacket, data);
 
     m_face.m_transport->send(finishEncoding(std::move(lpPacket), data.wireEncode(),
                                             'D', data.getName()));
