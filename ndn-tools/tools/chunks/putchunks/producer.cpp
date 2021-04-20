@@ -31,6 +31,7 @@
 #include "producer.hpp"
 
 #include <ndn-cxx/metadata-object.hpp>
+#include <ndn-cxx/lp/pit-token.hpp>
 
 namespace ndn {
 namespace chunks {
@@ -97,6 +98,11 @@ Producer::processDiscoveryInterest(const Interest& interest)
 
   // make a metadata packet based on the received discovery Interest name
   Data mdata(mobject.makeData(interest.getName(), m_keyChain, m_options.signingInfo));
+
+	// modify for PitToken tag add Data
+	const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
+  auto b= std::make_shared<Buffer>(VALUE, sizeof(VALUE));
+	mdata.setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end())));
 
   if (m_options.isVerbose)
     std::cerr << "Sending metadata: " << mdata << std::endl;
