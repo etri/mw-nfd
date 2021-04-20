@@ -1,0 +1,31 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+top = '../..'
+
+def build(bld):
+
+    bld.objects(
+        target='ndnpeek-objects',
+        source=bld.path.ant_glob('ndnpeek/*.cpp', excl='ndnpeek/main.cpp'),
+        use='core-objects')
+
+    bld.program(
+        target='../../bin/ndnpeek',
+        name='ndnpeek',
+        source='ndnpeek/main.cpp',
+        use='ndnpeek-objects')
+
+    bld.objects(
+        target='ndnpoke-objects',
+        source=bld.path.ant_glob('ndnpoke/*.cpp', excl='ndnpoke/main.cpp'),
+        use='core-objects')
+
+    bld.program(
+        target='../../bin/ndnpoke',
+        name='ndnpoke',
+        source='ndnpoke/main.cpp',
+        use='ndnpoke-objects')
+
+    ## (for unit tests)
+
+    bld(target='peek-objects',
+        use='ndnpeek-objects ndnpoke-objects')
