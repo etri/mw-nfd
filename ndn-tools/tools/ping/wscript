@@ -1,0 +1,31 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+top = '../..'
+
+def build(bld):
+
+    bld.objects(
+        target='ping-client-objects',
+        source=bld.path.ant_glob('client/*.cpp', excl='client/main.cpp'),
+        use='core-objects')
+
+    bld.program(
+        target='../../bin/ndnping',
+        name='ndnping',
+        source='client/main.cpp',
+        use='ping-client-objects')
+
+    bld.objects(
+        target='ping-server-objects',
+        source=bld.path.ant_glob('server/*.cpp', excl='server/main.cpp'),
+        use='core-objects')
+
+    bld.program(
+        target='../../bin/ndnpingserver',
+        name='ndnpingserver',
+        source='server/main.cpp',
+        use='ping-server-objects')
+
+    ## (for unit tests)
+
+    bld(target='ping-objects',
+        use='ping-client-objects ping-server-objects')
