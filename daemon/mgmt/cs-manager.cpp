@@ -204,8 +204,6 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
 
 	if(workers==0){
 		NCapa += m_cs.getLimit();
-		info.setEnableAdmit(m_cs.shouldAdmit());
-		info.setEnableServe(m_cs.shouldServe());
 	}else{
 
 		for(int32_t i=0;i<workers;i++){
@@ -217,6 +215,9 @@ CsManager::serveInfo(const Name& topPrefix, const Interest& interest,
 
 		}
 	}
+
+		info.setEnableAdmit(m_cs.shouldAdmit());
+		info.setEnableServe(m_cs.shouldServe());
 
 	NEntries += m_cs.size();
 	NHits += m_fwCounters.nCsHits;
