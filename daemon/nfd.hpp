@@ -78,7 +78,6 @@ public:
    */
   Nfd(const ConfigSection& config, ndn::KeyChain& keyChain);
 
-void onIInterest(const Interest& interest);
 
   /**
    * \brief Destructor.

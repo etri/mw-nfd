@@ -162,6 +162,7 @@ UdpChannel::createFace(const udp::Endpoint& remoteEndpoint,
   ip::udp::socket socket(getGlobalIoService(), m_localEndpoint.protocol());
 #else
   int ifIndex=getIfIndex(remoteEndpoint.address().to_string().c_str());
+  NFD_LOG_CHAN_TRACE("New peer ifIndex: " << ifIndex);
   ip::udp::socket socket( *getGlobalIoService(ifIndex), m_localEndpoint.protocol());
 #endif
 

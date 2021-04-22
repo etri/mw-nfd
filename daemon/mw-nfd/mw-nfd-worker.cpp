@@ -507,17 +507,34 @@ bool MwNfd::bulk_test_case_01()
 
 		FaceTable::const_iterator it;
 		FaceUri uri;
+		FaceUri faceUri0;
+		FaceUri faceUri1;
+		faceUri0.parse(m_bulkFibPort0);	
+		faceUri1.parse(m_bulkFibPort1);	
 
 		for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) {
 
-			uri = it->getLocalUri();
+			if( faceUri0.getScheme()=="udp4"){
+				uri = it->getRemoteUri();
+			}else if( faceUri0.getScheme()=="tcp4")
+				uri = it->getRemoteUri();
+			else if( faceUri0.getScheme()=="ether")
+				uri = it->getLocalUri();
+			else if( faceUri0.getScheme()=="dev")
+				uri = it->getLocalUri();
+			else
+				uri = it->getLocalUri();
 
-			if( uri.getHost() == m_bulkFibPort0 ){
-				faceId0 = it->getId();
+			if( uri.getScheme() == faceUri0.getScheme() ){
+				if( uri.getHost() == faceUri0.getHost() ){
+					faceId0 = it->getId();
+				}
 			}
 
-			if( uri.getHost() == m_bulkFibPort1 ){
-				faceId1 = it->getId();
+			if( uri.getScheme() == faceUri1.getScheme() ){
+				if( uri.getHost() == faceUri1.getHost() ){
+					faceId1 = it->getId();
+				}
 			}
 		}
 
@@ -526,26 +543,26 @@ bool MwNfd::bulk_test_case_01()
 			return true;
 		}else
 			return false;
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}else
 		return true;
 }
 
 void MwNfd::runWorker()
 {
-    int32_t iw=1;
+	int32_t iw=1;
 
-    NDN_MSG msg;
+	NDN_MSG msg;
 
-    NDN_MSG items[DEQUEUE_BULK_MAX];
-    int deq=0, idx;
+	NDN_MSG items[DEQUEUE_BULK_MAX];
+	int deq=0, idx;
 
-    int32_t inputMQs = m_inputWorkers *2;
+	int32_t inputMQs = m_inputWorkers *2;
 
-    do{
+	do{
 
 		if(getCommandRx(m_workerId)==true){
-            handleNfdcCommand();
+			handleNfdcCommand();
 		}
 		for(iw=0; iw < inputMQs; iw+=2){
 			deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
@@ -561,15 +578,15 @@ void MwNfd::runWorker()
 			}
 		}
 
-        if(g_workerTimerTriggerList[m_workerId]){
-            m_ios->poll();
-            g_workerTimerTriggerList[m_workerId] = false;
+		if(g_workerTimerTriggerList[m_workerId]){
+			m_ios->poll();
+			g_workerTimerTriggerList[m_workerId] = false;
 			if(m_doneBulk==false){
 				m_doneBulk= bulk_test_case_01(); 
 			}
-        }
+		}
 
-    }while(!m_done);
+	}while(!m_done);
 
 }
 

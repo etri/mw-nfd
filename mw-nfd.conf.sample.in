@@ -511,8 +511,10 @@ mw-nfd
     ; bulk-fib-test ;
     ; {
     ;   bulk-fib-file-path <mw-nfd-path>/bulk_fib_prefix_db/unibas_full_fib_10K.txt
-    ;   bulk-fib-test-port0 enp7s0f0
-    ;   bulk-fib-test-port1 enp7s0f1
+    ;   bulk-fib-test-port0 dev://enp7s0f0
+    ;   bulk-fib-test-port1 dev://enp7s0f1
+    ;   bulk-fib-test-port0 udp4://10.254.250.10
+    ;   bulk-fib-test-port1 udp4://10.254.250.20
     ; }
 
 	;

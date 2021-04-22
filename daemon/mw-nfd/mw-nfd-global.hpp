@@ -176,7 +176,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     }mw_nfdc, *mw_nfdc_ptr;
 
 	void setBulkFibFilePath(std::string);
-	void setBulkFibTest(bool);
+	void setBulkFibTest();
 	std::string getBulkFibFilePath();
 	bool getBulkFibTest();
 

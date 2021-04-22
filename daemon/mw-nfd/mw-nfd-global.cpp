@@ -92,10 +92,9 @@ void setBulkFibFilePath(std::string val)
 {
 	g_bulkFibFilePath=val;
 }
-void setBulkFibTest(bool val)
+void setBulkFibTest()
 {
-
-		g_bulkFibTest=val;
+		g_bulkFibTest=true;
 }
 std::string getBulkFibFilePath()
 {
@@ -485,12 +484,11 @@ int32_t getIfIndex(const char *addr)
 				return 0;
 			}
 
-			if( !strcmp(host, "127.0.0.1"))
-				return 0;
+			if(!strcmp(host, "127.0.0.1"))
+				continue;
 
 			ip::network_v4 host_v4(ip::address_v4::from_string(host), 
 					ip::address_v4::from_string(netmask));
-
 
 			ip::network_v4 addr_v4(ip::address_v4::from_string(addr), 
 					ip::address_v4::from_string(netmask));

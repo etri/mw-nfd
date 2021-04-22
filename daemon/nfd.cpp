@@ -35,6 +35,8 @@
 #include "mw-nfd/mw-nfd-global.hpp"
 #include "common/city-hash.hpp"
 #include "face/face-system.hpp"
+#include "face/protocol-factory.hpp"
+#include "face/udp-factory.hpp"
 #include "face/internal-face.hpp"
 #include "face/null-face.hpp"
 #include "fw/face-table.hpp"
@@ -57,6 +59,9 @@ namespace nfd {
 
 std::shared_ptr<FaceTable> g_faceTable=nullptr;
 extern std::shared_ptr<nfd::Face> g_internalFace;
+
+extern std::string g_bulkFibTestPort0;
+extern std::string g_bulkFibTestPort1;
 
 NFD_LOG_INIT(Nfd);
 
@@ -115,58 +120,76 @@ void Nfd::initialize()
     });
   });
 
+// added by modori to support UDP bulk Test on 2k210422
+	if(getBulkFibTest()){
+		FaceUri remoteUri0(g_bulkFibTestPort0);
+			if(remoteUri0.getScheme()=="udp4"){
+				getScheduler().schedule(5_s, [this] {
+				int ret;
+				std::string cmd = "nfdc face create ";
+				cmd.append(g_bulkFibTestPort0);
+				ret=system(cmd.c_str());
+				cmd.clear();
+				cmd = "nfdc face create ";
+				cmd.append(g_bulkFibTestPort1);
+				ret=system(cmd.c_str());
+				});
+			}
+	}
+
 #ifdef ETRI_NFD_ORG_ARCH
   std::string configFile = m_configFile;
   getScheduler().schedule(2_s, [this, configFile] {
-        ConfigSection config;
+	ConfigSection config;
 
-          boost::property_tree::read_info(configFile, config);
+  boost::property_tree::read_info(configFile, config);
 
-          try{
-          auto bulk_test = config.get_child("mw-nfd.bulk-fib-test");
-          std::string path;
-          std::string port0;
-          std::string port1;
+  try{
+  	auto bulk_test = config.get_child("mw-nfd.bulk-fib-test");
+    std::string path;
+    std::string port0;
+    std::string port1;
 
-          for (const auto& info : bulk_test) {
+    for (const auto& info : bulk_test) {
             
-            if(info.first=="bulk-fib-file-path")
-                path = info.second.get_value<std::string>();
-            if(info.first=="bulk-fib-test-port0")
-                port0 = info.second.get_value<std::string>();
-            if(info.first=="bulk-fib-test-port1")
-                port1 = info.second.get_value<std::string>();
-          }
+    	if(info.first=="bulk-fib-file-path")
+      	path = info.second.get_value<std::string>();
 
-          bool done = false;
-          FaceId faceId0 = 0;
-          FaceId faceId1 = 0;
+      if(info.first=="bulk-fib-test-port0")
+	      port0 = info.second.get_value<std::string>();
+      if(info.first=="bulk-fib-test-port1")
+        port1 = info.second.get_value<std::string>();
+ 		}
 
-          do{ 
-              FaceTable::const_iterator it; 
-              FaceUri uri;
+    bool done = false;
+    FaceId faceId0 = 0;
+    FaceId faceId1 = 0;
 
-              for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
+    do{ 
+	    FaceTable::const_iterator it; 
+      FaceUri uri;
 
-                  uri = it->getLocalUri();
+      for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
 
-                  if( uri.getHost() == port0 ){
-                      faceId0 = it->getId();
-                  }   
+	      uri = it->getLocalUri();
 
-                  if( uri.getHost() == port1 ){
-                      faceId1 = it->getId();
-                  }   
-              }   
+        if( uri.getHost() == port0 ){
+ 	       faceId0 = it->getId();
+        }   
 
-              if( faceId0 != 0 and faceId1 != 0 ){
-                  config_bulk_fib(faceId0, faceId1, path);
-                  done = true;
-              }   
-          }while(!done);
+        if( uri.getHost() == port1 ){
+ 	       faceId1 = it->getId();
+        }   
+      }   
 
-          }catch(const std::exception& e){
-          }
+      if( faceId0 != 0 and faceId1 != 0 ){
+      	config_bulk_fib(faceId0, faceId1, path);
+        done = true;
+      }   
+    }while(!done);
+
+    }catch(const std::exception& e){
+    }
   });
 
 #endif
@@ -266,11 +289,6 @@ ignoreRibAndLogSections(const std::string& filename, const std::string& sectionN
     // missing NFD section
     ConfigFile::throwErrorOnUnknownSection(filename, sectionName, section, isDryRun);
   }
-}
-
-void Nfd::onIInterest(const Interest& interest)
-{
-    std::cout << "ForwarderStatusManager::onIInterest - " << interest.toUri() << std::endl;
 }
 
 void
