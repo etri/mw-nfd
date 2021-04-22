@@ -64,13 +64,13 @@ namespace nfd {
  *  fails, NFD will be terminated.
  */
 
-#ifndef ETRI_NFD_ORG_ARCH
 std::set<int8_t> g_dcnWorkerList;
 std::map<std::string, uint8_t> g_inputWorkerList;
 std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 bool g_wantFibSharding=true;
 
+#ifndef ETRI_NFD_ORG_ARCH
 static void configMwNfdConfig(const std::string configFileName)
 {
     std::string user;
@@ -82,73 +82,71 @@ static void configMwNfdConfig(const std::string configFileName)
     auto mw_nfd_section = config.get_child("mw-nfd");
     bool alreadyProcessForwarding = false;
 
-    setBulkFibTest(false);
+		for(const auto& section : mw_nfd_section) {
 
-    for(const auto& section : mw_nfd_section) {
+						if( section.first == "input-thread-core-assign"){
+										auto inputs = config.get_child("mw-nfd.input-thread-core-assign");
+										for (const auto& input : inputs) {
+														auto ret = g_inputWorkerList.emplace( input.first, input.second.get_value<std::uint8_t>() );
+														if(ret.second == false){
+																		std::cerr << "There are Same Physical Port :" << input.first << std::endl;
+																		exit(0);
+														}
+										}
+						}else if( section.first == "forwarding-worker-core-assign"){
+										if(alreadyProcessForwarding==true)
+										{
+														std::cerr << "There are double forwarding-worker-core-assign sections on mw-nfd section in mw-nfd.conf" << "\n";
+														exit(0);
+										}
+										auto cores = config.get("mw-nfd.forwarding-worker-core-assign", "1,2");
 
-        if( section.first == "input-thread-core-assign"){
-            auto inputs = config.get_child("mw-nfd.input-thread-core-assign");
-                for (const auto& input : inputs) {
-                    auto ret = g_inputWorkerList.emplace( input.first, input.second.get_value<std::uint8_t>() );
-					if(ret.second == false){
-                		std::cerr << "There are Same Physical Port :" << input.first << std::endl;
-                		exit(0);
-					}
-                }
-        }else if( section.first == "forwarding-worker-core-assign"){
-            if(alreadyProcessForwarding==true)
-            {
-                std::cerr << "There are double forwarding-worker-core-assign sections on mw-nfd section in mw-nfd.conf" << "\n";
-                exit(0);
-            }
-            auto cores = config.get("mw-nfd.forwarding-worker-core-assign", "1,2");
-
-			boost::char_separator<char> sep(",");
-			typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer;
-			t_tokenizer tok(cores, sep);
-			for (t_tokenizer::iterator beg = tok.begin(); beg != tok.end(); ++beg)
-			{   
-				string core = *beg;
-				if( core.find("-") != string::npos ){
-					int start, end;
-					sscanf(core.c_str(), "%d-%d", &start, &end);
-					if( end <= start ){
-						std::cerr << "core list error: " << core << " in mw-nfd.forwarding-worker-core-assign section" << std::endl;
-						exit(0);
-					}   
-					for(int i=start;i<=end;i++)
-						g_dcnWorkerList.insert(i);
-				}else
-					g_dcnWorkerList.insert(atoi(core.c_str()));
-			}   
+										boost::char_separator<char> sep(",");
+										typedef boost::tokenizer< boost::char_separator<char> > t_tokenizer;
+										t_tokenizer tok(cores, sep);
+										for (t_tokenizer::iterator beg = tok.begin(); beg != tok.end(); ++beg)
+										{   
+														string core = *beg;
+														if( core.find("-") != string::npos ){
+																		int start, end;
+																		sscanf(core.c_str(), "%d-%d", &start, &end);
+																		if( end <= start ){
+																						std::cerr << "core list error: " << core << " in mw-nfd.forwarding-worker-core-assign section" << std::endl;
+																						exit(0);
+																		}   
+																		for(int i=start;i<=end;i++)
+																						g_dcnWorkerList.insert(i);
+														}else
+																		g_dcnWorkerList.insert(atoi(core.c_str()));
+										}   
 
 
-            alreadyProcessForwarding = true;
-        }else if( section.first == "router-name"){
-            std::string routerName = config.get("mw-nfd.router-name","N/A");
-                std::cerr << "Router Name=" << routerName << "\n";
-		setRouterName(routerName);
-        }else if( section.first == "fib-sharding"){
-            std::string wantFibSharding = config.get("mw-nfd.fib-sharding","no");
-			if(wantFibSharding=="no")
-				g_wantFibSharding=false;
-        }else if( section.first == "prefix-length-for-distribution"){
+										alreadyProcessForwarding = true;
+						}else if( section.first == "router-name"){
+										std::string routerName = config.get("mw-nfd.router-name","N/A");
+										std::cerr << "Router Name=" << routerName << "\n";
+										setRouterName(routerName);
+						}else if( section.first == "fib-sharding"){
+										std::string wantFibSharding = config.get("mw-nfd.fib-sharding","no");
+										if(wantFibSharding=="no")
+														g_wantFibSharding=false;
+						}else if( section.first == "prefix-length-for-distribution"){
 
-            setPrefixLength4Distribution(config.get<std::size_t>("mw-nfd.prefix-length-for-distribution",2));
+										setPrefixLength4Distribution(config.get<std::size_t>("mw-nfd.prefix-length-for-distribution",2));
 
-        }else if( section.first == "bulk-fib-test"){
-            auto bulks = config.get_child("mw-nfd.bulk-fib-test");
-            setBulkFibTest(true);
-            for (const auto& bulk : bulks) {
-                if(bulk.first=="bulk-fib-file-path")
-                    setBulkFibFilePath(bulk.second.get_value<std::string>());
-                else if(bulk.first=="bulk-fib-test-port0")
-                    g_bulkFibTestPort0 = bulk.second.get_value<std::string>();
-                else if(bulk.first=="bulk-fib-test-port1")
-                    g_bulkFibTestPort1 = bulk.second.get_value<std::string>();
-            }
-        }
-    }
+						}else if( section.first == "bulk-fib-test"){
+										auto bulks = config.get_child("mw-nfd.bulk-fib-test");
+										setBulkFibTest();
+										for (const auto& bulk : bulks) {
+														if(bulk.first=="bulk-fib-file-path")
+																		setBulkFibFilePath(bulk.second.get_value<std::string>());
+														else if(bulk.first=="bulk-fib-test-port0")
+																		g_bulkFibTestPort0 = bulk.second.get_value<std::string>();
+														else if(bulk.first=="bulk-fib-test-port1")
+																		g_bulkFibTestPort1 = bulk.second.get_value<std::string>();
+										}
+						}
+		}
 
     if( g_inputWorkerList.size() > 0 and g_dcnWorkerList.size() > 0){
 
@@ -707,9 +705,6 @@ int main(int argc, char** argv)
         });
         workerId +=1;
     }
-
-	std::cout << "ST-PIT-:" << sizeof(ST_PIT_TOKEN) << std::endl;
-	std::cout << "uint8_t:" << sizeof(uint8_t) << std::endl;
 
     try {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
