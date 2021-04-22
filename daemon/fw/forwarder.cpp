@@ -404,7 +404,16 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   auto it = pitEntry->insertOrUpdateOutRecord(egress, interest);
   BOOST_ASSERT(it != pitEntry->out_end());
 
-  egress.sendInterest(interest);
+  if(getOutgoingMwNfd() and egress.getId()>1){
+	  NDN_OUT_MSG msg;
+	  msg.face = egress.getId();
+	  msg.interest = &interest;
+	  std::cout << "interest: " << interest.getName().toUri() << std::endl;
+	  bool ret = nfd::g_dcnMoodyOutMQ[ msg.face%getOutgoingMwNfdWorkers() ]->try_enqueue(msg);
+
+  }else{
+	  egress.sendInterest(interest);
+  }
   ++m_counters.nOutInterests;
 
 #ifdef ETRI_DEBUG_COUNTERS

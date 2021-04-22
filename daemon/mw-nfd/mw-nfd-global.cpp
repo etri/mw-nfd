@@ -60,6 +60,8 @@ bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 int g_prefixLength4Distribution;
 bool g_bulkFibTest=false;
+bool g_outgoingMwNfd=false;
+int g_outgoingMwNfdWorkers=0;
 std::string g_bulkFibFilePath;
 bool g_fibSharding=true;
 
@@ -92,6 +94,10 @@ void setBulkFibFilePath(std::string val)
 {
 	g_bulkFibFilePath=val;
 }
+void setOutgoingMwNfd()
+{
+		g_outgoingMwNfd=true;
+}
 void setBulkFibTest()
 {
 		g_bulkFibTest=true;
@@ -99,6 +105,20 @@ void setBulkFibTest()
 std::string getBulkFibFilePath()
 {
  return g_bulkFibFilePath;	
+}
+void setOutgoingMwNfdWorkers(int cnt)
+{
+	g_outgoingMwNfdWorkers=cnt;
+	if(cnt>0)
+		g_outgoingMwNfd=true;
+}
+int getOutgoingMwNfdWorkers()
+{
+	return g_outgoingMwNfdWorkers;
+}
+bool getOutgoingMwNfd()
+{
+	return g_outgoingMwNfd;
 }
 bool getBulkFibTest()
 {
@@ -395,6 +415,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 }
 
 MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
+MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE]={nullptr,};
 BoostMQ g_dcnBoostMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 
 void mq_allocation()
@@ -402,6 +423,7 @@ void mq_allocation()
     uint32_t i,j;
 
     for(i=0;i<MQ_ARRAY_MAX_SIZE;i++){
+			g_dcnMoodyOutMQ[i] = std::make_shared<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>();
         for(j=0;j<MQ_ARRAY_MAX_SIZE;j++){
             g_dcnMoodyMQ[i][j] = std::make_shared<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>();
         }

@@ -179,7 +179,7 @@ DatagramTransport<T, U>::doSend(const Block& packet)
                         this->handleSend(std::forward<decltype(args)>(args)...);
                       });
 #else
-	m_socket.send(boost::asio::buffer(packet));
+
 #endif
 }
 

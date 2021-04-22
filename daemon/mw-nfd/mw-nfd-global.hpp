@@ -177,11 +177,19 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 	void setBulkFibFilePath(std::string);
 	void setBulkFibTest();
+	void setOutgoingMwNfd();
+	void setOutgoingMwNfdWorkers(int);
+	int getOutgoingMwNfdWorkers();
 	std::string getBulkFibFilePath();
+	bool getOutgoingMwNfd();
 	bool getBulkFibTest();
 
     size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters, bool);
 
+    typedef struct st_ndn_out_msg {
+			const ndn::Interest *interest;
+			nfd::face::FaceId face;
+		}NDN_OUT_MSG;
     typedef struct st_ndn_msg {
         std::shared_ptr<ndn::Buffer> buffer;
         std::shared_ptr<ndn::Interest> interest;
@@ -194,7 +202,9 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
     using MoodyMQ = std::shared_ptr<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>;
     extern    nfd::MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE];
-    extern    nfd::MoodyMQ g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE];
+
+    using MoodyMQ2 = std::shared_ptr<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>;
+    extern    nfd::MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE];
 
     using BoostMQ = std::shared_ptr< boost::lockfree::spsc_queue<NDN_MSG, boost::lockfree::capacity<CAPACITY>> >;
     extern    nfd::BoostMQ g_dcnBoostMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE];
