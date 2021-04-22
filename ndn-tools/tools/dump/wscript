@@ -1,0 +1,26 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+top = '../..'
+
+def configure(conf):
+    conf.check_cfg(package='libpcap', uselib_store='PCAP',
+                   path='pcap-config', args='--libs --cflags')
+    conf.check_cxx(msg='Checking if struct tcphdr has member th_off ',
+                   define_name='HAVE_BSD_TCPHDR', mandatory=False,
+                   fragment='''#include <netinet/tcp.h>
+                               int main() { tcphdr th; th.th_off; }''')
+    conf.check_cxx(msg='Checking if struct udphdr has member uh_ulen',
+                   define_name='HAVE_BSD_UDPHDR', mandatory=False,
+                   fragment='''#include <netinet/udp.h>
+                               int main() { udphdr uh; uh.uh_ulen; }''')
+
+def build(bld):
+    bld.objects(
+        target='dump-objects',
+        source=bld.path.ant_glob('*.cpp', excl='main.cpp'),
+        use='core-objects PCAP')
+
+    bld.program(
+        target='../../bin/ndndump',
+        name='ndndump',
+        source='main.cpp',
+        use='dump-objects')

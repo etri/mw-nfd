@@ -1,0 +1,48 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+top = '..'
+
+from waflib import Options
+
+def options(opt):
+    for subdir in opt.path.ant_glob('*', dir=True, src=False):
+        tool = subdir.path_from(opt.path)
+        opt.add_option('--enable-%s' % tool,
+                       help='Build tool %s (enabled by default)' % tool,
+                       action='store_true', dest='enable_%s' % tool)
+        opt.add_option('--disable-%s' % tool,
+                       help='Do not build tool %s' % tool,
+                       action='store_true', dest='disable_%s' % tool)
+        opt.recurse(str(tool), mandatory=False)
+
+def configure(conf):
+    all_tools = set() # all available tools
+    enabled_tools = set() # --enable-X
+    disabled_tools = set() # --disable-X
+
+    for subdir in conf.path.ant_glob('*', dir=True, src=False):
+        tool = subdir.path_from(conf.path)
+        all_tools.add(tool)
+
+        is_enabled = getattr(Options.options, 'enable_%s' % tool)
+        is_disabled = getattr(Options.options, 'disable_%s' % tool)
+
+        if is_enabled and is_disabled:
+            conf.fatal('--enable-%s and --disable-%s cannot be both specified' % (tool, tool))
+
+        if is_enabled:
+            enabled_tools.add(tool)
+
+        if is_disabled:
+            disabled_tools.add(tool)
+
+    if len(enabled_tools) == 0:
+        conf.env.BUILD_TOOLS = list(all_tools - disabled_tools)
+    else:
+        conf.env.BUILD_TOOLS = list(enabled_tools)
+
+    for tool in conf.env.BUILD_TOOLS:
+        conf.recurse(tool, mandatory=False)
+
+def build(bld):
+    for tool in bld.env.BUILD_TOOLS:
+        bld.recurse(tool)

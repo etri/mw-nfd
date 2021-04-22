@@ -353,16 +353,16 @@ printAddedFeatures(std::ostream& os)
 {
 #ifdef ETRI_DEBUG_COUNTERS
     //std::cout << "***+ Running NFD Original Archecture..." << std::endl;
-    std::cout << "   +-- with ETRI-DEBUG-COUNTERS." << std::endl;
+    std::cout << "   +  --with-counters" << std::endl;
 #endif
 #ifdef ETRI_NFD_ORG_ARCH
-    std::cout << "   +-- with ETRI-NFD-ORG-ARCH." << std::endl;
+    std::cout << "   +  --with-nfd-org-arch" << std::endl;
 #endif
-#ifdef ETRI_DUAL_CS
-    std::cout << "   +-- with WITH-DUAL-CS." << std::endl;
+#ifndef ETRI_DUAL_CS
+    std::cout << "   +  --without-dual-cs" << std::endl;
 #endif
-#ifdef ETRI_PITTOKEN_HASH
-    std::cout << "   +-- with WITH-PITTOKEN-HASH." << std::endl;
+#ifndef ETRI_PITTOKEN_HASH
+    std::cout << "   +  --without-pittoken-hash" << std::endl;
 #endif
 
     std::cout << "\n \n" << std::endl;
