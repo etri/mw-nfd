@@ -165,19 +165,22 @@ void Nfd::initialize()
     FaceId faceId0 = 0;
     FaceId faceId1 = 0;
 
+	FaceUri uri0(port0);
+	FaceUri uri1(port1);
+
     do{ 
-	    FaceTable::const_iterator it; 
+		FaceTable::const_iterator it; 
       FaceUri uri;
 
       for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
 
-	      uri = it->getLocalUri();
+      	uri = it->getLocalUri();
 
-        if( uri.getHost() == port0 ){
+        if( uri.getHost() == uri0.getHost() ){
  	       faceId0 = it->getId();
         }   
 
-        if( uri.getHost() == port1 ){
+        if( uri.getHost() == uri1.getHost() ){
  	       faceId1 = it->getId();
         }   
       }   
