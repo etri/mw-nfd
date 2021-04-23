@@ -105,7 +105,10 @@ Producer::processDiscoveryInterest(const Interest& interest)
 	mdata.setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end())));
 
   if (m_options.isVerbose)
+	{
     std::cerr << "Sending metadata: " << mdata << std::endl;
+    std::cerr << "Sending metadata pitToken: " << *mdata.getTag<lp::PitToken>() << std::endl;
+	}
 
   m_face.put(mdata);
 }
@@ -135,7 +138,11 @@ Producer::processSegmentInterest(const Interest& interest)
 
   if (data != nullptr) {
     if (m_options.isVerbose)
+		{
       std::cerr << "Data: " << *data << std::endl;
+			auto pitToken = data->getTag<lp::PitToken>();
+    	std::cerr << "Sending Data pitToken: " << *pitToken << std::endl;
+		}
 
     m_face.put(*data);
   }
@@ -163,6 +170,11 @@ Producer::populateStore(std::istream& is)
       auto data = make_shared<Data>(Name(m_versionedPrefix).appendSegment(m_store.size()));
       data->setFreshnessPeriod(m_options.freshnessPeriod);
       data->setContent(buffer.data(), static_cast<size_t>(nCharsRead));
+			// modify for PitToken tag add Data
+			const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
+			auto b= std::make_shared<Buffer>(VALUE, sizeof(VALUE));
+			data->setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end())));
+
       m_store.push_back(data);
     }
   }
@@ -170,6 +182,11 @@ Producer::populateStore(std::istream& is)
   if (m_store.empty()) {
     auto data = make_shared<Data>(Name(m_versionedPrefix).appendSegment(0));
     data->setFreshnessPeriod(m_options.freshnessPeriod);
+		// modify for PitToken tag add Data
+		const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
+		auto b= std::make_shared<Buffer>(VALUE, sizeof(VALUE));
+		data->setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end())));
+
     m_store.push_back(data);
   }
 
