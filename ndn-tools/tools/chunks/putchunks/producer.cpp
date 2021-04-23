@@ -104,10 +104,6 @@ Producer::processDiscoveryInterest(const Interest& interest)
   auto pitToken = interest.getTag<lp::PitToken>();
   if(pitToken != nullptr) {
     mdata.setTag(pitToken);
-  } else {
-    const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
-    auto b= std::make_shared<Buffer>(VALUE, sizeof(VALUE));
-    mdata.setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end())));
   }
 
   if (m_options.isVerbose) {
@@ -151,10 +147,6 @@ Producer::processSegmentInterest(const Interest& interest)
     auto pitToken = interest.getTag<lp::PitToken>();
     if(pitToken != nullptr) {
       data->setTag(pitToken);
-    } else {
-      const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
-      auto b= std::make_shared<Buffer>(VALUE, sizeof(VALUE));
-      data->setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end())));
     }
 
     m_face.put(*data);
