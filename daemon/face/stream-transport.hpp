@@ -258,8 +258,6 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
     if (error)
         return processErrorCode(error);
 
-    NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes");
-
     m_receiveBufferSize += nBytesReceived;
     size_t offset = 0;
     bool isOk = true;

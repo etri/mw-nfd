@@ -408,7 +408,6 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
 	  NDN_OUT_MSG msg;
 	  msg.face = egress.getId();
 	  msg.interest = &interest;
-	  std::cout << "interest: " << interest.getName().toUri() << std::endl;
 	  bool ret = nfd::g_dcnMoodyOutMQ[ msg.face%getOutgoingMwNfdWorkers() ]->try_enqueue(msg);
 
   }else{
@@ -575,16 +574,21 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 	size_t hashValue = 0;
 #endif
 
-	ST_PIT_TOKEN  *pitToken;
+	//ST_PIT_TOKEN  *pitToken;
+	uint8_t  *pitToken;
 
 	auto token = data.getTag<lp::PitToken>();
 	if(token!=nullptr){
-		pitToken = (ST_PIT_TOKEN *)token->data();
-		NFD_LOG_DEBUG("CanBePrefix: " << pitToken->CanBePrefix );
-		isCanBePrefix = pitToken->CanBePrefix;
+		//pitToken = (ST_PIT_TOKEN *)token->data();
+		pitToken = token->data();
+		//isCanBePrefix = pitToken->CanBePrefix;
+		isCanBePrefix = pitToken[1];
+		NFD_LOG_DEBUG("CanBePrefix: " << isCanBePrefix );
 #ifdef ETRI_PITTOKEN_HASH   // Dual_CS and PitToken hash exact match
-		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
-		hashValue = pitToken->hashValue;
+		//NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
+		//hashValue = pitToken->hashValue;
+		//NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
+		memcpy(&hashValue , pitToken+2, sizeof(size_t));
 #endif
 	}
 

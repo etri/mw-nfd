@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <boost/atomic.hpp>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
@@ -314,8 +315,8 @@ std::tuple<bool, uint32_t, int32_t>
 dissectNdnPacket( const uint8_t *wire, size_t size  )
 {
     uint32_t type=0;
-    int worker=-1;
-    int pitToken=-1;
+    int64_t worker=-1;
+    int64_t pitToken=-1;
     uint64_t length;
     const uint8_t* pos = wire;
     const uint8_t* end = wire + size;
@@ -331,6 +332,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 
         do{   
             ret=tlv::readType(pos, end, type);  
+
 			if(ret==false)
     			return std::make_tuple(false, ndn::lp::tlv::LpPacket, worker);
 
@@ -368,7 +370,9 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
             }
 
             if(type == ndn::lp::tlv::PitToken){  
-                worker = pitToken = pos[0];  
+                worker = pitToken = pos[0]; 
+                //ST_PIT_TOKEN *tok = (ST_PIT_TOKEN *)pos;
+                //worker = pitToken = tok->workerId;  
             }  
             if(type == ndn::lp::tlv::Fragment){  
                 if( index != 0 ) break;

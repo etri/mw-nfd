@@ -201,15 +201,22 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
 {
     //auto b = make_shared<ndn::Buffer>(sizeof(ST_PIT_TOKEN));
     auto b = make_shared<ndn::Buffer>(32);
-    ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
-    pitToken->workerId = pitEntry->m_workerId;
+    uint8_t *ptr=b->data();
+    //ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
+    int id ;
+    //pitToken->workerId = pitEntry->m_workerId;
+    ptr[0] = pitEntry->m_workerId;
+    //std::cout << "++++ workerId: " << ptr[0] <<std::endl;
+
 #if defined(ETRI_DUAL_CS)
-    pitToken->CanBePrefix = interest.getCanBePrefix();
+    //pitToken->CanBePrefix = interest.getCanBePrefix();
+    ptr[1] = interest.getCanBePrefix();
 #endif
 
 #if defined(ETRI_PITTOKEN_HASH)
     auto node = pitEntry->m_nameTreeEntry->getNode();
-    pitToken->hashValue = node->hash;
+    //pitToken->hashValue = node->hash;
+    memcpy(ptr+2, &node->hash, sizeof(size_t));
 #endif
     
   if (interest.getTag<lp::PitToken>() != nullptr) {

@@ -56,7 +56,7 @@ void OutgoingMwNfd::runOutgoingWorker()
 		for(idx=0;idx<deq;idx++){
 			face = g_faceTable->get(items[idx].face);
 			if(face){
-				std::cout << "OutgoingFace: " << face->getId() << std::endl;
+				//NDN_LOG_INFO( m_workerId << " - OutgoingFace: " << face->getId() );
 				face->sendInterest(*items[idx].interest);
 			}
 	    }

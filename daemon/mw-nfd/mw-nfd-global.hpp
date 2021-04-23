@@ -135,13 +135,13 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 
 namespace nfd {
 extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
-
-	typedef struct st_msg {
-		uint64_t workerId;
+/*
+	typedef union {
+		uint8_t workerId;
+		uint8_t CanBePrefix;
         size_t hashValue;
-		uint64_t CanBePrefix;
 	} ST_PIT_TOKEN ;
-
+*/
     using namespace moodycamel;
     using namespace boost::lockfree;
 

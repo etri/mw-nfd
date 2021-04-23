@@ -343,6 +343,7 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
 			++this->nInLpInvalid;
 		return;
 	}
+    //std::cout << "worker: DROP: " << worker << std::endl;
 
 	if( getForwardingWorkers()==0 or getFace()==nullptr or worker==DCN_LOCALHOST_PREFIX ){
 		try {
