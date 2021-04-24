@@ -470,6 +470,12 @@ mw-nfd
       ; enp7s0f0 10
       ; enp7s0f1 11
     }
+    output-thread-core-assign
+    {
+	lo 1
+       enp0s5 2 
+      ; enp7s0f1 11
+    }
 
     ; Default forwarding worker cores are {1,2} in case no forwarding-worker-core-assign statement.
     ; Core list can be specified with a mix of ranges (e.g. 2-4) and enumeration.
@@ -477,7 +483,6 @@ mw-nfd
     forwarding-worker-core-assign 1
     ;forwarding-worker-core-assign 4-6,8,10,12-15
 
-    outgoing-worker-core-assign 2
     ; Input threads distribute incoming Interests to forwarding workers based on
     ; the hash of the name prefix of "prefix-length-for-distribution" length.
     ; The forwarding worker-id is encoded in the PIT token of sending Interst,

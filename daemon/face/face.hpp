@@ -119,16 +119,16 @@ public: // properties
   FaceId
   getId() const;
 
-  uint8_t
-  getIfIndex() const;
+  //int
+  //getIfIndex() const;
   /** \brief sets face ID
    *  \note Normally, this should only be invoked by FaceTable.
    */
   void
   setId(FaceId id);
 
-  void
-  setIfIndex(uint8_t id);
+  //void
+  //setIfIndex(int id);
 
   /** \return a FaceUri representing local endpoint
    */
@@ -203,13 +203,14 @@ public: // properties
   const FaceCounters&
   getCounters() const;
 
+//modori
+  int ifIndex;
 private:
   FaceId m_id;
   unique_ptr<LinkService> m_service;
   unique_ptr<Transport> m_transport;
   FaceCounters m_counters;
 	weak_ptr<Channel> m_channel;
-  uint8_t m_ifIndex;
 };
 
 inline LinkService*
@@ -247,23 +248,25 @@ Face::sendNack(const lp::Nack& nack)
 {
   m_service->sendNack(nack);
 }
+#if 0
 inline uint8_t
 Face::getIfIndex() const
 {
   return m_ifIndex;
 }
-
+#endif
 inline FaceId
 Face::getId() const
 {
   return m_id;
 }
+#if 0
 inline void
 Face::setIfIndex(uint8_t id)
 {
   m_ifIndex = id;
 }
-
+#endif
 inline void
 Face::setId(FaceId id)
 {

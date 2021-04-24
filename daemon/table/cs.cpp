@@ -92,9 +92,8 @@ Cs::insert(const Data& data, bool isUnsolicited)
 	bool isCanBePrefix = 1;
 	auto token = data.getTag<lp::PitToken>();
 	if(token!=nullptr){
-		//ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)token->data();
-		uint8_t *pitToken = token->data();
-		isCanBePrefix = pitToken[1];
+		ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)token->data();
+		isCanBePrefix = pitToken->CanBePrefix;
 	}else {
 		NFD_LOG_DEBUG("PitToken is NULL");
 	}

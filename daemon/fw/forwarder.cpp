@@ -404,12 +404,15 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   auto it = pitEntry->insertOrUpdateOutRecord(egress, interest);
   BOOST_ASSERT(it != pitEntry->out_end());
 
-  if(getOutgoingMwNfd() and egress.getId()>1){
+// modori
+  if(egress.getId()==face::FACEID_INTERNAL_FACE){
+	  egress.sendInterest(interest);
+  }else if(getOutgoingMwNfd()){
 	  NDN_OUT_MSG msg;
 	  msg.face = egress.getId();
+		msg.type=0x05;
 	  msg.interest = &interest;
-	  bool ret = nfd::g_dcnMoodyOutMQ[ msg.face%getOutgoingMwNfdWorkers() ]->try_enqueue(msg);
-
+	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
   }else{
 	  egress.sendInterest(interest);
   }
@@ -574,21 +577,17 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 	size_t hashValue = 0;
 #endif
 
-	//ST_PIT_TOKEN  *pitToken;
-	uint8_t  *pitToken;
+	ST_PIT_TOKEN  *pitToken;
 
 	auto token = data.getTag<lp::PitToken>();
 	if(token!=nullptr){
-		//pitToken = (ST_PIT_TOKEN *)token->data();
-		pitToken = token->data();
-		//isCanBePrefix = pitToken->CanBePrefix;
-		isCanBePrefix = pitToken[1];
+		pitToken = (ST_PIT_TOKEN *)token->data();
+		isCanBePrefix = pitToken->CanBePrefix;
 		NFD_LOG_DEBUG("CanBePrefix: " << isCanBePrefix );
 #ifdef ETRI_PITTOKEN_HASH   // Dual_CS and PitToken hash exact match
-		//NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
-		//hashValue = pitToken->hashValue;
-		//NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
-		memcpy(&hashValue , pitToken+2, sizeof(size_t));
+		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
+		hashValue = pitToken->hashValue;
+		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
 #endif
 	}
 
@@ -720,7 +719,17 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
   }
 
   // send Data
+  if(egress.getId()==face::FACEID_INTERNAL_FACE){
+	  egress.sendData(data);
+  }else if(getOutgoingMwNfd()) {
+	  NDN_OUT_MSG msg;
+	  msg.face = egress.getId();
+		msg.type=0x06;
+	  msg.data = &data;
+	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
+  }else{
     egress.sendData(data);
+	}
   ++m_counters.nOutData;
 
 #ifdef ETRI_DEBUG_COUNTERS
@@ -828,7 +837,17 @@ Forwarder::onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
   pitEntry->deleteInRecord(egress);
 
   // send Nack on face
+  if(egress.getId()==face::FACEID_INTERNAL_FACE){
+	  egress.sendNack(nackPkt);
+  }else if(getOutgoingMwNfd()){
+	  NDN_OUT_MSG msg;
+	  msg.face = egress.getId();
+	  msg.type=800;
+	  msg.nack = &nackPkt;
+	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
+  }else{
   egress.sendNack(nackPkt);
+	}
   ++m_counters.nOutNacks;
 
   return true;

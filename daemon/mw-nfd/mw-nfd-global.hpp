@@ -188,8 +188,12 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
     typedef struct st_ndn_out_msg {
 			const ndn::Interest *interest;
+			const ndn::Data *data;
+			const lp::Nack *nack;
 			nfd::face::FaceId face;
+			uint64_t type;
 		}NDN_OUT_MSG;
+
     typedef struct st_ndn_msg {
         std::shared_ptr<ndn::Buffer> buffer;
         std::shared_ptr<ndn::Interest> interest;
@@ -217,7 +221,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     bool getGlobalNetName();
     void setGlobalNetName(bool);
 
-int32_t getIfIndex(const char *addr);
+int getIfIndex(const char *addr);
 int32_t computeWorkerId( const uint8_t *wire, size_t size );
 std::tuple<bool, uint32_t, int32_t> dissectNdnPacket( const uint8_t *wire, size_t size );
 

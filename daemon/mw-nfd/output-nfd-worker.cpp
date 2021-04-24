@@ -3,7 +3,7 @@
 #include <thread>
 #include <memory>
 
-#include "outgoing-nfd-worker.hpp"
+#include "output-nfd-worker.hpp"
 #include "mw-nfd-global.hpp"
 #include "common/logger.hpp"
 #include "face/face.hpp"
@@ -18,31 +18,32 @@
 
 using namespace std;
 
-NFD_LOG_INIT(OutgoingMwNfd);
+NFD_LOG_INIT(OutputWorkerThread);
 
 namespace nfd {
 
 extern shared_ptr<FaceTable> g_faceTable;
 
-OutgoingMwNfd::OutgoingMwNfd(int8_t wid)
+OutputWorkerThread::OutputWorkerThread(int8_t wid)
   : m_workerId(wid)
     ,m_done(false)
 	{
+		NDN_LOG_INFO( m_workerId << " - OutputThread" );
 	//	m_terminationSignalSet.add(SIGINT);
 	//	m_terminationSignalSet.add(SIGTERM);
 
 	}
 
-OutgoingMwNfd::~OutgoingMwNfd() = default;
+OutputWorkerThread::~OutputWorkerThread() = default;
 
 #ifndef ETRI_NFD_ORG_ARCH
 
-void OutgoingMwNfd::terminate(const boost::system::error_code& error, int signalNo)
+void OutputWorkerThread::terminate(const boost::system::error_code& error, int signalNo)
 {
     m_done=true;
 }
 #endif
-void OutgoingMwNfd::runOutgoingWorker()
+void OutputWorkerThread::run()
 {
 	//NDN_OUT_MSG msg;
 
@@ -56,8 +57,16 @@ void OutgoingMwNfd::runOutgoingWorker()
 		for(idx=0;idx<deq;idx++){
 			face = g_faceTable->get(items[idx].face);
 			if(face){
+				int id = m_workerId;
 				//NDN_LOG_INFO( m_workerId << " - OutgoingFace: " << face->getId() );
-				face->sendInterest(*items[idx].interest);
+				//std::cout << "ID: " << id << "- OutgoingFace: " << face->getId() << ", Type: " << items[idx].type << std::endl ;
+				if(items[idx].type==0x05){
+					face->sendInterest(*items[idx].interest);
+				}else if(items[idx].type==0x06){
+					face->sendData(*items[idx].data);
+				}else if(items[idx].type==800){
+					face->sendNack(*items[idx].nack);
+				}
 			}
 	    }
 

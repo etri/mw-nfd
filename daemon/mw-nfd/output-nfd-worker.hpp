@@ -18,8 +18,8 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OUTGOING_NFD_WORKER_HPP
-#define OUTGOING_NFD_WORKER_HPP
+#ifndef OUTPUT_NFD_WORKER_HPP
+#define OUTPut_NFD_WORKER_HPP
 
 #include <face/transport.hpp>
 #include <face/link-service.hpp>
@@ -32,12 +32,12 @@ namespace nfd {
  *
  * This class is used to initialize all components of MW-NFD.
  */
-class OutgoingMwNfd : noncopyable
+class OutputWorkerThread : noncopyable
 {
 public:
-	explicit OutgoingMwNfd(int8_t wid);
-	~OutgoingMwNfd();
-	void runOutgoingWorker();
+	explicit OutputWorkerThread(int8_t wid);
+	~OutputWorkerThread();
+	void run();
 
 private:
 #ifndef ETRI_NFD_ORG_ARCH

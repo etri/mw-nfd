@@ -41,7 +41,7 @@ Face::Face(unique_ptr<LinkService> service, unique_ptr<Transport> transport)
   , m_service(std::move(service))
   , m_transport(std::move(transport))
   , m_counters(m_service->getCounters(), m_transport->getCounters())
-    , m_ifIndex(0)
+    , ifIndex(-1)
 {
   m_service->setFaceAndTransport(*this, *m_transport);
   m_transport->setFaceAndLinkService(*this, *m_service);
@@ -49,16 +49,20 @@ Face::Face(unique_ptr<LinkService> service, unique_ptr<Transport> transport)
   FaceUri uri = m_transport->getLocalUri();
 
   if( uri.getScheme() == "dev" ){
-      m_ifIndex = if_nametoindex(uri.getHost().c_str()); 
+      ifIndex = if_nametoindex(uri.getHost().c_str()); 
+  }else if( uri.getScheme() == "unix" ){
+      ifIndex = if_nametoindex("lo"); 
   }else if( uri.getScheme() == "udp4" ){
-      //m_ifIndex = getIfIndex(uri.getHost().c_str()); 
-
+      ifIndex = getIfIndex(uri.getHost().c_str()); 
   }else if( uri.getScheme() == "udp6" ){
+      ifIndex = if_nametoindex("lo"); 
   }else if( uri.getScheme() == "tcp4" ){
+      ifIndex = getIfIndex(uri.getHost().c_str()); 
   }else if( uri.getScheme() == "tcp6" ){
-
-  }   
-  //  printf("face: %s: ifIndex:%d\n", uri.toString().c_str(), m_ifIndex);
+      ifIndex = if_nametoindex("lo"); 
+  }else   
+      ifIndex = if_nametoindex("lo"); 
+  printf("face: %s: ifIndex:%d\n", uri.toString().c_str(), ifIndex);
 }
 
 

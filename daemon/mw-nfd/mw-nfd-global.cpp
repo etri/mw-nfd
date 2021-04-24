@@ -444,6 +444,7 @@ boost::asio::io_service* g_ioServiceArray[MAX_IO_CAPA]={nullptr,};
 
 boost::asio::io_service* getGlobalIoService(int idx)
 {
+	if(idx < 0) idx=0;
     if( idx < MAX_IO_CAPA ){
         if( g_ioServiceArray[idx] != nullptr ){
             return g_ioServiceArray[idx];
@@ -469,7 +470,7 @@ void setGlobalIoService(int idx, boost::asio::io_service* ios)
     g_ioServiceArray[idx] = ios;
 }
 
-int32_t getIfIndex(const char *addr)
+int getIfIndex(const char *addr)
 {
 
 	struct ifaddrs *ifaddr, *ifa;
@@ -481,7 +482,7 @@ int32_t getIfIndex(const char *addr)
 #ifndef ETRI_NFD_ORG_ARCH
 		std::cout << "getifaddrs Error--------------: " << addr << std::endl;
 #endif
-		return 0;
+		return -1;
 	}
 
 	/* Walk through linked list, maintaining head pointer so we can free list later */
@@ -499,7 +500,7 @@ int32_t getIfIndex(const char *addr)
 					host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
 			if (s != 0) {
 				printf("getnameinfo() address failed: %s\n", gai_strerror(s));
-				return 0;
+				return -1;
 			}
 			s = getnameinfo(ifa->ifa_netmask,
 					(family == AF_INET) ? sizeof(struct sockaddr_in) :
@@ -507,7 +508,7 @@ int32_t getIfIndex(const char *addr)
 					netmask, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
 			if (s != 0) {
 				printf("getnameinfo() netmask failed: %s\n", gai_strerror(s));
-				return 0;
+				return -1;
 			}
 
 			if(!strcmp(host, "127.0.0.1"))
@@ -527,7 +528,7 @@ int32_t getIfIndex(const char *addr)
 
 	freeifaddrs(ifaddr);
 
-	return 0;
+	return -1;
 }
 
 int8_t getForwardingWorkers()
