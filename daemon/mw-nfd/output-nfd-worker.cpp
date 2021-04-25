@@ -53,13 +53,13 @@ void OutputWorkerThread::run()
 
 	do{
 
-		deq = nfd::g_dcnMoodyOutMQ[m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
+		deq = nfd::g_dcnMoodyOutMQ[m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1);
 		for(idx=0;idx<deq;idx++){
 			face = g_faceTable->get(items[idx].face);
+				std::cout << m_workerId << " - OutgoingFace: " <<std::endl;
 			if(face){
 				int id = m_workerId;
-				//NDN_LOG_INFO( m_workerId << " - OutgoingFace: " << face->getId() );
-				//std::cout << "ID: " << id << "- OutgoingFace: " << face->getId() << ", Type: " << items[idx].type << std::endl ;
+				std::cout << "ID: " << id << "- OutgoingFace: " << face->getId() << ", Type: " << items[idx].type << ", cpu: " << sched_getcpu() << std::endl ;
 				if(items[idx].type==0x05){
 					face->sendInterest(*items[idx].interest);
 				}else if(items[idx].type==0x06){

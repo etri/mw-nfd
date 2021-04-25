@@ -252,6 +252,7 @@ public:
       }
       cv.notify_all(); // notify that ribIo has been assigned
 
+        //std::this_thread::sleep_for(std::chrono::milliseconds(2000));
       try {
         ndn::KeyChain ribKeyChain;
         // must be created inside a separate thread

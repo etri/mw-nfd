@@ -405,7 +405,9 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   BOOST_ASSERT(it != pitEntry->out_end());
 
 // modori
-  if(egress.getId()==face::FACEID_INTERNAL_FACE){
+	std::cout << "Int: " << egress.getId() << ", " << egress.ifIndex << ", " << ", " << egress.getScope()<<", "<<", cpu: " << sched_getcpu() << ": " << interest.getName() << std::endl;
+
+  if(scope_prefix::LOCALHOST.isPrefixOf(interest.getName())){
 	  egress.sendInterest(interest);
   }else if(getOutgoingMwNfd()){
 	  NDN_OUT_MSG msg;
@@ -413,8 +415,9 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
 		msg.type=0x05;
 	  msg.interest = &interest;
 	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
+		std::cout <<"ret: " << ret << ", " << egress.ifIndex << std::endl;
   }else{
-	  egress.sendInterest(interest);
+	  //egress.sendInterest(interest);
   }
   ++m_counters.nOutInterests;
 
@@ -719,7 +722,8 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
   }
 
   // send Data
-  if(egress.getId()==face::FACEID_INTERNAL_FACE){
+	std::cout << "Data: " << egress.getId() << ", " << egress.ifIndex << ", " << data.getName() << std::endl;
+  if(scope_prefix::LOCALHOST.isPrefixOf(data.getName())){
 	  egress.sendData(data);
   }else if(getOutgoingMwNfd()) {
 	  NDN_OUT_MSG msg;
@@ -837,7 +841,7 @@ Forwarder::onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
   pitEntry->deleteInRecord(egress);
 
   // send Nack on face
-  if(egress.getId()==face::FACEID_INTERNAL_FACE){
+  if(scope_prefix::LOCALHOST.isPrefixOf(pitEntry->getInterest().getName())){
 	  egress.sendNack(nackPkt);
   }else if(getOutgoingMwNfd()){
 	  NDN_OUT_MSG msg;
