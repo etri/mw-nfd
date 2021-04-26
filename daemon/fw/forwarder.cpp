@@ -407,17 +407,15 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
 // modori
 	std::cout << "Int: " << egress.getId() << ", " << egress.ifIndex << ", " << ", " << egress.getScope()<<", "<<", cpu: " << sched_getcpu() << ": " << interest.getName() << std::endl;
 
-  if(scope_prefix::LOCALHOST.isPrefixOf(interest.getName())){
+  if(scope_prefix::LOCALHOST.isPrefixOf(interest.getName()) or getOutgoingMwNfd()==0){
 	  egress.sendInterest(interest);
-  }else if(getOutgoingMwNfd()){
+  }else{
 	  NDN_OUT_MSG msg;
 	  msg.face = egress.getId();
 		msg.type=0x05;
 	  msg.interest = &interest;
 	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
 		std::cout <<"ret: " << ret << ", " << egress.ifIndex << std::endl;
-  }else{
-	  //egress.sendInterest(interest);
   }
   ++m_counters.nOutInterests;
 
@@ -723,17 +721,15 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
 
   // send Data
 	std::cout << "Data: " << egress.getId() << ", " << egress.ifIndex << ", " << data.getName() << std::endl;
-  if(scope_prefix::LOCALHOST.isPrefixOf(data.getName())){
+  if(scope_prefix::LOCALHOST.isPrefixOf(data.getName()) or getOutgoingMwNfd()==0){
 	  egress.sendData(data);
-  }else if(getOutgoingMwNfd()) {
+  }else{
 	  NDN_OUT_MSG msg;
 	  msg.face = egress.getId();
 		msg.type=0x06;
 	  msg.data = &data;
 	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
-  }else{
-    egress.sendData(data);
-	}
+  }
   ++m_counters.nOutData;
 
 #ifdef ETRI_DEBUG_COUNTERS
