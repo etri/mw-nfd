@@ -199,10 +199,13 @@ Strategy::onDroppedInterest(const Face& egress, const Interest& interest)
 pit::OutRecord*
 Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
 {
-    //auto b = make_shared<ndn::Buffer>(sizeof(ST_PIT_TOKEN));
     auto b = make_shared<ndn::Buffer>(32);
     ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
+
+#if !defined(ETRI_NFD_ORG_ARCH) || defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
     pitToken->workerId = pitEntry->m_workerId;
+	int wid = pitToken->workerId;
+#endif
 
 #if defined(ETRI_DUAL_CS)
     pitToken->CanBePrefix = interest.getCanBePrefix();
@@ -214,12 +217,13 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
 #endif
     
   if (interest.getTag<lp::PitToken>() != nullptr) {
-    Interest interest2 = interest; // make a copy to preserve tag on original packet
-    interest2.removeTag<lp::PitToken>();
+    auto interest2 = make_shared<ndn::Interest>(interest); // make a copy to preserve tag on original packet
+    interest2->removeTag<lp::PitToken>();
 
-    interest2.setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
-
-    return m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
+#if !defined(ETRI_NFD_ORG_ARCH) || defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
+    interest2->setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
+#endif
+    return m_forwarder.onOutgoingInterest(pitEntry, egress, *interest2);
   }
 
 #if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)

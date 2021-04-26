@@ -325,6 +325,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
     bool isFrag = false;
     bool ret __attribute__((unused));
 
+//std::cout << "dissectNdnPacket: " << size << std::endl;
     if( wire[0]==0x64 ){
 
         ret=tlv::readType(pos, end, packetType);  
@@ -340,6 +341,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 			if(ret==false)
     			return std::make_tuple(false, ndn::lp::tlv::LpPacket, worker);
 
+			//std::cout << std::hex << "Type: " << type << std::endl;
             if(type == ndn::lp::tlv::FragCount){  
                 if( length == 1 )
                     count = pos[0];
@@ -370,10 +372,11 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
             }
 
             if(type == ndn::lp::tlv::PitToken){  
-                worker = pitToken = pos[0]; 
-                //ST_PIT_TOKEN *tok = (ST_PIT_TOKEN *)pos;
-                //worker = pitToken = tok->workerId;  
+                //worker = pitToken = pos[0]; 
+                ST_PIT_TOKEN *tok = (ST_PIT_TOKEN *)pos;
+                worker = pitToken = tok->workerId;  
             }  
+
             if(type == ndn::lp::tlv::Fragment){  
                 if( index != 0 ) break;
                 continue;  

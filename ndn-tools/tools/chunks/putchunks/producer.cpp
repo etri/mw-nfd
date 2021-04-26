@@ -104,6 +104,7 @@ Producer::processDiscoveryInterest(const Interest& interest)
   auto pitToken = interest.getTag<lp::PitToken>();
   if(pitToken != nullptr) {
     mdata.setTag(pitToken);
+	auto d = pitToken->data();
   }
 
   if (m_options.isVerbose) {

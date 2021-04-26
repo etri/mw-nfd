@@ -139,7 +139,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 	typedef struct pit_token_st {
 		uint8_t workerId;
 		uint8_t CanBePrefix;
-        size_t hashValue;
+        uint64_t hashValue;
 	} ST_PIT_TOKEN ;
 
     using namespace moodycamel;
@@ -187,8 +187,10 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters, bool);
 
     typedef struct st_ndn_out_msg {
-			const ndn::Interest *interest;
-			const ndn::Data *data;
+        //std::shared_ptr<ndn::Interest> interest;
+        //std::shared_ptr<ndn::Data> data;
+        const ndn::Interest* interest;
+        const ndn::Data* data;
 			const lp::Nack *nack;
 			nfd::face::FaceId face;
 			uint64_t type;
