@@ -62,7 +62,7 @@ Face::Face(unique_ptr<LinkService> service, unique_ptr<Transport> transport)
       ifIndex = if_nametoindex("lo"); 
   }else   
       ifIndex = if_nametoindex("lo"); 
-  printf("face: %s: ifIndex:%d\n", uri.toString().c_str(), ifIndex);
+  //printf("face: %s: ifIndex:%d\n", uri.toString().c_str(), ifIndex);
 }
 
 

@@ -405,9 +405,9 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   BOOST_ASSERT(it != pitEntry->out_end());
 
 // modori
-	std::cout << "Int: " << egress.getId() << ", " << egress.ifIndex << ", " << ", " << egress.getScope()<<", "<<", cpu: " << sched_getcpu() << ": " << interest.getName() << std::endl;
+	//std::cout << "Int: " << egress.getId() << ", " << egress.ifIndex << ", " << ", " << egress.getScope()<<", "<<", cpu: " << sched_getcpu() << ": " << interest.getName() << std::endl;
 
-  if(scope_prefix::LOCALHOST.isPrefixOf(interest.getName()) or getOutgoingMwNfd()==0){
+  if(getOutgoingMwNfd()==0 or scope_prefix::LOCALHOST.isPrefixOf(interest.getName())){
 	  egress.sendInterest(interest);
   }else{
 	  NDN_OUT_MSG msg;
@@ -415,7 +415,7 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
 		msg.type=0x05;
 	  msg.interest = &interest;
 	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
-		std::cout <<"ret: " << ret << ", " << egress.ifIndex << std::endl;
+		//std::cout <<"ret: " << ret << ", " << egress.ifIndex << std::endl;
   }
   ++m_counters.nOutInterests;
 
@@ -720,8 +720,8 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
   }
 
   // send Data
-	std::cout << "Data: " << egress.getId() << ", " << egress.ifIndex << ", " << data.getName() << std::endl;
-  if(scope_prefix::LOCALHOST.isPrefixOf(data.getName()) or getOutgoingMwNfd()==0){
+  //std::cout << "Data: " << egress.getId() << ", " << egress.ifIndex << ", " << data.getName() << std::endl;
+  if(getOutgoingMwNfd()==0 or scope_prefix::LOCALHOST.isPrefixOf(data.getName())){
 	  egress.sendData(data);
   }else{
 	  NDN_OUT_MSG msg;
@@ -837,17 +837,15 @@ Forwarder::onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
   pitEntry->deleteInRecord(egress);
 
   // send Nack on face
-  if(scope_prefix::LOCALHOST.isPrefixOf(pitEntry->getInterest().getName())){
-	  egress.sendNack(nackPkt);
-  }else if(getOutgoingMwNfd()){
+  if(getOutgoingMwNfd()==0 or scope_prefix::LOCALHOST.isPrefixOf(pitEntry->getInterest().getName())){
+  	egress.sendNack(nackPkt);
+  }else{
 	  NDN_OUT_MSG msg;
 	  msg.face = egress.getId();
 	  msg.type=800;
 	  msg.nack = &nackPkt;
 	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
-  }else{
-  egress.sendNack(nackPkt);
-	}
+  }
   ++m_counters.nOutNacks;
 
   return true;
