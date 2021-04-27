@@ -120,8 +120,8 @@ Cs::insert(const Data& data, bool isUnsolicited)
 	} else {
 	  NFD_LOG_DEBUG("insert -> m_tableExact" );
   	const_iterator_exact it;
-	  std::tie(it, isNewEntry) = m_tableExact.emplace(data.shared_from_this(), isUnsolicited);
-  	Entry& entry = const_cast<Entry&>(*it);
+  	Entry entry(data.shared_from_this(), isUnsolicited);
+	  std::tie(it, isNewEntry) = m_tableExact.emplace(std::make_pair(data.getName(), entry));
 		entry.updateFreshUntil();
 
 		if (!isNewEntry) { // existing entry
@@ -131,7 +131,7 @@ Cs::insert(const Data& data, bool isUnsolicited)
 			}
   		m_policy->beforeEraseExact(it);
 			m_tableExact.erase(it);
-	  	std::tie(it, isNewEntry) = m_tableExact.emplace(data.shared_from_this(), isUnsolicited);
+	  	std::tie(it, isNewEntry) = m_tableExact.emplace(std::make_pair(data.getName(), entry));
 			m_policy->afterInsertExact(it);
 			NFD_LOG_DEBUG("replace -> afterInsert" );
 		}
@@ -145,13 +145,18 @@ Cs::insert(const Data& data, bool isUnsolicited)
 }
 
 #ifdef ETRI_DUAL_CS
-
 Cs::const_iterator_exact
 Cs::findExactMatch(const std::shared_ptr<Data>& data) const
 {
-  const Entry entry(data, false);
-  //NFD_LOG_DEBUG("findExactMatch " << entry.getName());
-  auto const_iter = m_tableExact.find(entry);
+  auto const_iter = m_tableExact.find(data->getName());
+  return const_iter;
+}
+
+Cs::const_iterator_exact
+Cs::findExactMatch(const Name& name) const
+{
+  NFD_LOG_DEBUG("findExactMatch " << name);
+  auto const_iter = m_tableExact.find(name);
   return const_iter;
 }
 
@@ -169,15 +174,13 @@ Cs::findImplExact(const Interest& interest) const
 	if(interestName.get(-1).isImplicitSha256Digest()) {
 		const Name& prefix = interestName.getPrefix(-1);
   	NFD_LOG_DEBUG("findImplExact find name = " << prefix);
-  	auto data = make_shared<Data>(prefix);
-		const Entry entry(data, false);
-		auto match = m_tableExact.find(entry);
+		auto match = m_tableExact.find(prefix);
 
 		if (match == m_tableExact.end()) {
 			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
 			return m_tableExact.end();
 		}
-  	if (interest.getMustBeFresh() && !match->isFresh()) {
+  	if (interest.getMustBeFresh() && !match->second.isFresh()) {
 			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " MustBeFresh");
 			return m_tableExact.end();
 		}
@@ -185,15 +188,14 @@ Cs::findImplExact(const Interest& interest) const
 		m_policy->beforeUseExact(match);
 		return match;
 	} else {
-  	auto data = make_shared<Data>(interest.getName());
-		const Entry entry(data, false);
-		auto match = m_tableExact.find(entry);
+
+		auto match = m_tableExact.find(interest.getName());
 
 		if (match == m_tableExact.end()) {
 			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " no-match");
 			return m_tableExact.end();
 		}
-  	if (interest.getMustBeFresh() && !match->isFresh()) {
+  	if (interest.getMustBeFresh() && !match->second.isFresh()) {
 			NFD_LOG_DEBUG("findImplExact " << interest.getName() << " MustBeFresh");
 			return m_tableExact.end();
 		}
@@ -201,15 +203,13 @@ Cs::findImplExact(const Interest& interest) const
 		m_policy->beforeUseExact(match);
 		return match;
 	}
-
 }
 
 size_t
 Cs::eraseImplExact(const Name& exact, size_t limit)
 {
   NFD_LOG_DEBUG("eraseImplExact: name " << exact << " " );
-  auto data = make_shared<Data>(exact);
-  auto match = findExactMatch(data);
+  auto match = findExactMatch(exact);
 
   if (match == m_tableExact.end()) {
     NFD_LOG_DEBUG("eraseImplExact: find " << exact << " no-match");

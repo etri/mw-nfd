@@ -42,22 +42,18 @@ struct EntryRefHasherExact
 {
 	size_t
 	operator()(const Policy::EntryRefExact& t) const {
-  	    Entry& entry = const_cast<Entry&>(*t);
-	    return nfd::name_tree::computeHash(entry.getName());
+	    return nfd::name_tree::computeHash(t->first);
 	}
 };
 
 struct EntryRefComparatorExact {
 	bool
 	operator()(const Policy::EntryRefExact& t1, const Policy::EntryRefExact& t2) const {
-  	Entry& entry1 = const_cast<Entry&>(*t1);
-  	Entry& entry2 = const_cast<Entry&>(*t2);
-		if(entry1.getName() == entry2.getName())
+		if(t1->first == t2->first)
 			return true;
 		return false;
 	}
 };
-
 using QueueExact = boost::multi_index_container< 
                 Policy::EntryRefExact,
                 boost::multi_index::indexed_by<

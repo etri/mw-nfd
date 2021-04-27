@@ -97,6 +97,48 @@ BOOST_FIXTURE_TEST_CASE(EvictOne, CsFixture)
   CHECK_CS_FIND(0);
 }
 
+BOOST_FIXTURE_TEST_CASE(DualCsEvictOne, CsFixture)
+{
+  cs.setPolicy(make_unique<LruPolicy>());
+  cs.setLimit(3);
+
+  dual_cs_insert(1, "/A");
+  dual_cs_insert(2, "/B");
+  dual_cs_insert(3, "/C");
+  BOOST_CHECK_EQUAL(cs.size(), 3);
+
+  // evict A
+  dual_cs_insert(4, "/D");
+  BOOST_CHECK_EQUAL(cs.size(), 3);
+  startInterest("/A");
+  CHECK_CS_FIND(0);
+
+  // use C then B
+  startInterest("/C");
+  CHECK_CS_FIND(3);
+
+  startInterest("/B");
+  CHECK_CS_FIND(2);
+
+  // evict D then C
+  dual_cs_insert(5, "/E");
+  BOOST_CHECK_EQUAL(cs.size(), 3);
+  startInterest("/D");
+  CHECK_CS_FIND(0);
+  dual_cs_insert(6, "/F");
+  BOOST_CHECK_EQUAL(cs.size(), 3);
+  startInterest("/C");
+  CHECK_CS_FIND(0);
+
+  // refresh B
+  dual_cs_insert(12, "/B");
+  // evict E
+  dual_cs_insert(7, "/G");
+  BOOST_CHECK_EQUAL(cs.size(), 3);
+  startInterest("/E");
+  CHECK_CS_FIND(0);
+}
+
 BOOST_AUTO_TEST_SUITE_END() // TestCsLru
 BOOST_AUTO_TEST_SUITE_END() // Table
 
