@@ -404,17 +404,7 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   auto it = pitEntry->insertOrUpdateOutRecord(egress, interest);
   BOOST_ASSERT(it != pitEntry->out_end());
 
-  if(getOutgoingMwNfd()==0 or scope_prefix::LOCALHOST.isPrefixOf(interest.getName())){
-	  egress.sendInterest(interest);
-  }else{
-	  NDN_OUT_MSG msg;
-	  msg.face = egress.getId();
-		msg.type=0x05;
-	  msg.interest = &interest;
-	  //msg.interest = static_cast<shared_ptr<ndn::Interest> *>(&interest);
-	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
-  }
-
+  egress.sendInterest(interest);
   ++m_counters.nOutInterests;
 
 #ifdef ETRI_DEBUG_COUNTERS
@@ -717,16 +707,7 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
     return false;
   }
 
-  // send Data
-  if(getOutgoingMwNfd()==0 or scope_prefix::LOCALHOST.isPrefixOf(data.getName())){
-	  egress.sendData(data);
-  }else{
-	  NDN_OUT_MSG msg;
-	  msg.face = egress.getId();
-		msg.type=0x06;
-	  msg.data = &data;
-	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
-  }
+	egress.sendData(data);
   ++m_counters.nOutData;
 
 #ifdef ETRI_DEBUG_COUNTERS
@@ -834,15 +815,7 @@ Forwarder::onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
   pitEntry->deleteInRecord(egress);
 
   // send Nack on face
-  if(getOutgoingMwNfd()==0 or scope_prefix::LOCALHOST.isPrefixOf(pitEntry->getInterest().getName())){
   	egress.sendNack(nackPkt);
-  }else{
-	  NDN_OUT_MSG msg;
-	  msg.face = egress.getId();
-	  msg.type=800;
-	  msg.nack = &nackPkt;
-	  bool ret = nfd::g_dcnMoodyOutMQ[egress.ifIndex]->try_enqueue(msg);
-  }
   ++m_counters.nOutNacks;
 
   return true;
