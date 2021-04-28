@@ -138,36 +138,31 @@ operator<(Table::const_iterator lhs, Table::const_iterator rhs)
   return *lhs < *rhs;
 }
 
-using TableExact = std::unordered_set<Entry, EntryHasher, EntryComparator>;
+using TableExact = std::unordered_map<Name, Entry, EntryHasher, EntryComparator>;
 
 } // namespace cs
 } // namespace nfd
 
 struct EntryHasher {
 	size_t
-	operator()(const nfd::cs::Entry& t) const {
-	    return nfd::name_tree::computeHash(t.getName());
+	operator()(const nfd::Name& t) const {
+	    return nfd::name_tree::computeHash(t);
 	}
 };
 
 struct EntryComparator {
 	bool
-	operator()(const nfd::cs::Entry& t1, const nfd::cs::Entry& t2) const {
+	operator()(const nfd::Name& t1, const nfd::Name& t2) const {
 		
-		auto queryName = t1.getName();
-		auto data = t2.getData();
-
-  	bool queryIsFullName = !queryName.empty() && queryName[-1].isImplicitSha256Digest();
-		int cmp = queryIsFullName ?
-							queryName.compare(0, queryName.size() - 1, data.getName()) :
-							queryName.compare(data.getName());
+  	bool queryIsFullName = !t1.empty() && t1[-1].isImplicitSha256Digest();
+		int cmp = queryIsFullName ?  t1.compare(0, t1.size() - 1, t2) : t1.compare(t2);
 
 		if (cmp != 0) { // Name without digest differs
 			return cmp;
 		}
 
 		if (queryIsFullName) { // Name without digest equals, compare digest
-			return queryName[-1].compare(data.getFullName()[-1]);
+			return t1[-1].compare(t2[-1]);
 		}
 		else { // queryName is a proper prefix of Data fullName
 			return -1;
