@@ -71,6 +71,7 @@ main(int argc, char* argv[])
     ("print-data-version,p", po::bool_switch(&opts.wantShowVersion),
                              "print Data version to the standard output")
     ("quiet,q",     po::bool_switch(&opts.isQuiet), "turn off all non-error output")
+    ("pittoken,t",     po::bool_switch(&opts.isPitToken), "turn on Data settag PitToken")
     ("verbose,v",   po::bool_switch(&opts.isVerbose), "turn on verbose output (per Interest information)")
     ("version,V",   "print program version and exit")
     ;
