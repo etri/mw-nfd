@@ -298,7 +298,9 @@ void MwNfd::processNfdcCommand( char * cmd)
 		if(nfdc->verb == MW_NFDC_VERB_CREATE){
 
 				FaceId faceId = nfdc->parameters->getFaceId();
+#ifdef __linux__
 				NFD_LOG_INFO("Face Created - Face " << faceId << " on CPU " <<  sched_getcpu());
+#endif
 				nfd::face::GenericLinkService::Options options;
 				auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
 			
@@ -343,7 +345,9 @@ void MwNfd::processNfdcCommand( char * cmd)
 			Face* face1 = m_faceTable->get(faceId);
 			if(face1!=nullptr){
 				cleanupOnFaceRemoval( m_forwarder->getNameTree(), m_forwarder->getFib(), m_forwarder->getPit(), *face1);
+#ifdef __linux__
 				NFD_LOG_INFO("Face Destroy - Face " << faceId << " on CPU " <<  sched_getcpu());
+#endif
 			}else{
 #ifdef __linux__
 				NFD_LOG_INFO("Face Destroy - None Face " << faceId << " on CPU " <<  sched_getcpu());
@@ -608,7 +612,9 @@ void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer,
 	it = m_genericLinkServiceList.find(faceId);
 	//if( faceId != face::FACEID_INTERNAL_FACE and it == m_genericLinkServiceList.end() ){
 	if( it == m_genericLinkServiceList.end() ){
+#ifdef __linux__
 		NFD_LOG_WARN("There is no LinkService(for decodeNetPacketFromMq) Entry with " << faceId << " on CPU " << sched_getcpu());
+#endif
 		return;
 	}
 
@@ -686,7 +692,9 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 		}
 		fclose(fp);
 
+#ifdef __linux__
 		NFD_LOG_INFO("Worker(" << sched_getcpu() << ") Fib Size: " << getFibTable().size());
+#endif
         return true;
 }
 
@@ -694,7 +702,9 @@ std::tuple<uint64_t,uint64_t,uint64_t> MwNfd::getLinkServiceCounters(FaceId face
 {
 	auto it = m_genericLinkServiceList.find(faceId);
 	if( it == m_genericLinkServiceList.end() ){
+#ifdef __linux__
 		NFD_LOG_WARN("There is no LinkService(for Counters) Entry with " << faceId << " on CPU " << sched_getcpu());
+#endif
 		nfd::face::GenericLinkServiceCounters dummy;
 		return std::make_tuple(0,0,0);
 	}
