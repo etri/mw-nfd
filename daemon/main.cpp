@@ -373,9 +373,13 @@ printAddedFeatures(std::ostream& os)
 #endif
 #ifndef ETRI_DUAL_CS
     std::cout << "   +  --without-dual-cs" << std::endl;
+#else
+    std::cout << "   +  --with-dual-cs" << std::endl;
 #endif
 #ifndef ETRI_PITTOKEN_HASH
     std::cout << "   +  --without-pittoken-hash" << std::endl;
+#else
+    std::cout << "   +  --with-pittoken-hash" << std::endl;
 #endif
 
     std::cout << "\n \n" << std::endl;
@@ -675,6 +679,7 @@ int main(int argc, char** argv)
 		});
 		workerId +=2;
 	}
+#if 0 
 	std::cout << "g_outputWorkerList: " << g_outputWorkerList.size() << std::endl;
 	for(auto & x:g_outputWorkerList){
 
@@ -710,7 +715,7 @@ int main(int argc, char** argv)
 
 		});
 	}
-
+#endif
 	workerId =0;
 
     for(auto core : g_dcnWorkerList){

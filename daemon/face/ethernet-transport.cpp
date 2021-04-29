@@ -223,7 +223,9 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
             ethernet::Address sender(eh->ether_shost);
             pkt += ethernet::HDR_LEN;
             len -= ethernet::HDR_LEN;
-            receivePayload(pkt, len, sender);
+// ETRI(modori) on 20210429
+            if( !dcnReceivePacket(pkt, len, getFace()->getId()) )
+                receivePayload(pkt, len, sender);
         }
     }
 

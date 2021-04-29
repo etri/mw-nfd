@@ -194,22 +194,26 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
 
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
 
-    bool isOk = false;
-    Block element;
-    std::tie(isOk, element) = Block::fromBuffer(buffer, nBytesReceived);
-    if (!isOk) {
-        NFD_LOG_FACE_WARN("Failed to parse incoming packet from " << m_sender);
-        // This packet won't extend the face lifetime
-        return;
-    }
-    if (element.size() != nBytesReceived) {
-        NFD_LOG_FACE_WARN("Received datagram size and decoded element size don't match");
-        // This packet won't extend the face lifetime
-        return;
+    //ETRI(modori) on 20210429
+    if( !dcnReceivePacket(buffer, nBytesReceived, getFace()->getId()) ){
+        bool isOk = false;
+        Block element;
+        std::tie(isOk, element) = Block::fromBuffer(buffer, nBytesReceived);
+        if (!isOk) {
+            NFD_LOG_FACE_WARN("Failed to parse incoming packet from " << m_sender);
+            // This packet won't extend the face lifetime
+            return;
+        }
+        if (element.size() != nBytesReceived) {
+            NFD_LOG_FACE_WARN("Received datagram size and decoded element size don't match");
+            // This packet won't extend the face lifetime
+            return;
+        }
+        //m_hasRecentlyReceived = true;
+
+        this->receive(element, makeEndpointId(m_sender));
     }
     m_hasRecentlyReceived = true;
-
-    this->receive(element, makeEndpointId(m_sender));
 }
 
 template<class T, class U> void

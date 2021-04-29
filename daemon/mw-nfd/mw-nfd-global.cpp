@@ -643,6 +643,44 @@ print_payload(const u_char *payload, int len)
 return;
 }
 
+bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
+{
+
+    int32_t packetType=0;
+    int32_t worker=0;
+    bool isOk=false;
+    bool ret __attribute__((unused));
+    std::tie(isOk, packetType, worker) = dissectNdnPacket( pkt, len );
+
+    if( !isOk ){
+        if(packetType==ndn::lp::tlv::LpPacket)
+        return false;
+    }
+
+    if(worker==DCN_LOCALHOST_PREFIX){
+        return false;
+    }
+
+    if(packetType>=0 and worker >=0){
+        NDN_MSG msg;
+        msg.buffer = make_shared<ndn::Buffer>( pkt, len );
+        msg.endpoint = 0;
+        msg.type = 0; // Buffer type
+        msg.faceId = face;
+
+        if(packetType==tlv::Interest)
+            ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
+        else
+            ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+#ifdef ETRI_DEBUG_COUNTERS
+        if(ret==false) g_nEnqMiss[getFace()->getId()-face::FACEID_RESERVED_MAX]+=1;
+#endif
+    }   
+
+
+    return true;
+}
+
 
 } // namespace mw-nfd
 

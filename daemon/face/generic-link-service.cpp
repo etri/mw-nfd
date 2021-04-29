@@ -330,7 +330,7 @@ void
 GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpoint)
 {
 
-#ifndef ETRI_NFD_ORG_ARCH
+#if 0//ndef ETRI_NFD_ORG_ARCH
 	int32_t packetType=0;
 	int32_t worker=0;
 	bool isOk=false;
@@ -406,14 +406,14 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
     try {
         lp::Packet pkt(packet);
 
-		if (m_options.reliabilityOptions.isEnabled) {
-			if (!m_reliability.processIncomingPacket(pkt)) {
-				NFD_LOG_FACE_TRACE("received duplicate fragment: DROP");
-				++this->nDuplicateSequence;
-				return;
-			}
+        if (m_options.reliabilityOptions.isEnabled) {
+            if (!m_reliability.processIncomingPacket(pkt)) {
+                NFD_LOG_FACE_TRACE("received duplicate fragment: DROP");
+                ++this->nDuplicateSequence;
+                return;
+            }
 
-		}
+        }
 
         if (!pkt.has<lp::FragmentField>()) {
             NFD_LOG_FACE_TRACE("received IDLE packet: DROP");
@@ -423,7 +423,7 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
         if ((pkt.has<lp::FragIndexField>() || pkt.has<lp::FragCountField>()) &&
                 !m_options.allowReassembly) {
             NFD_LOG_FACE_WARN("received fragment, but reassembly disabled: DROP");
-	        return;
+            return;
         }
 
         bool isReassembled = false;
@@ -431,9 +431,9 @@ GenericLinkService::doReceivePacket(const Block& packet, const EndpointId& endpo
         lp::Packet firstPkt;
         std::tie(isReassembled, netPkt, firstPkt) = m_reassembler.receiveFragment(endpoint, pkt);
 
-	if(isReassembled) {
-        this->decodeNetPacket(netPkt, firstPkt, endpoint);
-    }
+        if(isReassembled) {
+            this->decodeNetPacket(netPkt, firstPkt, endpoint);
+        }
 
 
     }

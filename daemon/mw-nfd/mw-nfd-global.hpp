@@ -223,6 +223,8 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     bool getGlobalNetName();
     void setGlobalNetName(bool);
 
+    bool dcnReceivePacket(const uint8_t *, size_t, uint64_t);
+
 int getIfIndex(const char *addr);
 int32_t computeWorkerId( const uint8_t *wire, size_t size );
 std::tuple<bool, uint32_t, int32_t> dissectNdnPacket( const uint8_t *wire, size_t size );
