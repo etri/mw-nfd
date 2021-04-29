@@ -470,12 +470,6 @@ mw-nfd
       ; enp7s0f0 10
       ; enp7s0f1 11
     }
-;    output-thread-core-assign
-;    {
-;	lo 1
-;       enp0s5 2 
-;      ; enp7s0f1 11
-;    }
 
     ; Default forwarding worker cores are {1,2} in case no forwarding-worker-core-assign statement.
     ; Core list can be specified with a mix of ranges (e.g. 2-4) and enumeration.

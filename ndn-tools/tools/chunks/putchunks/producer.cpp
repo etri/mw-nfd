@@ -101,15 +101,19 @@ Producer::processDiscoveryInterest(const Interest& interest)
 
   
 	// modify for PitToken tag add Data
-  auto pitToken = interest.getTag<lp::PitToken>();
-  if(pitToken != nullptr) {
-    mdata.setTag(pitToken);
-	auto d = pitToken->data();
+  if (m_options.isPitToken) {
+    auto pitToken = interest.getTag<lp::PitToken>();
+    if(pitToken != nullptr) {
+      mdata.setTag(pitToken);
+
+      if (m_options.isVerbose) {
+        std::cerr << "Sending metadata pitToken: " << *pitToken << std::endl;
+      }
+    }
   }
 
   if (m_options.isVerbose) {
     std::cerr << "Sending metadata: " << mdata << std::endl;
-    std::cerr << "Sending metadata pitToken: " << *mdata.getTag<lp::PitToken>() << std::endl;
 	}
 
   m_face.put(mdata);
@@ -145,9 +149,11 @@ Producer::processSegmentInterest(const Interest& interest)
 		}
 
     // modify for PitToken tag add Data
-    auto pitToken = interest.getTag<lp::PitToken>();
-    if(pitToken != nullptr) {
-      data->setTag(pitToken);
+    if (m_options.isPitToken) {
+      auto pitToken = interest.getTag<lp::PitToken>();
+      if(pitToken != nullptr) {
+        data->setTag(pitToken);
+      }
     }
 
     m_face.put(*data);

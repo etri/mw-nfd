@@ -142,11 +142,6 @@ Service::Service(ndn::KeyChain& keyChain, shared_ptr<ndn::Transport> localNfdTra
   m_ribManager.registerWithNfd();
   m_ribManager.enableLocalFields();
 
-//ETRI
-	Name name(getRouterName() + "/rib");
-#if 1
-	
-#endif
 }
 
 Service::~Service()

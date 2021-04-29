@@ -53,6 +53,7 @@ public:
     bool isQuiet = false;
     bool isVerbose = false;
     bool wantShowVersion = false;
+    bool isPitToken = false;
   };
 
 public:

@@ -110,7 +110,7 @@ public:
 				miss(interest);
 				return;
 			}
-			hit(interest, match->getData());
+			hit(interest, match->second.getData());
 		}
 #endif
   }
@@ -246,6 +246,9 @@ private:
 
   const_iterator_exact
   findExactMatch(const std::shared_ptr<Data>& exact) const;
+
+  const_iterator_exact
+  findExactMatch(const Name& prefix) const;
 
   size_t
   eraseImplExact(const Name& prefix, size_t limit);
