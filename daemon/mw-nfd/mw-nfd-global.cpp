@@ -645,7 +645,9 @@ return;
 
 bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
 {
-
+#ifdef ETRI_NFD_ORG_ARCH
+	return false;
+#else
     int32_t packetType=0;
     int32_t worker=0;
     bool isOk=false;
@@ -679,6 +681,7 @@ bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
 
 
     return true;
+#endif
 }
 
 
