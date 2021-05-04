@@ -120,86 +120,77 @@ void Nfd::initialize()
     });
   });
 
-// added by modori to support UDP bulk Test on 2k210422
-	if(getBulkFibTest()){
-		FaceUri remoteUri0(g_bulkFibTestPort0);
-			if(remoteUri0.getScheme()=="udp4"){
-				getScheduler().schedule(5_s, [this] {
-				int ret;
-				std::string cmd = "nfdc face create ";
-				cmd.append(g_bulkFibTestPort0);
-				ret=system(cmd.c_str());
-				cmd.clear();
-				cmd = "nfdc face create ";
-				cmd.append(g_bulkFibTestPort1);
-				ret=system(cmd.c_str());
-				});
-			}
-	}
+    if(getBulkFibTest()){
 
-#ifdef ETRI_NFD_ORG_ARCH
-  std::string configFile = m_configFile;
-  getScheduler().schedule(2_s, [this, configFile] {
-	ConfigSection config;
+        // added by modori to support UDP bulk Test on 2k210503
+        FaceUri remoteUri0(g_bulkFibTestPort0);
+        if(remoteUri0.getScheme()=="udp4")
+        {
+            int ret;
+            std::string cmd = "nfdc face create ";
+            cmd.append(g_bulkFibTestPort0);
+            ret=system(cmd.c_str());
+            cmd.clear();
+            cmd = "nfdc face create ";
+            cmd.append(g_bulkFibTestPort1);
+            ret=system(cmd.c_str());
+        }
 
-  boost::property_tree::read_info(configFile, config);
+        getScheduler().schedule(5_s, [this] {
+                try{
 
-  try{
-  	auto bulk_test = config.get_child("mw-nfd.bulk-fib-test");
-    std::string path;
-    std::string port0;
-    std::string port1;
+                bool done = false;
+                FaceId faceId0 = 0;
+                FaceId faceId1 = 0;
 
-    for (const auto& info : bulk_test) {
-            
-    	if(info.first=="bulk-fib-file-path")
-      	path = info.second.get_value<std::string>();
+                FaceUri faceUri0(g_bulkFibTestPort0);
+                FaceUri faceUri1(g_bulkFibTestPort1);
 
-      if(info.first=="bulk-fib-test-port0")
-	      port0 = info.second.get_value<std::string>();
-      if(info.first=="bulk-fib-test-port1")
-        port1 = info.second.get_value<std::string>();
- 		}
+                do{ 
+                FaceTable::const_iterator it; 
+                FaceUri uri;
 
-    bool done = false;
-    FaceId faceId0 = 0;
-    FaceId faceId1 = 0;
+                for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
 
-	FaceUri uri0(port0);
-	FaceUri uri1(port1);
+                if( faceUri0.getScheme()=="udp4"){
+                uri = it->getRemoteUri();
+                }else if( faceUri0.getScheme()=="tcp4")
+                uri = it->getRemoteUri();
+                else if( faceUri0.getScheme()=="ether")
+                    uri = it->getLocalUri();
+                else if( faceUri0.getScheme()=="dev")
+                    uri = it->getLocalUri();
+                else
+                    uri = it->getLocalUri();
 
-    do{ 
-		FaceTable::const_iterator it; 
-      FaceUri uri;
+                if( uri.getScheme() == faceUri0.getScheme() ){
+                    if( uri.getHost() == faceUri0.getHost() ){
+                        faceId0 = it->getId();
+                    }   
+                }   
 
-      for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
+                if( uri.getScheme() == faceUri1.getScheme() ){
+                    if( uri.getHost() == faceUri1.getHost() ){
+                        faceId1 = it->getId();
+                    }   
+                }   
 
-      	uri = it->getLocalUri();
+                }   
 
-        if( uri.getHost() == uri0.getHost() ){
- 	       faceId0 = it->getId();
-        }   
+                if( faceId0 != 0 and faceId1 != 0 ){
+                    config_bulk_fib(faceId0, faceId1, getBulkFibFilePath());
+                    done = true;
+                }   
+                }while(!done);
 
-        if( uri.getHost() == uri1.getHost() ){
- 	       faceId1 = it->getId();
-        }   
-      }   
-
-      if( faceId0 != 0 and faceId1 != 0 ){
-      	config_bulk_fib(faceId0, faceId1, path);
-        done = true;
-      }   
-    }while(!done);
-
-    }catch(const std::exception& e){
+                }catch(const std::exception& e){
+                }
+        });
     }
-  });
 
-#endif
 }
 
 
-#ifdef ETRI_NFD_ORG_ARCH
 bool Nfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path)
 {
     FILE *fp;
@@ -261,7 +252,6 @@ bool Nfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path)
 
     return true;
 }
-#endif
 
 void
 Nfd::configureLogging()

@@ -72,7 +72,7 @@ std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 bool g_wantFibSharding=true;
 
-#ifndef ETRI_NFD_ORG_ARCH
+//#ifndef ETRI_NFD_ORG_ARCH
 static void configMwNfdConfig(const std::string configFileName)
 {
 	std::string user;
@@ -175,7 +175,7 @@ static void configMwNfdConfig(const std::string configFileName)
 	setOutgoingMwNfdWorkers(g_outputWorkerList.size());
 }
 
-#endif
+//#endif
 
 void forwardingWorkerTimerTrigger(const boost::system::error_code& /*e*/,
             boost::shared_ptr< boost::asio::deadline_timer > t,
@@ -499,6 +499,8 @@ int main(int argc, char** argv)
         ", with ndn-cxx version " NDN_CXX_VERSION_BUILD_STRING
         << std::endl;
 
+    configMwNfdConfig(configFile);
+
     NfdRunner runner(configFile);
     try {
         runner.initialize();
@@ -583,9 +585,6 @@ int main(int argc, char** argv)
 
 	resetCommandRx();
 
-    //ConfigFile config(&ignoreConfigSections);
-    //config.addSectionHandler("mw-nfd", &onMwNfdConfig);
-    //config.parse(configFile, false);
     configMwNfdConfig(configFile);
 
     NFD_LOG_INFO("");;

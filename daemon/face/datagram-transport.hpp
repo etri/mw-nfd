@@ -34,6 +34,12 @@
 #include <array>
 #include <iostream>
 
+#include <boost/asio.hpp>
+
+#ifdef ETRI_DEBUG_COUNTERS
+extern size_t g_nUdpIn[COUNTERS_MAX];
+#endif
+
 namespace nfd {
 namespace face {
 
@@ -120,6 +126,8 @@ DatagramTransport<T, U>::DatagramTransport(typename DatagramTransport::protocol:
     this->setSendQueueCapacity(sendBufferSizeOption.value());
   }
 
+  //std::cout << "sendBufferSizeOption: " << sendBufferSizeOption.value() << std::endl;
+
   m_iwId = getGlobalIwId();
 
   m_socket.async_receive_from(boost::asio::buffer(m_receiveBuffer), m_sender,
@@ -179,7 +187,7 @@ DatagramTransport<T, U>::doSend(const Block& packet)
                         this->handleSend(std::forward<decltype(args)>(args)...);
                       });
 #else
-	m_socket.send(boost::asio::buffer(packet));
+    m_socket.send(boost::asio::buffer(packet));
 #endif
 }
 
@@ -189,10 +197,14 @@ void
 DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesReceived,
                                                  const boost::system::error_code& error)
 {
-    if (error)
+    if (error){
         return processErrorCode(error);
+    }
 
     NFD_LOG_FACE_TRACE("Received: " << nBytesReceived << " bytes from " << m_sender);
+#ifdef ETRI_DEBUG_COUNTERS
+    g_nUdpIn[getFace()->getId()-face::FACEID_RESERVED_MAX] +=1;
+#endif
 
     //ETRI(modori) on 20210429
     if( !dcnReceivePacket(buffer, nBytesReceived, getFace()->getId()) ){
@@ -209,7 +221,7 @@ DatagramTransport<T, U>::receiveDatagram(const uint8_t* buffer, size_t nBytesRec
             // This packet won't extend the face lifetime
             return;
         }
-        //m_hasRecentlyReceived = true;
+        m_hasRecentlyReceived = true;
 
         this->receive(element, makeEndpointId(m_sender));
     }

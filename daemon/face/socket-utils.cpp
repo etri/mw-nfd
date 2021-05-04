@@ -32,7 +32,7 @@
 #elif defined(__APPLE__)
 #include <sys/socket.h>
 #endif
-
+#include <iostream>
 namespace nfd {
 namespace face {
 
@@ -44,6 +44,7 @@ getTxQueueLength(int fd)
   if (ioctl(fd, SIOCOUTQ, &queueLength) < 0) {
     queueLength = QUEUE_ERROR;
   }
+
 #elif defined(__APPLE__)
   socklen_t queueLengthSize = sizeof(queueLength);
   if (getsockopt(fd, SOL_SOCKET, SO_NWRITE, &queueLength, &queueLengthSize) < 0) {

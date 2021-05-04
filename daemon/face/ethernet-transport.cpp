@@ -54,6 +54,7 @@
 extern size_t g_nEnqMiss[128];
 extern size_t g_nDropped[128];
 extern size_t g_nIfDropped[128];
+extern size_t g_nUdpIn[128];
 #endif
 
 namespace nfd {

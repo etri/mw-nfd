@@ -40,6 +40,10 @@ std::shared_ptr<nfd::MwNfd> g_mwNfds[MW_NFD_WORKER];
 int g_sockMwNfdCommand[MW_NFD_WORKER];
 int g_nfdcSocket=0;
 
+#ifdef ETRI_DEBUG_COUNTERS
+extern size_t g_nEnqMiss[COUNTERS_MAX];
+#endif
+
 namespace nfd {
 
 bool g_commandRxFlag[DCN_MAX_WORKERS];
@@ -675,7 +679,7 @@ bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
         else
             ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
 #ifdef ETRI_DEBUG_COUNTERS
-        if(ret==false) g_nEnqMiss[getFace()->getId()-face::FACEID_RESERVED_MAX]+=1;
+        if(ret==false) g_nEnqMiss[face-face::FACEID_RESERVED_MAX]+=1;
 #endif
     }   
 

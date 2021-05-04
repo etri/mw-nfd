@@ -104,9 +104,7 @@ public:
       return m_faceTable;
   }
 
-#ifdef ETRI_NFD_ORG_ARCH
   bool config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path);
-#endif
 
 private:
   explicit
