@@ -96,6 +96,8 @@ Nfd::Nfd(const ConfigSection& config, ndn::KeyChain& keyChain)
 // complete types for all members when instantiated.
 Nfd::~Nfd() = default;
 
+Forwarder* g_mgmt_forwarder;
+
 void Nfd::initialize()
 {
   configureLogging();
@@ -106,6 +108,7 @@ void Nfd::initialize()
   m_faceSystem = make_unique<face::FaceSystem>(*m_faceTable, m_netmon);
 
   m_forwarder = make_unique<Forwarder>(*m_faceTable);
+  g_mgmt_forwarder = m_forwarder.get();
 
   initializeManagement();
 
@@ -120,22 +123,23 @@ void Nfd::initialize()
     });
   });
 
+  if(getBulkFibTest()){
+      // added by modori to support UDP bulk Test on 2k210503
+      FaceUri remoteUri0(g_bulkFibTestPort0);
+      int ret;
+      if(remoteUri0.getScheme()=="udp4") {
+          std::string cmd = "nfdc face create ";
+          cmd.append(g_bulkFibTestPort0);
+          ret=system(cmd.c_str());
+          cmd.clear();
+          cmd = "nfdc face create ";
+          cmd.append(g_bulkFibTestPort1);
+          ret=system(cmd.c_str());
+      }
+  }
+
+#ifdef ETRI_NFD_ORG_ARCH
     if(getBulkFibTest()){
-
-        // added by modori to support UDP bulk Test on 2k210503
-        FaceUri remoteUri0(g_bulkFibTestPort0);
-        if(remoteUri0.getScheme()=="udp4")
-        {
-            int ret;
-            std::string cmd = "nfdc face create ";
-            cmd.append(g_bulkFibTestPort0);
-            ret=system(cmd.c_str());
-            cmd.clear();
-            cmd = "nfdc face create ";
-            cmd.append(g_bulkFibTestPort1);
-            ret=system(cmd.c_str());
-        }
-
         getScheduler().schedule(5_s, [this] {
                 try{
 
@@ -187,6 +191,7 @@ void Nfd::initialize()
                 }
         });
     }
+#endif
 
 }
 
@@ -302,9 +307,6 @@ Nfd::initializeManagement()
                                                                *m_dispatcher, *m_authenticator);
 
   m_forwarderStatusManager = make_unique<ForwarderStatusManager>(*m_forwarder, *m_dispatcher);
-
-  m_forwarderStatusRemoteManager = make_unique<ForwarderStatusRemoteManager>(*m_forwarder, *m_dispatcher,
-	*m_faceSystem);
 
   ConfigFile config(&ignoreRibAndLogSections);
   general::setConfigFile(config);

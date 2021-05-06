@@ -80,7 +80,7 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setCurrentTimestamp(time::system_clock::now());
 
   size_t nNameTree=0;
-  size_t nFib=m_forwarder.getFib().size();
+  size_t nFib=0;
   size_t nPit=0;
   size_t nM=0;
   size_t nCs=0;
@@ -119,6 +119,7 @@ ForwarderStatusManager::collectGeneralStatus()
         nSatisfiedInterests += (counters.nSatisfiedInterests);
         nUnsatisfiedInterests +=(counters.nUnsatisfiedInterests);
 
+
 #ifndef ETRI_NFD_ORG_ARCH
   int32_t workers = getForwardingWorkers();
   for(int32_t i=0;i<workers;i++){
@@ -133,7 +134,6 @@ ForwarderStatusManager::collectGeneralStatus()
 #if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
       nExCs += worker->getCsTable().sizeExact();
 #endif
-
 
     const ForwarderCounters& counters = worker->getCountersInfo();
     nInInterests += counters.nInInterests;
