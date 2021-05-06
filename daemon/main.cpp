@@ -1,7 +1,6 @@
 
 #ifndef ETRI_NFD_ORG_ARCH
 #include "mw-nfd/input-thread.hpp"
-#include "mw-nfd/output-nfd-worker.hpp"
 #include "mw-nfd/mw-nfd-worker.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
 #endif
