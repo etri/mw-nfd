@@ -426,7 +426,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 }
 
 MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
-MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE]={nullptr,};
+//MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE]={nullptr,};
 BoostMQ g_dcnBoostMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 
 void mq_allocation()
@@ -434,7 +434,7 @@ void mq_allocation()
     uint32_t i,j;
 
     for(i=0;i<MQ_ARRAY_MAX_SIZE;i++){
-			g_dcnMoodyOutMQ[i] = std::make_shared<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>();
+			//g_dcnMoodyOutMQ[i] = std::make_shared<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>();
         for(j=0;j<MQ_ARRAY_MAX_SIZE;j++){
             g_dcnMoodyMQ[i][j] = std::make_shared<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>();
         }

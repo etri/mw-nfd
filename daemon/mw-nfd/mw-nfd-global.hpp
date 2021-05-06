@@ -213,7 +213,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     using MoodyMQ = std::shared_ptr<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>;
     extern    nfd::MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE];
 
-    using MoodyMQ2 = std::shared_ptr<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>;
+    using MoodyMQ2 = std::shared_ptr<moodycamel::ConcurrentQueue<ndn::Block, NdnTraits>>;
     extern    nfd::MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE];
 
     using BoostMQ = std::shared_ptr< boost::lockfree::spsc_queue<NDN_MSG, boost::lockfree::capacity<CAPACITY>> >;

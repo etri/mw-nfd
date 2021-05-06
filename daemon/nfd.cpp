@@ -116,22 +116,22 @@ void Nfd::initialize()
     });
   });
 
-#if 1
   if(getBulkFibTest()){
       /* added by modori to support UDP bulk Test on 2k210503 */
       FaceUri remoteUri0(g_bulkFibTestPort0);
+      FaceUri remoteUri1(g_bulkFibTestPort1);
       int  __attribute__((unused)) ret;
-      if(remoteUri0.getScheme()=="udp4") {
+      if(remoteUri0.getScheme()=="udp4" or remoteUri0.getScheme()=="tcp4") {
           std::string cmd = "nfdc face create ";
           cmd.append(g_bulkFibTestPort0);
           ret=system(cmd.c_str());
-          cmd.clear();
-          cmd = "nfdc face create ";
+      }
+      if(remoteUri1.getScheme()=="udp4" or remoteUri1.getScheme()=="tcp4") {
+          std::string cmd = "nfdc face create ";
           cmd.append(g_bulkFibTestPort1);
           ret=system(cmd.c_str());
       }
   }
-#endif
 
 #ifdef ETRI_NFD_ORG_ARCH
     if(getBulkFibTest()){

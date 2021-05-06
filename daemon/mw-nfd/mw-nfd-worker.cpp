@@ -510,33 +510,43 @@ bool MwNfd::bulk_test_case_01()
 		FaceId faceId1 = 0;
 
 		FaceTable::const_iterator it;
-		FaceUri uri;
-		FaceUri faceUri0;
-		FaceUri faceUri1;
-		faceUri0.parse(m_bulkFibPort0);	
-		faceUri1.parse(m_bulkFibPort1);	
+		FaceUri uri0;
+		FaceUri uri1;
+		FaceUri faceUri0(m_bulkFibPort0);
+		FaceUri faceUri1(m_bulkFibPort1);
 
 		for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) {
 
 			if( faceUri0.getScheme()=="udp4"){
-				uri = it->getRemoteUri();
+				uri0 = it->getRemoteUri();
 			}else if( faceUri0.getScheme()=="tcp4")
-				uri = it->getRemoteUri();
+				uri0 = it->getRemoteUri();
 			else if( faceUri0.getScheme()=="ether")
-				uri = it->getLocalUri();
+				uri0 = it->getLocalUri();
 			else if( faceUri0.getScheme()=="dev")
-				uri = it->getLocalUri();
+				uri0 = it->getLocalUri();
 			else
-				uri = it->getLocalUri();
+				uri0 = it->getLocalUri();
 
-			if( uri.getScheme() == faceUri0.getScheme() ){
-				if( uri.getHost() == faceUri0.getHost() ){
+			if( faceUri1.getScheme()=="udp4"){
+				uri1 = it->getRemoteUri();
+			}else if( faceUri1.getScheme()=="tcp4")
+				uri1 = it->getRemoteUri();
+			else if( faceUri1.getScheme()=="ether")
+				uri1 = it->getLocalUri();
+			else if( faceUri1.getScheme()=="dev")
+				uri1 = it->getLocalUri();
+			else
+				uri1 = it->getLocalUri();
+
+			if( uri0.getScheme() == faceUri0.getScheme() ){
+				if( uri0.getHost() == faceUri0.getHost() ){
 					faceId0 = it->getId();
 				}
 			}
 
-			if( uri.getScheme() == faceUri1.getScheme() ){
-				if( uri.getHost() == faceUri1.getHost() ){
+			if( uri1.getScheme() == faceUri1.getScheme() ){
+				if( uri1.getHost() == faceUri1.getHost() ){
 					faceId1 = it->getId();
 				}
 			}
