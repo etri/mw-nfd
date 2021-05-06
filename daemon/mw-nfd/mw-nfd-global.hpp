@@ -134,6 +134,10 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 #endif
 
 namespace nfd {
+
+
+extern std::string g_bulkFibTestPort0;
+extern std::string g_bulkFibTestPort1;
 extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 	typedef struct pit_token_st {

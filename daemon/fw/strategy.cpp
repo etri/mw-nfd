@@ -204,7 +204,7 @@ Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, con
 
 #if !defined(ETRI_NFD_ORG_ARCH) || defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
     pitToken->workerId = pitEntry->m_workerId;
-	int wid = pitToken->workerId;
+	//int  __attribute__((unused)) wid = pitToken->workerId;
 #endif
 
 #if defined(ETRI_DUAL_CS)

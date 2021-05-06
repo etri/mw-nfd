@@ -67,7 +67,7 @@ nfd::face::Face *face0=nullptr;
 nfd::face::Face *face1=nullptr;
 
 namespace io = boost::iostreams;
-extern std::map<std::string, int32_t> g_inputWorkerList;
+//extern std::map<std::string, int32_t> g_inputWorkerList;
 extern  bool g_mwNfdCmdFlags[MW_NFD_WORKER];
 
 using namespace std;

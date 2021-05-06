@@ -58,7 +58,7 @@ void OutputWorkerThread::run()
 			face = g_faceTable->get(items[idx].face);
 		//		std::cout << m_workerId << " - OutgoingFace: " <<std::endl;
 			if(face){
-				int id = m_workerId;
+				int  __attribute__((unused)) id = m_workerId;
 		//		std::cout << "ID: " << id << "- OutgoingFace: " << face->getId() << ", Type: " << items[idx].type << ", cpu: " << sched_getcpu() << std::endl ;
 				if(items[idx].type==0x05){
 					face->sendInterest(*items[idx].interest);

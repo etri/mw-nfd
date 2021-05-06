@@ -52,16 +52,9 @@
 
 #include <boost/property_tree/info_parser.hpp>
 
-
-extern int32_t g_dcnWorkerCapacity;
-
 namespace nfd {
 
 std::shared_ptr<FaceTable> g_faceTable=nullptr;
-extern std::shared_ptr<nfd::Face> g_internalFace;
-
-extern std::string g_bulkFibTestPort0;
-extern std::string g_bulkFibTestPort1;
 
 NFD_LOG_INIT(Nfd);
 
@@ -123,10 +116,11 @@ void Nfd::initialize()
     });
   });
 
+#if 1
   if(getBulkFibTest()){
-      // added by modori to support UDP bulk Test on 2k210503
+      /* added by modori to support UDP bulk Test on 2k210503 */
       FaceUri remoteUri0(g_bulkFibTestPort0);
-      int ret;
+      int  __attribute__((unused)) ret;
       if(remoteUri0.getScheme()=="udp4") {
           std::string cmd = "nfdc face create ";
           cmd.append(g_bulkFibTestPort0);
@@ -137,6 +131,7 @@ void Nfd::initialize()
           ret=system(cmd.c_str());
       }
   }
+#endif
 
 #ifdef ETRI_NFD_ORG_ARCH
     if(getBulkFibTest()){
