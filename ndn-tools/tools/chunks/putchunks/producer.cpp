@@ -101,7 +101,7 @@ Producer::processDiscoveryInterest(const Interest& interest)
 
   
 	// modify for PitToken tag add Data
-  if (m_options.isPitToken) {
+  if (!m_options.isPitToken) {
     auto pitToken = interest.getTag<lp::PitToken>();
     if(pitToken != nullptr) {
       mdata.setTag(pitToken);
@@ -149,7 +149,7 @@ Producer::processSegmentInterest(const Interest& interest)
 		}
 
     // modify for PitToken tag add Data
-    if (m_options.isPitToken) {
+    if (!m_options.isPitToken) {
       auto pitToken = interest.getTag<lp::PitToken>();
       if(pitToken != nullptr) {
         data->setTag(pitToken);
