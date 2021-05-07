@@ -178,9 +178,17 @@ protected:
   asyncWrite()
   {
     BOOST_ASSERT(!m_transmissionQueue.empty());
+#if 1
     boost::asio::async_write(m_socket, m_transmissionQueue.front(),
                              bind(&Impl::handleAsyncWrite, this->shared_from_this(), _1,
                                   m_transmissionQueue.begin()));
+#else // dmsul test code
+    m_socket.send(m_transmissionQueue.front());
+    m_transmissionQueue.pop_front();
+    if (!m_transmissionQueue.empty()) {
+      asyncWrite();
+    }
+#endif
   }
 
   void
