@@ -1,0 +1,40 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+VERSION = '0.1'
+APPNAME = 'mw-ndnperf'
+
+from waflib import Utils
+import os
+
+def options(opt):
+    opt.load(['compiler_cxx', 'gnu_dirs'])
+    opt.load(['default-compiler-flags'],
+             tooldir=['.waf-tools'])
+
+def configure(conf):
+    conf.load(['compiler_cxx', 'gnu_dirs',
+               'default-compiler-flags'])
+
+    conf.check_cfg(package='libndn-cxx', args=['--cflags', '--libs'], uselib_store='NDN_CXX',
+                   pkg_config_path=os.environ.get('PKG_CONFIG_PATH', '%s/pkgconfig' % conf.env.LIBDIR))
+
+    conf.check_compiler_flags()
+
+def build(bld):
+    bld.program(target='mw-ndnperf-client',
+                source='src/mw-ndnperf-client.cpp',
+                use='NDN_CXX')
+
+    bld.program(target='mw-ndnperf-server',
+                source='src/mw-ndnperf-server.cpp',
+                use='NDN_CXX')
+
+    bld.install_files('${SYSCONFDIR}/ndn', ['mw-ndnperf-client.conf.sample',
+                                            'mw-ndnperf-server.conf.sample'])
+
+    if Utils.unversioned_sys_platform() == 'linux':
+        systemd_units = bld.path.ant_glob('systemd/*.in')
+        bld(features='subst',
+            name='systemd-units',
+            source=systemd_units,
+            target=[u.change_ext('') for u in systemd_units])

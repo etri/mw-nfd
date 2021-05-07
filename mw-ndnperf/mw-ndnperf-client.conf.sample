@@ -1,0 +1,10 @@
+prefix mw-ndnperf
+window-size 16
+digest 1
+interval 0
+master-core 2
+process-core 20,21
+prefix_list_size 150000
+can_be_prefix 0
+must_be_fresh 1
+
