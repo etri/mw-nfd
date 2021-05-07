@@ -1,29 +1,5 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2014-2018,  Regents of the University of California,
- *                           Arizona Board of Regents,
- *                           Colorado State University,
- *                           University Pierre & Marie Curie, Sorbonne University,
- *                           Washington University in St. Louis,
- *                           Beijing Institute of Technology,
- *                           The University of Memphis.
- *
- * This file is part of NFD (Named Data Networking Forwarding Daemon).
- * See AUTHORS.md for complete list of NFD authors and contributors.
- *
- * NFD is free software: you can redistribute it and/or modify it under the terms
- * of the GNU General Public License as published by the Free Software Foundation,
- * either version 3 of the License, or (at your option) any later version.
- *
- * NFD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
- * PURPOSE.  See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
- */
 
-#include "forwarder-status-remote-manager.hpp"
+#include "forwarder-status-remote.hpp"
 #include "fw/forwarder.hpp"
 #include "face/face.hpp"
 #include "core/version.hpp"
@@ -31,7 +7,6 @@
 #include "face/protocol-factory.hpp"
 
 #include "mw-nfd/mw-nfd-global.hpp"
-
 
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
@@ -52,27 +27,22 @@ using boost::property_tree::write_json;
 
 
 using namespace ndn;
-NFD_LOG_INIT(ForwarderStatusRemoteManager);
+NFD_LOG_INIT(ForwarderStatusRemote);
 
 namespace nfd {
 
 static const time::milliseconds STATUS_FRESHNESS(5000);
 
-ForwarderStatusRemoteManager::ForwarderStatusRemoteManager(Forwarder& forwarder, Dispatcher& dispatcher,
-	FaceSystem& faceSystem
-)
-  : m_forwarder(forwarder)
-  , m_dispatcher(dispatcher)
-  , m_faceSystem(faceSystem)
-  , m_faceTable(faceSystem.getFaceTable())
-  , m_startTimestamp(time::system_clock::now())
+extern shared_ptr<FaceTable> g_faceTable;
+extern Forwarder* g_mgmt_forwarder;
+
+ForwarderStatusRemote::ForwarderStatusRemote( )
+  : m_startTimestamp(time::system_clock::now())
 {
-  m_dispatcher.addStatusDataset("info/status", ndn::mgmt::makeAcceptAllAuthorization(),
-                                bind(&ForwarderStatusRemoteManager::listGeneralRemoteStatus, this, _1, _2, _3));
 }
 
 ndn::nfd::ForwarderStatus
-ForwarderStatusRemoteManager::collectGeneralStatus()
+ForwarderStatusRemote::collectGeneralStatus()
 {
   ndn::nfd::ForwarderStatus status;
 
@@ -80,9 +50,8 @@ ForwarderStatusRemoteManager::collectGeneralStatus()
   status.setStartTimestamp(m_startTimestamp);
   status.setCurrentTimestamp(time::system_clock::now());
 
-#ifndef ETRI_NFD_ORG_ARCH
   size_t nNameTree=0;
-  size_t nFib=m_forwarder.getFib().size();
+  size_t nFib=g_mgmt_forwarder->getFib().size();
   size_t nPit=0;
   size_t nM=0;
   size_t nCs=0;
@@ -102,13 +71,12 @@ ForwarderStatusRemoteManager::collectGeneralStatus()
   uint64_t __attribute__((unused)) inData[16]={0,};
   uint64_t __attribute__((unused)) outData[16]={0,};
 
-  nNameTree+=m_forwarder.getNameTree().size();
-  nFib += m_forwarder.getFib().size();
-  nPit += m_forwarder.getPit().size();
-  nM +=  m_forwarder.getMeasurements().size();
-  nCs +=m_forwarder.getCs().size();
-
-  const ForwarderCounters& counters = m_forwarder.getCounters();
+  nNameTree+=g_mgmt_forwarder->getNameTree().size();
+  nFib += g_mgmt_forwarder->getFib().size();
+  nPit += g_mgmt_forwarder->getPit().size();
+  nM +=  g_mgmt_forwarder->getMeasurements().size();
+  nCs +=g_mgmt_forwarder->getCs().size();
+  const ForwarderCounters& counters = g_mgmt_forwarder->getCounters();
   nInInterests+=(counters.nInInterests);
         nOutInterests +=(counters.nOutInterests);
         nInData +=(counters.nInData);
@@ -118,6 +86,7 @@ ForwarderStatusRemoteManager::collectGeneralStatus()
         nSatisfiedInterests += (counters.nSatisfiedInterests);
         nUnsatisfiedInterests +=(counters.nUnsatisfiedInterests);
 
+#ifndef ETRI_NFD_ORG_ARCH
   for(int32_t i=0;i<workers;i++){
 
       auto worker = getMwNfd(i);
@@ -138,9 +107,8 @@ ForwarderStatusRemoteManager::collectGeneralStatus()
     nOutNacks += counters.nOutNacks;
     nSatisfiedInterests += counters.nSatisfiedInterests;
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
-
-
   }
+#endif
 
   status.setNNameTreeEntries(nNameTree);
   status.setNFibEntries(nFib);
@@ -156,28 +124,10 @@ ForwarderStatusRemoteManager::collectGeneralStatus()
         .setNOutNacks(nOutNacks)
         .setNSatisfiedInterests(nSatisfiedInterests)
         .setNUnsatisfiedInterests(nUnsatisfiedInterests);
-#else
-  status.setNNameTreeEntries(m_forwarder.getNameTree().size());
-  status.setNFibEntries(m_forwarder.getFib().size());
-  status.setNPitEntries(m_forwarder.getPit().size());
-  status.setNMeasurementsEntries(m_forwarder.getMeasurements().size());
-  status.setNCsEntries(m_forwarder.getCs().size());
-
-  const ForwarderCounters& counters = m_forwarder.getCounters();
-  status.setNInInterests(counters.nInInterests)
-        .setNOutInterests(counters.nOutInterests)
-        .setNInData(counters.nInData)
-        .setNOutData(counters.nOutData)
-        .setNInNacks(counters.nInNacks)
-        .setNOutNacks(counters.nOutNacks)
-        .setNSatisfiedInterests(counters.nSatisfiedInterests)
-        .setNUnsatisfiedInterests(counters.nUnsatisfiedInterests);
-#endif
-
   return status;
 }
 
-void ForwarderStatusRemoteManager::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
+void ForwarderStatusRemote::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
 {
 	ptree pt;
 #if 1
@@ -203,24 +153,12 @@ void ForwarderStatusRemoteManager::formatStatusJson( ptree& parent, const ndn::n
 parent.add_child("nfdStatus.generalStatus", pt);
 }
 
-void ForwarderStatusRemoteManager::formatChannelsJson( ptree& parent )
+void ForwarderStatusRemote::formatChannelsJson( ptree& parent )
 {
 	ptree pt;
+
+    //modori
 #if 0
-// Add a list
-pt::ptree fruits_node;
-for (auto &fruit : fruits)
-{
-    // Create an unnamed node containing the value
-    pt::ptree fruit_node;
-    fruit_node.put("localUri", fruit);
-
-    // Add this node to the list.
-    fruits_node.push_back(std::make_pair("", fruit_node));
-}
-root.add_child("fruits", fruits_node);
-#endif
-
 auto factories = m_faceSystem.listProtocolFactories();
   for (const auto* factory : factories) {
     for (const auto& channel : factory->getChannels()) {
@@ -231,6 +169,7 @@ auto factories = m_faceSystem.listProtocolFactories();
   }
 
 	parent.add_child("nfdStatus.channels.channel", pt);
+#endif
 }
 
 template<typename T>
@@ -333,135 +272,135 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
 
   return status;
 }
-void ForwarderStatusRemoteManager::formatFacesJson( ptree& parent )
+void ForwarderStatusRemote::formatFacesJson( ptree& parent )
 {
-	ptree pt;
-	auto now = time::steady_clock::now();
+    ptree pt;
+    auto now = time::steady_clock::now();
 
-for (const auto& face : m_faceTable) {
+    for (const auto& face : *g_faceTable) {
 
-    	ptree face_node;
-	ndn::nfd::FaceStatus status = makeFaceStatus(face, now);
-    	face_node.put("faceId", status.getFaceId());
-    	face_node.put("remoteUri", status.getRemoteUri());
-    	face_node.put("localUri", status.getLocalUri());
+        ptree face_node;
+        ndn::nfd::FaceStatus status = makeFaceStatus(face, now);
+        face_node.put("faceId", status.getFaceId());
+        face_node.put("remoteUri", status.getRemoteUri());
+        face_node.put("localUri", status.getLocalUri());
 
-	if (status.hasExpirationPeriod()) {
-    		face_node.put("expirationPeriod", status.getExpirationPeriod());
-  	}
+        if (status.hasExpirationPeriod()) {
+            face_node.put("expirationPeriod", status.getExpirationPeriod());
+        }
 
-    	face_node.put("faceScope", status.getFaceScope());
-    	face_node.put("facePersistency", status.getFacePersistency());
-    	face_node.put("linkeType", status.getLinkType());
+        face_node.put("faceScope", status.getFaceScope());
+        face_node.put("facePersistency", status.getFacePersistency());
+        face_node.put("linkeType", status.getLinkType());
 
- if (!status.hasBaseCongestionMarkingInterval() && !status.hasDefaultCongestionThreshold()) {
-    	face_node.put("congestion", "null");
-  } else {
-    if (status.hasBaseCongestionMarkingInterval()) {
-    	face_node.put("congestion.baseMarkingInterval", status.getBaseCongestionMarkingInterval());
+        if (!status.hasBaseCongestionMarkingInterval() && !status.hasDefaultCongestionThreshold()) {
+            face_node.put("congestion", "null");
+        } else {
+            if (status.hasBaseCongestionMarkingInterval()) {
+                face_node.put("congestion.baseMarkingInterval", status.getBaseCongestionMarkingInterval());
+            }
+            if (status.hasDefaultCongestionThreshold()) {
+                face_node.put("congestion.defaultThreshold", status.getDefaultCongestionThreshold());
+            }
+        }
+
+        if (status.hasMtu()) {
+            face_node.put("mtu", status.getMtu());
+        }
+
+        if (status.getFlags() == 0) {
+            face_node.put("flags", "null");
+        }
+        else {
+            face_node.put("flags.localFieldsEnabled", status.getFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED));
+            face_node.put("flags.lpReliabilityEnabled", status.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED));
+            face_node.put("flags.congestionMarkingEnabled", status.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED));
+        }
+
+        face_node.put("packetCounters.incomingPackets.nInterests", status.getNInInterests());
+        face_node.put("packetCounters.incomingPackets.nData", status.getNInData());
+        face_node.put("packetCounters.incomingPackets.nNacks", status.getNInNacks());
+        face_node.put("packetCounters.outgoingPackets.nInterests", status.getNOutInterests());
+        face_node.put("packetCounters.outgoingPackets.nData", status.getNOutData());
+        face_node.put("packetCounters.outgoingPackets.nNacks", status.getNOutNacks());
+
+        face_node.put("byteCounters.incomingBytes", status.getNInBytes());
+        face_node.put("byteCounters.outgoingBytes", status.getNOutBytes());
+        pt.push_back(std::make_pair("", face_node));
     }
-    if (status.hasDefaultCongestionThreshold()) {
-    	face_node.put("congestion.defaultThreshold", status.getDefaultCongestionThreshold());
-    }
-  }
-
-	 if (status.hasMtu()) {
-    	face_node.put("mtu", status.getMtu());
-  }
-
-  if (status.getFlags() == 0) {
-    	face_node.put("flags", "null");
-  }
-  else {
-    	face_node.put("flags.localFieldsEnabled", status.getFlagBit(ndn::nfd::BIT_LOCAL_FIELDS_ENABLED));
-    	face_node.put("flags.lpReliabilityEnabled", status.getFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED));
-    	face_node.put("flags.congestionMarkingEnabled", status.getFlagBit(ndn::nfd::BIT_CONGESTION_MARKING_ENABLED));
-  }
-
-    	face_node.put("packetCounters.incomingPackets.nInterests", status.getNInInterests());
-    	face_node.put("packetCounters.incomingPackets.nData", status.getNInData());
-    	face_node.put("packetCounters.incomingPackets.nNacks", status.getNInNacks());
-    	face_node.put("packetCounters.outgoingPackets.nInterests", status.getNOutInterests());
-    	face_node.put("packetCounters.outgoingPackets.nData", status.getNOutData());
-    	face_node.put("packetCounters.outgoingPackets.nNacks", status.getNOutNacks());
-
-    	face_node.put("byteCounters.incomingBytes", status.getNInBytes());
-    	face_node.put("byteCounters.outgoingBytes", status.getNOutBytes());
-    	pt.push_back(std::make_pair("", face_node));
+    parent.add_child("nfdStatus.faces.face", pt);
 }
-	parent.add_child("nfdStatus.faces.face", pt);
-}
-void ForwarderStatusRemoteManager::formatRibJson( ptree& parent )
+void ForwarderStatusRemote::formatRibJson( ptree& parent )
 {
-	ptree pt;
-	parent.add_child("nfdStatus.rib", pt);
+    ptree pt;
+    parent.add_child("nfdStatus.rib", pt);
 }
-void ForwarderStatusRemoteManager::formatFibJson( ptree& parent )
+void ForwarderStatusRemote::formatFibJson( ptree& parent )
 {
-	ptree pt;
+    ptree pt;
 
-  for (const auto& entry : m_forwarder.getFib()) {
-    const auto& nexthops = entry.getNextHops() |
-                           boost::adaptors::transformed([] (const fib::NextHop& nh) {
-                             return ndn::nfd::NextHopRecord()
-                                 .setFaceId(nh.getFace().getId())
-                                 .setCost(nh.getCost());
-                           });
+    for (const auto& entry : g_mgmt_forwarder->getFib()) {
+        const auto& nexthops = entry.getNextHops() |
+            boost::adaptors::transformed([] (const fib::NextHop& nh) {
+                    return ndn::nfd::NextHopRecord()
+                    .setFaceId(nh.getFace().getId())
+                    .setCost(nh.getCost());
+                    });
 
-    ndn::nfd::FibEntry fib;
-	   fib.setPrefix(entry.getPrefix());
-	   fib.setNextHopRecords(std::begin(nexthops), std::end(nexthops)) ;
-	ptree fib_node;
-    	fib_node.put("prefix", fib.getPrefix());
+        ndn::nfd::FibEntry fib;
+        fib.setPrefix(entry.getPrefix());
+        fib.setNextHopRecords(std::begin(nexthops), std::end(nexthops)) ;
+        ptree fib_node;
+        fib_node.put("prefix", fib.getPrefix());
 
 #if 1
- 	for (const ndn::nfd::NextHopRecord& nh : fib.getNextHopRecords()) {
-    		fib_node.put("nextHops.nexthop.faceId", nh.getFaceId());
-    		fib_node.put("nextHops.nexthop.cost", nh.getCost());
-  	}
+        for (const ndn::nfd::NextHopRecord& nh : fib.getNextHopRecords()) {
+            fib_node.put("nextHops.nexthop.faceId", nh.getFaceId());
+            fib_node.put("nextHops.nexthop.cost", nh.getCost());
+        }
 #endif
 
-    	pt.push_back(std::make_pair("", fib_node));
-  }
+        pt.push_back(std::make_pair("", fib_node));
+    }
 
 
-	int32_t workers = getForwardingWorkers();
+    int32_t workers = getForwardingWorkers();
 
 #ifndef ETRI_NFD_ORG_ARCH
-  for(int32_t i=0;i<workers;i++){
-      auto worker = getMwNfd(i);
-      if(worker==nullptr){
-          continue;
-	}
+    for(int32_t i=0;i<workers;i++){
+        auto worker = getMwNfd(i);
+        if(worker==nullptr){
+            continue;
+        }
 
-	  for (const auto& entry : worker->getFibTable()) {
-		  const auto& nexthops = entry.getNextHops() |
-		  boost::adaptors::transformed([] (const fib::NextHop& nh) {
-			  return ndn::nfd::NextHopRecord()
-			  .setFaceId(nh.getFace().getId())
-			  .setCost(nh.getCost());
-		  });
+        for (const auto& entry : worker->getFibTable()) {
+            const auto& nexthops = entry.getNextHops() |
+                boost::adaptors::transformed([] (const fib::NextHop& nh) {
+                        return ndn::nfd::NextHopRecord()
+                        .setFaceId(nh.getFace().getId())
+                        .setCost(nh.getCost());
+                        });
 
-    ndn::nfd::FibEntry fib;
-	   fib.setPrefix(entry.getPrefix());
-	   fib.setNextHopRecords(std::begin(nexthops), std::end(nexthops)) ;
+            ndn::nfd::FibEntry fib;
+            fib.setPrefix(entry.getPrefix());
+            fib.setNextHopRecords(std::begin(nexthops), std::end(nexthops)) ;
 
-	ptree fib_node;
-    	fib_node.put("prefix", fib.getPrefix());
+            ptree fib_node;
+            fib_node.put("prefix", fib.getPrefix());
 
- 	for (const ndn::nfd::NextHopRecord& nh : fib.getNextHopRecords()) {
-    		fib_node.put("nextHops.nexthop.faceId", nh.getFaceId());
-    		fib_node.put("nextHops.nexthop.cost", nh.getCost());
-  	}
-    	pt.push_back(std::make_pair("", fib_node));
+            for (const ndn::nfd::NextHopRecord& nh : fib.getNextHopRecords()) {
+                fib_node.put("nextHops.nexthop.faceId", nh.getFaceId());
+                fib_node.put("nextHops.nexthop.cost", nh.getCost());
+            }
+            pt.push_back(std::make_pair("", fib_node));
 
-  }
-}
+        }
+    }
 #endif
-	parent.add_child("nfdStatus.fib.fibEntry", pt);
+    parent.add_child("nfdStatus.fib.fibEntry", pt);
 }
 
-void ForwarderStatusRemoteManager::formatScJson( ptree& parent )
+void ForwarderStatusRemote::formatScJson( ptree& parent )
 {
 	ptree pt;
 #ifndef ETRI_NFD_ORG_ARCH
@@ -475,7 +414,7 @@ void ForwarderStatusRemoteManager::formatScJson( ptree& parent )
 
                 }
         }else{
-                for (const auto& i : m_forwarder.getStrategyChoice()) {
+                for (const auto& i : g_mgmt_forwarder->getStrategyChoice()) {
     	ptree ns;
     	ns.put("namespace", i.getPrefix().toUri());
     	ns.put("strategy.name", i.getStrategyInstanceName().toUri());
@@ -486,7 +425,7 @@ void ForwarderStatusRemoteManager::formatScJson( ptree& parent )
 #endif
 	parent.add_child("nfdStatus.strategyChoices.strategyChoice", pt);
 }
-void ForwarderStatusRemoteManager::formatCsJson( ptree& parent )
+void ForwarderStatusRemote::formatCsJson( ptree& parent )
 {
         //ndn::nfd::CsInfo info;
 
@@ -515,13 +454,9 @@ void ForwarderStatusRemoteManager::formatCsJson( ptree& parent )
         }
 #endif
 
-        NEntries += m_forwarder.getCs().size();
-        //NHits += m_forwarder.getCountersInfo().nCsHits;
-        //NMisses += m_forwarder.getCountersInfo().nCsMisses;
+        NEntries += g_mgmt_forwarder->getCs().size();
 
   pt.put ("capacity", NCapa);
-  //pt.put ("admitEnabled", m_forwarder.getCs().shouldAdmin());
-  //pt.put ("serveEnabled", m_forwarder.getCs().shouldServe());
   pt.put ("nEntries", NEntries);
   pt.put ("nHits", NHits);
   pt.put ("nMisses", NMisses);
@@ -531,14 +466,11 @@ parent.add_child("nfdStatus.cs", pt);
 
 
 void
-ForwarderStatusRemoteManager::listGeneralRemoteStatus(const Name& topPrefix, const Interest& interest,
-                                          ndn::mgmt::StatusDatasetContext& context)
+ForwarderStatusRemote::listGeneralRemoteStatus(const Interest& interest)
 {
 
 	std::cout << "listGeneralRemoteStatus = " << interest << std::endl;
 	auto status = this->collectGeneralStatus();
-
-	context.end();
 
 	// Write json.
 	ptree nfd_info;
@@ -554,6 +486,7 @@ ForwarderStatusRemoteManager::listGeneralRemoteStatus(const Name& topPrefix, con
 	std::ostringstream buf; 
 	write_json (buf, nfd_info, false);
 	std::string json = buf.str(); 
+
 #if 0
 	std::ofstream file;
 	file.open("/tmp/json1.json");
@@ -563,7 +496,7 @@ ForwarderStatusRemoteManager::listGeneralRemoteStatus(const Name& topPrefix, con
 	std::cout << json << std::endl;
 #endif
 
-	auto internalFace = m_faceTable.get(face::FACEID_INTERNAL_FACE);
+	auto internalFace = g_faceTable->get(face::FACEID_INTERNAL_FACE);
 	if(internalFace!=nullptr){
 		Name name = interest.getName();
 		Data data(name);

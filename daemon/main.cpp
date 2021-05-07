@@ -1,7 +1,6 @@
 
 #ifndef ETRI_NFD_ORG_ARCH
 #include "mw-nfd/input-thread.hpp"
-#include "mw-nfd/output-nfd-worker.hpp"
 #include "mw-nfd/mw-nfd-worker.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
 #endif
@@ -72,7 +71,7 @@ std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 bool g_wantFibSharding=true;
 
-#ifndef ETRI_NFD_ORG_ARCH
+//#ifndef ETRI_NFD_ORG_ARCH
 static void configMwNfdConfig(const std::string configFileName)
 {
 	std::string user;
@@ -175,7 +174,7 @@ static void configMwNfdConfig(const std::string configFileName)
 	setOutgoingMwNfdWorkers(g_outputWorkerList.size());
 }
 
-#endif
+//#endif
 
 void forwardingWorkerTimerTrigger(const boost::system::error_code& /*e*/,
             boost::shared_ptr< boost::asio::deadline_timer > t,
@@ -252,7 +251,7 @@ public:
       }
       cv.notify_all(); // notify that ribIo has been assigned
 
-        //std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    //    std::this_thread::sleep_for(std::chrono::milliseconds(20*1000));
       try {
         ndn::KeyChain ribKeyChain;
         // must be created inside a separate thread
@@ -373,9 +372,13 @@ printAddedFeatures(std::ostream& os)
 #endif
 #ifndef ETRI_DUAL_CS
     std::cout << "   +  --without-dual-cs" << std::endl;
+#else
+    std::cout << "   +  --with-dual-cs" << std::endl;
 #endif
 #ifndef ETRI_PITTOKEN_HASH
     std::cout << "   +  --without-pittoken-hash" << std::endl;
+#else
+    std::cout << "   +  --with-pittoken-hash" << std::endl;
 #endif
 
     std::cout << "\n \n" << std::endl;
@@ -495,6 +498,8 @@ int main(int argc, char** argv)
         ", with ndn-cxx version " NDN_CXX_VERSION_BUILD_STRING
         << std::endl;
 
+    configMwNfdConfig(configFile);
+
     NfdRunner runner(configFile);
     try {
         runner.initialize();
@@ -579,9 +584,6 @@ int main(int argc, char** argv)
 
 	resetCommandRx();
 
-    //ConfigFile config(&ignoreConfigSections);
-    //config.addSectionHandler("mw-nfd", &onMwNfdConfig);
-    //config.parse(configFile, false);
     configMwNfdConfig(configFile);
 
     NFD_LOG_INFO("");;
@@ -675,6 +677,7 @@ int main(int argc, char** argv)
 		});
 		workerId +=2;
 	}
+#if 0 
 	std::cout << "g_outputWorkerList: " << g_outputWorkerList.size() << std::endl;
 	for(auto & x:g_outputWorkerList){
 
@@ -710,7 +713,7 @@ int main(int argc, char** argv)
 
 		});
 	}
-
+#endif
 	workerId =0;
 
     for(auto core : g_dcnWorkerList){

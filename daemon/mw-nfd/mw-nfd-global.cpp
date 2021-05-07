@@ -40,6 +40,10 @@ std::shared_ptr<nfd::MwNfd> g_mwNfds[MW_NFD_WORKER];
 int g_sockMwNfdCommand[MW_NFD_WORKER];
 int g_nfdcSocket=0;
 
+#ifdef ETRI_DEBUG_COUNTERS
+extern size_t g_nEnqMiss[COUNTERS_MAX];
+#endif
+
 namespace nfd {
 
 bool g_commandRxFlag[DCN_MAX_WORKERS];
@@ -422,7 +426,7 @@ dissectNdnPacket( const uint8_t *wire, size_t size  )
 }
 
 MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
-MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE]={nullptr,};
+//MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE]={nullptr,};
 BoostMQ g_dcnBoostMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE]={nullptr,};
 
 void mq_allocation()
@@ -430,7 +434,7 @@ void mq_allocation()
     uint32_t i,j;
 
     for(i=0;i<MQ_ARRAY_MAX_SIZE;i++){
-			g_dcnMoodyOutMQ[i] = std::make_shared<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>();
+			//g_dcnMoodyOutMQ[i] = std::make_shared<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>();
         for(j=0;j<MQ_ARRAY_MAX_SIZE;j++){
             g_dcnMoodyMQ[i][j] = std::make_shared<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>();
         }
@@ -641,6 +645,47 @@ print_payload(const u_char *payload, int len)
 	}
 
 return;
+}
+
+bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
+{
+#ifdef ETRI_NFD_ORG_ARCH
+	return false;
+#else
+    int32_t packetType=0;
+    int32_t worker=0;
+    bool isOk=false;
+    bool ret __attribute__((unused));
+    std::tie(isOk, packetType, worker) = dissectNdnPacket( pkt, len );
+
+    if( !isOk ){
+        if(packetType==ndn::lp::tlv::LpPacket)
+        return false;
+    }
+
+    if(worker==DCN_LOCALHOST_PREFIX){
+        return false;
+    }
+
+    if(packetType>=0 and worker >=0){
+        NDN_MSG msg;
+        msg.buffer = make_shared<ndn::Buffer>( pkt, len );
+        msg.endpoint = 0;
+        msg.type = 0; // Buffer type
+        msg.faceId = face;
+
+        if(packetType==tlv::Interest)
+            ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
+        else
+            ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+#ifdef ETRI_DEBUG_COUNTERS
+        if(ret==false) g_nEnqMiss[face-face::FACEID_RESERVED_MAX]+=1;
+#endif
+    }   
+
+
+    return true;
+#endif
 }
 
 

@@ -134,6 +134,10 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 #endif
 
 namespace nfd {
+
+
+extern std::string g_bulkFibTestPort0;
+extern std::string g_bulkFibTestPort1;
 extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 	typedef struct pit_token_st {
@@ -209,7 +213,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     using MoodyMQ = std::shared_ptr<moodycamel::ConcurrentQueue<NDN_MSG, NdnTraits>>;
     extern    nfd::MoodyMQ g_dcnMoodyMQ[MQ_ARRAY_MAX_SIZE][MQ_ARRAY_MAX_SIZE];
 
-    using MoodyMQ2 = std::shared_ptr<moodycamel::ConcurrentQueue<NDN_OUT_MSG, NdnTraits>>;
+    using MoodyMQ2 = std::shared_ptr<moodycamel::ConcurrentQueue<ndn::Block, NdnTraits>>;
     extern    nfd::MoodyMQ2 g_dcnMoodyOutMQ[MQ_ARRAY_MAX_SIZE];
 
     using BoostMQ = std::shared_ptr< boost::lockfree::spsc_queue<NDN_MSG, boost::lockfree::capacity<CAPACITY>> >;
@@ -222,6 +226,8 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     
     bool getGlobalNetName();
     void setGlobalNetName(bool);
+
+    bool dcnReceivePacket(const uint8_t *, size_t, uint64_t);
 
 int getIfIndex(const char *addr);
 int32_t computeWorkerId( const uint8_t *wire, size_t size );

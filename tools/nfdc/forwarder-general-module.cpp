@@ -125,8 +125,10 @@ ForwarderGeneralModule::formatItemText(std::ostream& os, const ForwarderStatus& 
      << ia("nFibEntries") << item.getNFibEntries()
      << ia("nPitEntries") << item.getNPitEntries()
      << ia("nMeasurementsEntries") << item.getNMeasurementsEntries()
-#if defined(WITH_TESTS) || !defined(ETRI_DUAL_CS)
-     << ia("nCsEntries") << item.getNCsEntries();
+#if defined(WITH_TESTS) || !defined(ETRI_DUAL_CS) || !defined(ETRI_PITTOKEN_HASH)
+     //<< ia("nCsEntries") << item.getNCsEntries();
+     << ia("nExactMatching-CsEntries") << (0) 
+     << ia("nPrefixMatching-CsEntries") << (nCsEntries);
 #else
      << ia("nExactMatching-CsEntries") << (nExCs) 
      << ia("nPrefixMatching-CsEntries") << (nCs-nExCs);

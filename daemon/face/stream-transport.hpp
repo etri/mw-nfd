@@ -269,7 +269,9 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
 
         offset += element.size();
         BOOST_ASSERT(offset <= m_receiveBufferSize);
-        this->receive(element);
+        //ETRI(modori) 20210429
+        if( !dcnReceivePacket(element.wire(), element.size(), getFace()->getId()) )
+            this->receive(element);
     }
 
     if (!isOk && m_receiveBufferSize == ndn::MAX_NDN_PACKET_SIZE && offset == 0) {

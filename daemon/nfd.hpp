@@ -28,7 +28,6 @@
 
 #include "common/config-file.hpp"
 #include "fw/face-table.hpp"
-#include "mgmt/forwarder-status-remote-manager.hpp"
 
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
@@ -43,7 +42,6 @@ class Forwarder;
 class CommandAuthenticator;
 class ForwarderStatusManager;
 //ETRI
-class ForwarderStatusRemoteManager;
 class FaceManager;
 class FibManager;
 class CsManager;
@@ -104,9 +102,7 @@ public:
       return m_faceTable;
   }
 
-#ifdef ETRI_NFD_ORG_ARCH
   bool config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path);
-#endif
 
 private:
   explicit
@@ -139,7 +135,6 @@ private:
   shared_ptr<CommandAuthenticator> m_authenticator;
   unique_ptr<ForwarderStatusManager> m_forwarderStatusManager;
 //ETRI
-  unique_ptr<ForwarderStatusRemoteManager> m_forwarderStatusRemoteManager;
   unique_ptr<FaceManager> m_faceManager;
   unique_ptr<FibManager> m_fibManager;
   unique_ptr<CsManager> m_csManager;

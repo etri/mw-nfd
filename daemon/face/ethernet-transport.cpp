@@ -54,6 +54,7 @@
 extern size_t g_nEnqMiss[128];
 extern size_t g_nDropped[128];
 extern size_t g_nIfDropped[128];
+extern size_t g_nUdpIn[128];
 #endif
 
 namespace nfd {
@@ -223,7 +224,9 @@ EthernetTransport::handleRead(const boost::system::error_code& error)
             ethernet::Address sender(eh->ether_shost);
             pkt += ethernet::HDR_LEN;
             len -= ethernet::HDR_LEN;
-            receivePayload(pkt, len, sender);
+// ETRI(modori) on 20210429
+            if( !dcnReceivePacket(pkt, len, getFace()->getId()) )
+                receivePayload(pkt, len, sender);
         }
     }
 

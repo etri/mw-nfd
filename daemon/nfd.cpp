@@ -52,16 +52,9 @@
 
 #include <boost/property_tree/info_parser.hpp>
 
-
-extern int32_t g_dcnWorkerCapacity;
-
 namespace nfd {
 
 std::shared_ptr<FaceTable> g_faceTable=nullptr;
-extern std::shared_ptr<nfd::Face> g_internalFace;
-
-extern std::string g_bulkFibTestPort0;
-extern std::string g_bulkFibTestPort1;
 
 NFD_LOG_INIT(Nfd);
 
@@ -96,6 +89,8 @@ Nfd::Nfd(const ConfigSection& config, ndn::KeyChain& keyChain)
 // complete types for all members when instantiated.
 Nfd::~Nfd() = default;
 
+Forwarder* g_mgmt_forwarder;
+
 void Nfd::initialize()
 {
   configureLogging();
@@ -106,6 +101,7 @@ void Nfd::initialize()
   m_faceSystem = make_unique<face::FaceSystem>(*m_faceTable, m_netmon);
 
   m_forwarder = make_unique<Forwarder>(*m_faceTable);
+  g_mgmt_forwarder = m_forwarder.get();
 
   initializeManagement();
 
@@ -120,86 +116,81 @@ void Nfd::initialize()
     });
   });
 
-// added by modori to support UDP bulk Test on 2k210422
-	if(getBulkFibTest()){
-		FaceUri remoteUri0(g_bulkFibTestPort0);
-			if(remoteUri0.getScheme()=="udp4"){
-				getScheduler().schedule(5_s, [this] {
-				int ret;
-				std::string cmd = "nfdc face create ";
-				cmd.append(g_bulkFibTestPort0);
-				ret=system(cmd.c_str());
-				cmd.clear();
-				cmd = "nfdc face create ";
-				cmd.append(g_bulkFibTestPort1);
-				ret=system(cmd.c_str());
-				});
-			}
-	}
+  if(getBulkFibTest()){
+      /* added by modori to support UDP bulk Test on 2k210503 */
+      FaceUri remoteUri0(g_bulkFibTestPort0);
+      FaceUri remoteUri1(g_bulkFibTestPort1);
+      int  __attribute__((unused)) ret;
+      if(remoteUri0.getScheme()=="udp4" or remoteUri0.getScheme()=="tcp4") {
+          std::string cmd = "nfdc face create ";
+          cmd.append(g_bulkFibTestPort0);
+          ret=system(cmd.c_str());
+      }
+      if(remoteUri1.getScheme()=="udp4" or remoteUri1.getScheme()=="tcp4") {
+          std::string cmd = "nfdc face create ";
+          cmd.append(g_bulkFibTestPort1);
+          ret=system(cmd.c_str());
+      }
+  }
 
 #ifdef ETRI_NFD_ORG_ARCH
-  std::string configFile = m_configFile;
-  getScheduler().schedule(2_s, [this, configFile] {
-	ConfigSection config;
+    if(getBulkFibTest()){
+        getScheduler().schedule(5_s, [this] {
+                try{
 
-  boost::property_tree::read_info(configFile, config);
+                bool done = false;
+                FaceId faceId0 = 0;
+                FaceId faceId1 = 0;
 
-  try{
-  	auto bulk_test = config.get_child("mw-nfd.bulk-fib-test");
-    std::string path;
-    std::string port0;
-    std::string port1;
+                FaceUri faceUri0(g_bulkFibTestPort0);
+                FaceUri faceUri1(g_bulkFibTestPort1);
 
-    for (const auto& info : bulk_test) {
-            
-    	if(info.first=="bulk-fib-file-path")
-      	path = info.second.get_value<std::string>();
+                do{ 
+                FaceTable::const_iterator it; 
+                FaceUri uri;
 
-      if(info.first=="bulk-fib-test-port0")
-	      port0 = info.second.get_value<std::string>();
-      if(info.first=="bulk-fib-test-port1")
-        port1 = info.second.get_value<std::string>();
- 		}
+                for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
 
-    bool done = false;
-    FaceId faceId0 = 0;
-    FaceId faceId1 = 0;
+                if( faceUri0.getScheme()=="udp4"){
+                uri = it->getRemoteUri();
+                }else if( faceUri0.getScheme()=="tcp4")
+                uri = it->getRemoteUri();
+                else if( faceUri0.getScheme()=="ether")
+                    uri = it->getLocalUri();
+                else if( faceUri0.getScheme()=="dev")
+                    uri = it->getLocalUri();
+                else
+                    uri = it->getLocalUri();
 
-	FaceUri uri0(port0);
-	FaceUri uri1(port1);
+                if( uri.getScheme() == faceUri0.getScheme() ){
+                    if( uri.getHost() == faceUri0.getHost() ){
+                        faceId0 = it->getId();
+                    }   
+                }   
 
-    do{ 
-		FaceTable::const_iterator it; 
-      FaceUri uri;
+                if( uri.getScheme() == faceUri1.getScheme() ){
+                    if( uri.getHost() == faceUri1.getHost() ){
+                        faceId1 = it->getId();
+                    }   
+                }   
 
-      for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
+                }   
 
-      	uri = it->getLocalUri();
+                if( faceId0 != 0 and faceId1 != 0 ){
+                    config_bulk_fib(faceId0, faceId1, getBulkFibFilePath());
+                    done = true;
+                }   
+                }while(!done);
 
-        if( uri.getHost() == uri0.getHost() ){
- 	       faceId0 = it->getId();
-        }   
-
-        if( uri.getHost() == uri1.getHost() ){
- 	       faceId1 = it->getId();
-        }   
-      }   
-
-      if( faceId0 != 0 and faceId1 != 0 ){
-      	config_bulk_fib(faceId0, faceId1, path);
-        done = true;
-      }   
-    }while(!done);
-
-    }catch(const std::exception& e){
+                }catch(const std::exception& e){
+                }
+        });
     }
-  });
-
 #endif
+
 }
 
 
-#ifdef ETRI_NFD_ORG_ARCH
 bool Nfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path)
 {
     FILE *fp;
@@ -261,7 +252,6 @@ bool Nfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path)
 
     return true;
 }
-#endif
 
 void
 Nfd::configureLogging()
@@ -312,9 +302,6 @@ Nfd::initializeManagement()
                                                                *m_dispatcher, *m_authenticator);
 
   m_forwarderStatusManager = make_unique<ForwarderStatusManager>(*m_forwarder, *m_dispatcher);
-
-  m_forwarderStatusRemoteManager = make_unique<ForwarderStatusRemoteManager>(*m_forwarder, *m_dispatcher,
-	*m_faceSystem);
 
   ConfigFile config(&ignoreRibAndLogSections);
   general::setConfigFile(config);

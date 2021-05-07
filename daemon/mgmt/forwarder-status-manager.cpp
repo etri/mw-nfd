@@ -44,6 +44,7 @@ using boost::property_tree::write_json;
 size_t g_nEnqMiss[COUNTERS_MAX];
 size_t g_nDropped[COUNTERS_MAX];
 size_t g_nIfDropped[COUNTERS_MAX];
+size_t g_nUdpIn[COUNTERS_MAX];
 #endif
 
 #include <iostream>
@@ -78,9 +79,8 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setStartTimestamp(m_startTimestamp);
   status.setCurrentTimestamp(time::system_clock::now());
 
-#ifndef WITHOUT_DUAL_CS
   size_t nNameTree=0;
-  size_t nFib=m_forwarder.getFib().size();
+  size_t nFib=0;
   size_t nPit=0;
   size_t nM=0;
   size_t nCs=0;
@@ -105,7 +105,9 @@ ForwarderStatusManager::collectGeneralStatus()
   nPit += m_forwarder.getPit().size();
   nM +=  m_forwarder.getMeasurements().size();
   nCs +=m_forwarder.getCs().size();
+#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
   nExCs +=m_forwarder.getCs().sizeExact();
+#endif
 
   const ForwarderCounters& counters = m_forwarder.getCounters();
   nInInterests+=(counters.nInInterests);
@@ -116,6 +118,7 @@ ForwarderStatusManager::collectGeneralStatus()
         nOutNacks += (counters.nOutNacks);
         nSatisfiedInterests += (counters.nSatisfiedInterests);
         nUnsatisfiedInterests +=(counters.nUnsatisfiedInterests);
+
 
 #ifndef ETRI_NFD_ORG_ARCH
   int32_t workers = getForwardingWorkers();
@@ -128,8 +131,9 @@ ForwarderStatusManager::collectGeneralStatus()
       nPit += worker->getPitTable().size();
       nM += worker->getMeasurementsTable().size();
       nCs += worker->getCsTable().size();
+#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
       nExCs += worker->getCsTable().sizeExact();
-
+#endif
 
     const ForwarderCounters& counters = worker->getCountersInfo();
     nInInterests += counters.nInInterests;
@@ -157,6 +161,9 @@ ForwarderStatusManager::collectGeneralStatus()
             std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nDrooped(Pcap) Packets: " << g_nDropped[i] << std::endl;
         if(g_nIfDropped[i]!=0)
             std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nIfDrooped(Pcap) Packets: " << g_nIfDropped[i] << std::endl;
+        
+        if(g_nUdpIn[i]!=0)
+            std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nUdpIn: " << g_nUdpIn[i] << std::endl;
     }
 #endif
 
@@ -166,9 +173,13 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setNMeasurementsEntries(nM);
 
 	size_t nCsEntries = 0;
+#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
 	int size = sizeof(size_t);
 	nCsEntries = (nCs << ((size/2)*8));
 	nCsEntries |= nExCs;
+#else
+    nCsEntries = nCs;
+#endif
 	//std::cout << "nCs:" << nCs << std::endl;
 	//std::cout << "nExCs:" << nExCs << std::endl;
 	//std::cout << std::bitset<64>(nCsEntries) << std::endl;
@@ -183,7 +194,7 @@ ForwarderStatusManager::collectGeneralStatus()
         .setNOutNacks(nOutNacks)
         .setNSatisfiedInterests(nSatisfiedInterests)
         .setNUnsatisfiedInterests(nUnsatisfiedInterests);
-#else
+#if 0
   status.setNNameTreeEntries(m_forwarder.getNameTree().size());
   status.setNFibEntries(m_forwarder.getFib().size());
   status.setNPitEntries(m_forwarder.getPit().size());
@@ -200,7 +211,6 @@ ForwarderStatusManager::collectGeneralStatus()
         .setNSatisfiedInterests(counters.nSatisfiedInterests)
         .setNUnsatisfiedInterests(counters.nUnsatisfiedInterests);
 #endif
-
   return status;
 }
 
