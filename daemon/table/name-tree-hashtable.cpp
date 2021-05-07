@@ -290,6 +290,7 @@ Hashtable::resize(size_t newNBuckets)
     return;
   }
   NFD_LOG_DEBUG("resize from=" << this->getNBuckets() << " to=" << newNBuckets);
+  std::cout << "resize from=" << this->getNBuckets() << " to=" << newNBuckets << std::endl;
 
   std::vector<Node*> oldBuckets;
   oldBuckets.swap(m_buckets);
