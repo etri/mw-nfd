@@ -99,6 +99,7 @@ void Nfd::initialize()
   m_faceTable->addReserved(face::makeNullFace(), face::FACEID_NULL);
   m_faceTable->addReserved(face::makeNullFace(FaceUri("contentstore://")), face::FACEID_CONTENT_STORE);
   m_faceSystem = make_unique<face::FaceSystem>(*m_faceTable, m_netmon);
+	g_faceSystem = m_faceSystem.get();
 
   m_forwarder = make_unique<Forwarder>(*m_faceTable);
   g_mgmt_forwarder = m_forwarder.get();
@@ -330,8 +331,8 @@ Nfd::initializeManagement()
   m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
   m_dispatcher->addTopPrefix(topPrefix, false);
 
-	Name rtPrefix(getRouterName()+"/nfd");
-  m_dispatcher->addTopPrefix(rtPrefix, false);
+	//Name rtPrefix(getRouterName()+"/nfd");
+  //m_dispatcher->addTopPrefix(rtPrefix, false);
 }
 
 void

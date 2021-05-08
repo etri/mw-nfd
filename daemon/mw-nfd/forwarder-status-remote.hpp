@@ -18,15 +18,13 @@ class ForwarderStatusRemote: noncopyable
 {
 public:
   ForwarderStatusRemote();
+bool
+  getNfdGeneralStatus(const Interest &, Face &);
 
 private:
   ndn::nfd::ForwarderStatus
   collectGeneralStatus();
 
-  /** \brief provide general status dataset
-   */
-  void
-  listGeneralRemoteStatus(const Interest& interest);
 
 	void formatStatusJson( ptree &, const ndn::nfd::ForwarderStatus&);
 	void formatCsJson( ptree & );
@@ -35,10 +33,6 @@ private:
 	void formatChannelsJson( ptree & );
 	void formatRibJson( ptree & );
 	void formatFibJson( ptree & );
-
-
-private:
-  time::system_clock::TimePoint m_startTimestamp;
 };
 
 } // namespace nfd

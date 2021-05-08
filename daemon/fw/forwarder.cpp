@@ -36,6 +36,7 @@
 #include "strategy.hpp"
 #include "common/global.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
+#include "mw-nfd/forwarder-status-remote.hpp"
 #include "common/logger.hpp"
 #include "table/cleanup.hpp"
 #include "face/face-endpoint.hpp"
@@ -806,6 +807,21 @@ Forwarder::onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
   NFD_LOG_DEBUG("onOutgoingNack out=" << egress.getId()
                 << " nack=" << pitEntry->getInterest().getName()
                 << "~" << nack.getReason() << " OK");
+
+#ifndef ETRI_NFD_ORG_ARCH
+//ETRI(modori) on 20210507
+	ndn::Name rtName(getRouterName() + "/nfd/status");	
+	if( !rtName.compare(pitEntry->getInterest().getName()) ){
+		ForwarderStatusRemote fsr;
+		bool ret = fsr.getNfdGeneralStatus(pitEntry->getInterest(), egress);
+
+  // erase in-record
+  pitEntry->deleteInRecord(egress);
+  ++m_counters.nOutNacks;
+  return ret;
+	}
+	#endif
+	
 
   // create Nack packet with the Interest from in-record
   lp::Nack nackPkt(inRecord->getInterest());
