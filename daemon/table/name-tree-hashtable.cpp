@@ -232,7 +232,7 @@ Hashtable::find(const Name& name, size_t prefixLen, const HashValue& hash) const
   size_t bucket = this->computeBucketIndex(hash);
 
   for (const Node* node = m_buckets[bucket]; node != nullptr; node = node->next) {
-    if (node->hash == hash && name.compare(0, prefixLen, node->entry.getName()) == 0) {
+    if (node->hash == hash && node->entry.getName().isPrefixOf(name)) {
       NFD_LOG_TRACE("found " << name.getPrefix(prefixLen) << " hash=" << hash << " bucket=" << bucket);
       return node;
     }
