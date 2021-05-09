@@ -583,16 +583,20 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 
 	pit::DataMatchResult pitMatches;
 
-	if(!isCanBePrefix) {  // DUAL_CS and exact match
-#ifdef ETRI_PITTOKEN_HASH  
-		pitMatches = m_pit.findDataExactMatch(data, hashValue);
+    if(token==nullptr){
+        pitMatches = m_pit.findAllDataMatches(data);
+    } else {
+#ifdef ETRI_PITTOKEN_HASH
+        pitMatches = m_pit.findDataExactMatch(data, hashValue);
 #else
-		pitMatches = m_pit.findDataExactMatch(data);
+        if(!isCanBePrefix) {  // DUAL_CS and exact match
+            pitMatches = m_pit.findDataExactMatch(data);
+        } else {  // DUAL_CS and prefix match
+            pitMatches = m_pit.findAllDataMatches(data);
+        }
 #endif
-	} else {  // DUAL_CS and prefix match
-		// PIT match
-		pitMatches = m_pit.findAllDataMatches(data);
-	}
+    }
+
 
 	if (pitMatches.size() == 0) {
 		// goto Data unsolicited pipeline
