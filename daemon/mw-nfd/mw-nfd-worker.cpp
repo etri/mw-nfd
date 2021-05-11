@@ -451,10 +451,12 @@ void MwNfd::initialize(uint32_t input_workers)
 	NFD_LOG_INFO("The ForwardingWorker(" << m_workerId << ") is running with inputWorkers[mgmt+input:" << input_workers << "]");
   m_inputWorkers = input_workers;
 
+#if 0
 	Name rtPrefix(getRouterName()+"/nfd");
 	fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
     auto m_internalFace = m_faceTable->get(face::FACEID_INTERNAL_FACE);
 	m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
+#endif
 
 }
 

@@ -46,6 +46,7 @@ extern size_t g_nEnqMiss[COUNTERS_MAX];
 
 namespace nfd {
 
+time::system_clock::TimePoint g_startTimestamp(time::system_clock::now());
 bool g_commandRxFlag[DCN_MAX_WORKERS];
 void resetCommandRx()
 {
@@ -69,6 +70,8 @@ bool g_outgoingMwNfd=false;
 int g_outgoingMwNfdWorkers=0;
 std::string g_bulkFibFilePath;
 bool g_fibSharding=true;
+
+face::FaceSystem *g_faceSystem;
 
 bool g_mwNfdParameters=0;
 

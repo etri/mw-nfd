@@ -22,9 +22,7 @@ using boost::property_tree::ptree;
 using boost::property_tree::read_json;
 using boost::property_tree::write_json;
 
-
 #include <iostream>
-
 
 using namespace ndn;
 NFD_LOG_INIT(ForwarderStatusRemote);
@@ -37,7 +35,6 @@ extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
 ForwarderStatusRemote::ForwarderStatusRemote( )
-  : m_startTimestamp(time::system_clock::now())
 {
 }
 
@@ -47,7 +44,7 @@ ForwarderStatusRemote::collectGeneralStatus()
   ndn::nfd::ForwarderStatus status;
 
   status.setNfdVersion(NFD_VERSION_BUILD_STRING);
-  status.setStartTimestamp(m_startTimestamp);
+  status.setStartTimestamp(g_startTimestamp);
   status.setCurrentTimestamp(time::system_clock::now());
 
   size_t nNameTree=0;
@@ -157,10 +154,8 @@ void ForwarderStatusRemote::formatChannelsJson( ptree& parent )
 {
 	ptree pt;
 
-    //modori
-#if 0
-auto factories = m_faceSystem.listProtocolFactories();
-  for (const auto* factory : factories) {
+	auto factories = g_faceSystem->listProtocolFactories();
+  	for (const auto* factory : factories) {
     for (const auto& channel : factory->getChannels()) {
     	ptree ch_node;
     	ch_node.put("localUri", channel->getUri().toString());
@@ -169,7 +164,6 @@ auto factories = m_faceSystem.listProtocolFactories();
   }
 
 	parent.add_child("nfdStatus.channels.channel", pt);
-#endif
 }
 
 template<typename T>
@@ -465,11 +459,10 @@ parent.add_child("nfdStatus.cs", pt);
 
 
 
-void
-ForwarderStatusRemote::listGeneralRemoteStatus(const Interest& interest)
+bool
+ForwarderStatusRemote::getNfdGeneralStatus(const Interest& interest, Face &face)
 {
 
-	std::cout << "listGeneralRemoteStatus = " << interest << std::endl;
 	auto status = this->collectGeneralStatus();
 
 	// Write json.
@@ -485,7 +478,7 @@ ForwarderStatusRemote::listGeneralRemoteStatus(const Interest& interest)
 
 	std::ostringstream buf; 
 	write_json (buf, nfd_info, false);
-	std::string json = buf.str(); 
+	std::string nfdStatus = buf.str(); 
 
 #if 0
 	std::ofstream file;
@@ -495,17 +488,14 @@ ForwarderStatusRemote::listGeneralRemoteStatus(const Interest& interest)
 	std::cout << "JSON: " << std::endl;
 	std::cout << json << std::endl;
 #endif
-
-	auto internalFace = g_faceTable->get(face::FACEID_INTERNAL_FACE);
-	if(internalFace!=nullptr){
 		Name name = interest.getName();
 		Data data(name);
 		KeyChain keychain;
-		data.setContent((uint8_t*)json.c_str(), json.length());
+		data.setContent((uint8_t*)nfdStatus.c_str(), nfdStatus.length());
 		data.setFreshnessPeriod(1_s);
 		keychain.sign(data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-		internalFace->getLinkService()->receivePacket(data.wireEncode(), 1);
-	}
+		face.sendData(data);
+	return true;
 }
 
 } // namespace nfd

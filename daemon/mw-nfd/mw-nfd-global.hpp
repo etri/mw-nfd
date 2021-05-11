@@ -135,6 +135,8 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 
 namespace nfd {
 
+extern face::FaceSystem* g_faceSystem;
+extern time::system_clock::TimePoint g_startTimestamp;
 
 extern std::string g_bulkFibTestPort0;
 extern std::string g_bulkFibTestPort1;
