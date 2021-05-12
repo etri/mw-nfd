@@ -139,52 +139,67 @@ void Nfd::initialize()
         getScheduler().schedule(5_s, [this] {
                 try{
 
-                bool done = false;
-                FaceId faceId0 = 0;
-                FaceId faceId1 = 0;
+		bool done = false;
+		FaceId faceId0 = 0;
+		FaceId faceId1 = 0;
 
-                FaceUri faceUri0(g_bulkFibTestPort0);
-                FaceUri faceUri1(g_bulkFibTestPort1);
+		FaceUri uri0;
+		FaceUri uri1;
 
-                do{ 
-                FaceTable::const_iterator it; 
-                FaceUri uri;
+		FaceUri faceUri0(g_bulkFibTestPort0);
+		FaceUri faceUri1(g_bulkFibTestPort1);
 
-                for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
+		do{ 
+		FaceTable::const_iterator it; 
+		FaceUri uri;
 
-                if( faceUri0.getScheme()=="udp4"){
-                uri = it->getRemoteUri();
-                }else if( faceUri0.getScheme()=="tcp4")
-                uri = it->getRemoteUri();
-                else if( faceUri0.getScheme()=="ether")
-                    uri = it->getLocalUri();
-                else if( faceUri0.getScheme()=="dev")
-                    uri = it->getLocalUri();
-                else
-                    uri = it->getLocalUri();
+		//std::cout << "g_bulkFibTestPort0: " << g_bulkFibTestPort0 << std::endl;
+		for ( it=m_faceTable->begin(); it != m_faceTable->end() ;it++ ) { 
 
-                if( uri.getScheme() == faceUri0.getScheme() ){
-                    if( uri.getHost() == faceUri0.getHost() ){
-                        faceId0 = it->getId();
-                    }   
-                }   
+		if( faceUri0.getScheme()=="udp4"){
+			uri0 = it->getRemoteUri();
+		}else if( faceUri0.getScheme()=="tcp4")
+			uri0 = it->getRemoteUri();
+		else if( faceUri0.getScheme()=="ether")
+			uri0 = it->getLocalUri();
+		else if( faceUri0.getScheme()=="dev")
+			uri0 = it->getLocalUri();
+		else
+			uri0 = it->getLocalUri();
 
-                if( uri.getScheme() == faceUri1.getScheme() ){
-                    if( uri.getHost() == faceUri1.getHost() ){
-                        faceId1 = it->getId();
-                    }   
-                }   
+		if( faceUri1.getScheme()=="udp4"){
+			uri1 = it->getRemoteUri();
+		}else if( faceUri1.getScheme()=="tcp4")
+			uri1 = it->getRemoteUri();
+		else if( faceUri1.getScheme()=="ether")
+			uri1 = it->getLocalUri();
+		else if( faceUri1.getScheme()=="dev")
+			uri1 = it->getLocalUri();
+		else
+			uri1 = it->getLocalUri();
 
-                }   
+		if( uri0.getScheme() == faceUri0.getScheme() ){
+			if( uri0.getHost() == faceUri0.getHost() ){
+				faceId0 = it->getId();
+			}
+		}
 
-                if( faceId0 != 0 and faceId1 != 0 ){
-                    config_bulk_fib(faceId0, faceId1, getBulkFibFilePath());
-                    done = true;
-                }   
-                }while(!done);
+		if( uri1.getScheme() == faceUri1.getScheme() ){
+			if( uri1.getHost() == faceUri1.getHost() ){
+				faceId1 = it->getId();
+			}
+		}
 
-                }catch(const std::exception& e){
-                }
+
+		if( faceId0 != 0 and faceId1 != 0 ){
+			config_bulk_fib(faceId0, faceId1, getBulkFibFilePath());
+			done = true;
+		}   
+		}
+		}while(!done);
+
+		}catch(const std::exception& e){
+		}
         });
     }
 #endif
