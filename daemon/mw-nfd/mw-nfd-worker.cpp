@@ -344,6 +344,25 @@ void MwNfd::processNfdcCommand( char * cmd)
                     fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
                     auto korenFace = m_faceTable->get(FACEID_KOREN);
                     m_forwarder->getFib().addOrUpdateNextHop(*entry, *korenFace, 0);
+
+                    m_face =m_faceTable->get(FACEID_KOREN);    
+                    gls = std::make_shared<nfd::face::GenericLinkService>(options);
+
+                    gls->afterReceiveInterest.connect(
+                            [this] (const Interest& interest, const EndpointId& endpointId) {
+                            this->m_forwarder->onIncomingInterest(FaceEndpoint(*m_face, endpointId), interest, this->m_workerId);
+                            });    
+                    gls->afterReceiveData.connect(
+                            [this] (const Data& data, const EndpointId& endpointId) {
+                            this->m_forwarder->onIncomingData(FaceEndpoint(*m_face, endpointId), data);
+                            });    
+                    gls->afterReceiveNack.connect(
+                            [this] (const lp::Nack& nack, const EndpointId& endpointId) {
+                            this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
+                            });    
+
+                    m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(FACEID_KOREN,std::move(gls)) );
+
 #endif
 				}
 

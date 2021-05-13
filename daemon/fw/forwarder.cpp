@@ -420,7 +420,7 @@ Forwarder::onInterestFinalize(const shared_ptr<pit::Entry>& pitEntry)
     NFD_LOG_DEBUG("onInterestFinalize interest=" << pitEntry->getName()
             << (pitEntry->isSatisfied ? " satisfied" : " unsatisfied"));
     //if(pitEntry->isSatisfied==false)
-        //std::cout << "on CPU " << sched_getcpu() << " - onInterestFinalize interest=" << pitEntry->getName()
+        //std::iout << "on CPU " << sched_getcpu() << " - onInterestFinalize interest=" << pitEntry->getName()
             //<< (pitEntry->isSatisfied ? " satisfied" : " unsatisfied") << std::endl;
 
     // Dead Nonce List insert if necessary

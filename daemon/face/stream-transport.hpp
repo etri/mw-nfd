@@ -270,6 +270,8 @@ StreamTransport<T>::handleReceive(const boost::system::error_code& error, size_t
         offset += element.size();
         BOOST_ASSERT(offset <= m_receiveBufferSize);
         //ETRI(modori) 20210429
+        //std::cout << "StreamTransport : " << sched_getcpu() << std::endl;
+        //print_payload(element.wire(), element.size());
         if( !dcnReceivePacket(element.wire(), element.size(), getFace()->getId()) )
             this->receive(element);
     }

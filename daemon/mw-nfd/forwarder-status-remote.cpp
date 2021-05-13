@@ -488,14 +488,39 @@ ForwarderStatusRemote::getNfdGeneralStatus(const Interest& interest, ndn::Face &
 	std::cout << "JSON: " << std::endl;
 	std::cout << json << std::endl;
 #endif
-		Name name = interest.getName();
-		Data data(name);
-		KeyChain keychain;
-		data.setContent((uint8_t*)nfdStatus.c_str(), nfdStatus.length());
-		data.setFreshnessPeriod(1_s);
-		keychain.sign(data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-		//face.sendData(data);
+
+    KeyChain keychain;
+                                                              //m_confParam.getValidator(), options);
+    int segments = nfdStatus.length()/1500;
+    std::cout << "segments: " << segments << std::endl;
+    uint8_t *ptr = (uint8_t*)nfdStatus.c_str();
+    int sent = 0;
+    int len=0;
+    bool isFinal = false;
+
+    for(int i=0;i <= segments ;i++){
+        if( i < (segments) ){
+            len = 1500;
+        }else{
+            len = nfdStatus.length() - sent;
+            isFinal = true;
+        }
+
+        std::cout << "i = " << i << ", len: " << len << ", isFinal=" << isFinal << std::endl;
+        //auto data = makeDataSegment(ptr, len, interest.getName(), i, isFinal);
+        Data data(interest.getName());
+        data.setFreshnessPeriod(1_s);
+        auto pitToken = interest.getTag<lp::PitToken>();
+        if(pitToken != nullptr) {
+            data.setTag(pitToken);
+            std::cerr << "Sending metadata pitToken: " << *pitToken << std::endl;
+        }
+        keychain.sign(data, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_SHA256));
         face.put(data);
+        ptr += len;
+        sent += len;
+        return true;
+    }
 	return true;
 }
 

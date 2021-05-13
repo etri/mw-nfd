@@ -53,7 +53,17 @@ InternalForwarderTransport::receivePacket(const Block& packet)
 {
   getGlobalIoService().post([this, packet] {
     NFD_LOG_FACE_TRACE("Received: " << packet.size() << " bytes");
-    receive(packet);
+    //modori
+#ifndef ETRI_NFD_ORG_ARCH
+    if( getFace()->getId()==FACEID_KOREN ){
+    
+        dcnReceivePacket(packet.wire(), packet.size(), getFace()->getId());
+            
+    }else
+        receive(packet);
+#else
+        receive(packet);
+#endif
   });
 }
 
