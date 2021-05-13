@@ -308,8 +308,7 @@ void Nfd::onInterestForKoren(const ndn::Name& name, const ndn::Interest& interes
 
 #ifndef ETRI_NFD_ORG_ARCH
     ndn::Name rtName(interest.getName());
-    ForwarderStatusRemote fsr;
-    bool ret = fsr.getNfdGeneralStatus(interest, *m_internalClientFaceKoren);
+    bool ret = m_forwarderStatusRemote.getNfdGeneralStatus(name, interest, *m_internalClientFaceKoren);
 #endif
 }
 

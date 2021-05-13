@@ -28,6 +28,7 @@
 
 #include "common/config-file.hpp"
 #include "fw/face-table.hpp"
+#include "mw-nfd/forwarder-status-remote.hpp"
 
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
@@ -151,6 +152,8 @@ private:
 
 	int m_face1;
 	int m_face2;
+
+	ForwarderStatusRemote m_forwarderStatusRemote;
 
 };
 

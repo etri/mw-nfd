@@ -18,6 +18,11 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/iostreams/operations.hpp>
+#include <boost/iostreams/read.hpp>
+
 using boost::property_tree::ptree;
 using boost::property_tree::read_json;
 using boost::property_tree::write_json;
@@ -35,6 +40,7 @@ extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
 ForwarderStatusRemote::ForwarderStatusRemote( )
+:m_isFinished(false)
 {
 }
 
@@ -457,71 +463,126 @@ void ForwarderStatusRemote::formatCsJson( ptree& parent )
 parent.add_child("nfdStatus.cs", pt);
 }
 
+void
+ForwarderStatusRemote::prepareNextData(const ndn::Interest &interest, uint64_t referenceSegmentNo)
+{
+  // make sure m_data has [referenceSegmentNo, referenceSegmentNo + PRE_SIGN_DATA_COUNT] Data
+    if (m_isFinished)
+	    return;
+
+	ptree nfd_info;
+	    auto status = this->collectGeneralStatus();
+	formatStatusJson(nfd_info, status);
+formatChannelsJson(nfd_info);
+	formatFacesJson(nfd_info);
+		formatFibJson(nfd_info);
+	formatRibJson(nfd_info);
+		formatCsJson(nfd_info);
+	formatScJson(nfd_info);
+
+		std::ostringstream buf;
+	write_json (buf, nfd_info, false);
+		std::string nfdStatus = buf.str();
+
+
+	int segments = nfdStatus.length()/1500;
+		std::cout << "segments: " << segments << std::endl;
+	uint8_t *ptr = (uint8_t*)nfdStatus.c_str();
+	int sent = 0;
+	int len=0;
+
+  size_t nDataToPrepare = PRE_SIGN_DATA_COUNT;
+
+	if (!m_data.empty()) {
+		uint64_t maxSegmentNo = m_data.rbegin()->first;
+
+			if (maxSegmentNo - referenceSegmentNo >= nDataToPrepare) {
+				  // nothing to prepare
+				return;
+			}
+
+		nDataToPrepare -= maxSegmentNo - referenceSegmentNo;
+  }
+
+
+	for(int i=0;i <= segments ;i++){
+        if( i < (segments) ){
+			len = 1500;
+		}else{
+			len = nfdStatus.length() - sent;
+		 	m_isFinished = true;
+		}
+
+		std::cout << "i = " << i << ", len: " << len << ", isFinal=" << m_isFinished << std::endl;
+		//auto pitToken = interest.getTag<lp::PitToken>();
+		//if(pitToken != nullptr) {
+			//data.setTag(interest.getTag<lp::PitToken>());
+			////std::cerr << "Sending metadata pitToken: " << *pitToken << std::endl;
+		//}
+
+		auto data = make_shared<ndn::Data>(Name(interest.getName()).appendSegment(i));
+			data->setTag(interest.getTag<lp::PitToken>());
+
+		m_keyChain.sign(*data, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_SHA256));
+
+	 if (m_isFinished) {
+		   data->setFinalBlock(ndn::name::Component::fromSegment(i));
+	 }
+ 
+
+ 	data->setContent(ptr, len);
+	data->setFreshnessPeriod(1_s);
+	m_keyChain.sign(*data);
+
+	m_data.insert(std::make_pair(m_currentSegmentNo, data));
+
+ 	++m_currentSegmentNo;
+	}
+}
 
 
 bool
-ForwarderStatusRemote::getNfdGeneralStatus(const Interest& interest, ndn::Face &face)
+ForwarderStatusRemote::getNfdGeneralStatus(const ndn::Name& prefix, const Interest& interest, ndn::Face &face)
 {
 
-	auto status = this->collectGeneralStatus();
+#if 1
+	 if (interest.getName().size() == prefix.size()) {
+	//     sendManifest(prefix, interest);
+	     return false;
+   }
 
-	// Write json.
-	ptree nfd_info;
-
-	formatStatusJson(nfd_info, status);
-	formatChannelsJson(nfd_info);
-	formatFacesJson(nfd_info);
-	formatFibJson(nfd_info);
-	formatRibJson(nfd_info);
-	formatCsJson(nfd_info);
-	formatScJson(nfd_info);
-
-	std::ostringstream buf; 
-	write_json (buf, nfd_info, false);
-	std::string nfdStatus = buf.str(); 
-
-#if 0
-	std::ofstream file;
-	file.open("/tmp/json1.json");
-	file << json;
-	file.close();
-	std::cout << "JSON: " << std::endl;
-	std::cout << json << std::endl;
-#endif
-
-    KeyChain keychain;
-                                                              //m_confParam.getValidator(), options);
-    int segments = nfdStatus.length()/1500;
-    std::cout << "segments: " << segments << std::endl;
-    uint8_t *ptr = (uint8_t*)nfdStatus.c_str();
-    int sent = 0;
-    int len=0;
-    bool isFinal = false;
-
-    for(int i=0;i <= segments ;i++){
-        if( i < (segments) ){
-            len = 1500;
-        }else{
-            len = nfdStatus.length() - sent;
-            isFinal = true;
-        }
-
-        std::cout << "i = " << i << ", len: " << len << ", isFinal=" << isFinal << std::endl;
-        //auto data = makeDataSegment(ptr, len, interest.getName(), i, isFinal);
-        Data data(interest.getName());
-        data.setFreshnessPeriod(1_s);
-        auto pitToken = interest.getTag<lp::PitToken>();
-        if(pitToken != nullptr) {
-            data.setTag(pitToken);
-            std::cerr << "Sending metadata pitToken: " << *pitToken << std::endl;
-        }
-        keychain.sign(data, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_SHA256));
-        face.put(data);
-        ptr += len;
-        sent += len;
-        return true;
+     uint64_t segmentNo;
+   try {
+       ndn::Name::Component segmentComponent = interest.getName().get(prefix.size());
+       segmentNo = segmentComponent.toSegment();
     }
+   catch (const tlv::Error& e) {
+	       if (1) {
+	         std::cerr << "Error processing incoming interest " << interest << ": "
+                << e.what() << std::endl;
+	     }
+	     return false;
+   }
+
+    prepareNextData(interest, segmentNo);
+
+   DataContainer::iterator item = m_data.find(segmentNo);
+    if (item == m_data.end()) {
+	     if (1) {
+       std::cerr << "Requested segment [" << segmentNo << "] does not exist" << std::endl;
+      }
+      return false;
+    }
+
+  if (m_isFinished) {
+       uint64_t final = m_currentSegmentNo - 1;
+      item->second->setFinalBlock(ndn::name::Component::fromSegment(final));
+   }
+  //m_face.put(*item->second);
+  face.put(*item->second);
+
 	return true;
+  #endif
 }
 
 } // namespace nfd
