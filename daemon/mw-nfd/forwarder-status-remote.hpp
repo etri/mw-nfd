@@ -5,6 +5,7 @@
 #include "face/face-system.hpp"
 #include "fw/face-table.hpp"
 
+#include <ndn-cxx/face.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -19,7 +20,7 @@ class ForwarderStatusRemote: noncopyable
 public:
   ForwarderStatusRemote();
 bool
-  getNfdGeneralStatus(const Interest &, Face &);
+  getNfdGeneralStatus(const Interest &, ndn::Face &);
 
 private:
   ndn::nfd::ForwarderStatus

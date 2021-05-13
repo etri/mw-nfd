@@ -338,6 +338,13 @@ void MwNfd::processNfdcCommand( char * cmd)
 
 					m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(face::FACEID_NULL,std::move(gls)) );
 					m_setReservedFace = true;
+
+#ifndef ETRI_NFD_ORG_ARCH
+                    Name rtPrefix(getRouterName()+"/nfd/status");
+                    fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
+                    auto korenFace = m_faceTable->get(FACEID_KOREN);
+                    m_forwarder->getFib().addOrUpdateNextHop(*entry, *korenFace, 0);
+#endif
 				}
 
 		}else if(nfdc->verb == MW_NFDC_VERB_DESTROYED){

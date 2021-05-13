@@ -33,6 +33,7 @@
 #include "common/logger.hpp"
 #include "common/privilege-helper.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
+#include "mw-nfd/forwarder-status-remote.hpp"
 #include "common/city-hash.hpp"
 #include "face/face-system.hpp"
 #include "face/protocol-factory.hpp"
@@ -49,6 +50,7 @@
 #include "mgmt/log-config-section.hpp"
 #include "mgmt/strategy-choice-manager.hpp"
 #include "mgmt/tables-config-section.hpp"
+#include <ndn-cxx/security/signing-info.hpp>
 
 #include <boost/property_tree/info_parser.hpp>
 
@@ -285,6 +287,17 @@ ignoreRibAndLogSections(const std::string& filename, const std::string& sectionN
   }
 }
 
+void Nfd::onInterestForKoren(const ndn::Name& name, const ndn::Interest& interest)
+{
+    NDN_LOG_INFO("onInterestForKoren: " << name );
+
+#ifndef ETRI_NFD_ORG_ARCH
+    ndn::Name rtName(interest.getName());
+    ForwarderStatusRemote fsr;
+    bool ret = fsr.getNfdGeneralStatus(interest, *m_internalClientFaceKoren);
+#endif
+}
+
 void
 Nfd::initializeManagement()
 {
@@ -331,8 +344,11 @@ Nfd::initializeManagement()
   m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
   m_dispatcher->addTopPrefix(topPrefix, false);
 
-	//Name rtPrefix(getRouterName()+"/nfd");
-  //m_dispatcher->addTopPrefix(rtPrefix, false);
+  std::tie(m_internalFaceKoren, m_internalClientFaceKoren) = face::makeInternalFace(m_keyChain);
+  m_faceTable->addReserved(m_internalFaceKoren, FACEID_KOREN);
+  m_internalClientFaceKoren->setInterestFilter(getRouterName()+"/nfd/status", 
+          std::bind(&Nfd::onInterestForKoren, this, _1, _2)
+          );
 }
 
 void

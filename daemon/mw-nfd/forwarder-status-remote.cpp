@@ -460,7 +460,7 @@ parent.add_child("nfdStatus.cs", pt);
 
 
 bool
-ForwarderStatusRemote::getNfdGeneralStatus(const Interest& interest, Face &face)
+ForwarderStatusRemote::getNfdGeneralStatus(const Interest& interest, ndn::Face &face)
 {
 
 	auto status = this->collectGeneralStatus();
@@ -494,7 +494,8 @@ ForwarderStatusRemote::getNfdGeneralStatus(const Interest& interest, Face &face)
 		data.setContent((uint8_t*)nfdStatus.c_str(), nfdStatus.length());
 		data.setFreshnessPeriod(1_s);
 		keychain.sign(data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-		face.sendData(data);
+		//face.sendData(data);
+        face.put(data);
 	return true;
 }
 

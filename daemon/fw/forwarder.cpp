@@ -812,21 +812,6 @@ Forwarder::onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
                 << " nack=" << pitEntry->getInterest().getName()
                 << "~" << nack.getReason() << " OK");
 
-#ifndef ETRI_NFD_ORG_ARCH
-//ETRI(modori) on 20210507
-	ndn::Name rtName(getRouterName() + "/nfd/status");	
-	if( !rtName.compare(pitEntry->getInterest().getName()) ){
-		ForwarderStatusRemote fsr;
-		bool ret = fsr.getNfdGeneralStatus(pitEntry->getInterest(), egress);
-
-  // erase in-record
-  pitEntry->deleteInRecord(egress);
-  ++m_counters.nOutNacks;
-  return ret;
-	}
-	#endif
-	
-
   // create Nack packet with the Interest from in-record
   lp::Nack nackPkt(inRecord->getInterest());
   nackPkt.setHeader(nack);

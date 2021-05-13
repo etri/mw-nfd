@@ -104,6 +104,8 @@ public:
 
   bool config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path);
 
+  void onInterestForKoren(const ndn::Name& name, const ndn::Interest& interest);
+
 private:
   explicit
   Nfd(ndn::KeyChain& keyChain);
@@ -129,8 +131,10 @@ private:
   ndn::KeyChain& m_keyChain;
   shared_ptr<face::Face> m_internalFace;
   shared_ptr<ndn::Face> m_internalClientFace;
-  shared_ptr<face::Face> m_internalFace2;
-  shared_ptr<ndn::Face> m_internalClientFace2;
+
+  shared_ptr<face::Face> m_internalFaceKoren;
+  shared_ptr<ndn::Face> m_internalClientFaceKoren;
+
   unique_ptr<ndn::mgmt::Dispatcher> m_dispatcher;
   shared_ptr<CommandAuthenticator> m_authenticator;
   unique_ptr<ForwarderStatusManager> m_forwarderStatusManager;

@@ -142,6 +142,8 @@ extern std::string g_bulkFibTestPort0;
 extern std::string g_bulkFibTestPort1;
 extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
+#define FACEID_KOREN 2
+
 	typedef struct pit_token_st {
 		uint8_t workerId;
 		uint8_t CanBePrefix;
