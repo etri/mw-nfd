@@ -491,6 +491,8 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
 {
 
     std::cout << "I: " << interest << std::endl;
+    std::cout << "dataName: " << dataName << std::endl;
+
 
     const ndn::Name& interestName = interest.getName();
     uint64_t interestSegment = 0;
@@ -498,8 +500,10 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
         interestSegment = interestName[-1].toSegment();
     }
 
-    if(interestSegment==0)
+    if(interestSegment==0){
         m_nfdStatus = prepareNextData();
+	//std::cout << m_nfdStatus << std::endl;
+    }
 
     auto buffer = std::make_shared<const ndn::Buffer>(m_nfdStatus.c_str(), m_nfdStatus.length());
 
@@ -511,7 +515,8 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
 
     uint64_t totalSegments = buffer->size() / maxPacketSize;
 
-    ndn::Name segmentPrefix(dataName);
+    //ndn::Name segmentPrefix(dataName);
+    ndn::Name segmentPrefix(interest.getName());
     segmentPrefix.appendVersion();
 
     uint64_t segmentNo = 0;
@@ -532,9 +537,10 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
         data->setFinalBlock(ndn::name::Component::fromSegment(totalSegments));
 
         segmentBegin = segmentEnd;
-
+	std::string key;
         //m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-        m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_ID, "/etri"));
+        m_keyChain.sign(*data,  security::SigningInfo(key));
+        //m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_ID, "/etri"));
         //m_keyChain.sign(*data);
 
         // Put on face only the segment which has a pending interest
