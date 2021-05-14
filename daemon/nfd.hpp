@@ -26,14 +26,15 @@
 #ifndef NFD_DAEMON_NFD_HPP
 #define NFD_DAEMON_NFD_HPP
 
-#include "common/config-file.hpp"
-#include "fw/face-table.hpp"
-#include "mw-nfd/forwarder-status-remote.hpp"
 
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/mgmt/dispatcher.hpp>
 #include <ndn-cxx/net/network-monitor.hpp>
 #include <ndn-cxx/security/key-chain.hpp>
+
+#include "common/config-file.hpp"
+#include "fw/face-table.hpp"
+#include "mw-nfd/forwarder-status-publisher.hpp"
 
 namespace nfd {
 
@@ -153,7 +154,7 @@ private:
 	int m_face1;
 	int m_face2;
 
-	ForwarderStatusRemote m_forwarderStatusRemote;
+	ForwarderStatusPublisher m_forwarderStatusPublisher;
 
 };
 

@@ -33,7 +33,6 @@
 #include "common/logger.hpp"
 #include "common/privilege-helper.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
-#include "mw-nfd/forwarder-status-remote.hpp"
 #include "common/city-hash.hpp"
 #include "face/face-system.hpp"
 #include "face/protocol-factory.hpp"
@@ -308,7 +307,7 @@ void Nfd::onInterestForKoren(const ndn::Name& name, const ndn::Interest& interes
 
 #ifndef ETRI_NFD_ORG_ARCH
     ndn::Name rtName(interest.getName());
-    bool ret = m_forwarderStatusRemote.getNfdGeneralStatus(name, interest, *m_internalClientFaceKoren);
+    m_forwarderStatusPublisher.publish(name, interest, *m_internalClientFaceKoren);
 #endif
 }
 

@@ -36,7 +36,6 @@
 #include "strategy.hpp"
 #include "common/global.hpp"
 #include "mw-nfd/mw-nfd-global.hpp"
-#include "mw-nfd/forwarder-status-remote.hpp"
 #include "common/logger.hpp"
 #include "table/cleanup.hpp"
 #include "face/face-endpoint.hpp"
