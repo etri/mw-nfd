@@ -1,5 +1,5 @@
 
-#include "forwarder-status-remote.hpp"
+#include "forwarder-status-publisher.hpp"
 #include "fw/forwarder.hpp"
 #include "face/face.hpp"
 #include "core/version.hpp"
@@ -10,6 +10,10 @@
 
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
+#include <ndn-cxx/security/validator-null.hpp>
+#include <ndn-cxx/security/validator-config.hpp>
+#include <ndn-cxx/security/certificate-fetcher-direct-fetch.hpp>
+
 #include <ndn-cxx/mgmt/nfd/face-status.hpp>
 #include <ndn-cxx/mgmt/nfd/fib-entry.hpp>
 
@@ -30,7 +34,7 @@ using boost::property_tree::write_json;
 #include <iostream>
 
 using namespace ndn;
-NFD_LOG_INIT(ForwarderStatusRemote);
+NFD_LOG_INIT(ForwarderStatusPublisher);
 
 namespace nfd {
 
@@ -39,13 +43,12 @@ static const time::milliseconds STATUS_FRESHNESS(5000);
 extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
-ForwarderStatusRemote::ForwarderStatusRemote( )
-:m_isFinished(false)
+ForwarderStatusPublisher::ForwarderStatusPublisher( )
 {
 }
 
 ndn::nfd::ForwarderStatus
-ForwarderStatusRemote::collectGeneralStatus()
+ForwarderStatusPublisher::collectGeneralStatus()
 {
   ndn::nfd::ForwarderStatus status;
 
@@ -130,7 +133,7 @@ ForwarderStatusRemote::collectGeneralStatus()
   return status;
 }
 
-void ForwarderStatusRemote::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
+void ForwarderStatusPublisher::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
 {
 	ptree pt;
 #if 1
@@ -156,7 +159,7 @@ void ForwarderStatusRemote::formatStatusJson( ptree& parent, const ndn::nfd::For
 parent.add_child("nfdStatus.generalStatus", pt);
 }
 
-void ForwarderStatusRemote::formatChannelsJson( ptree& parent )
+void ForwarderStatusPublisher::formatChannelsJson( ptree& parent )
 {
 	ptree pt;
 
@@ -272,7 +275,7 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
 
   return status;
 }
-void ForwarderStatusRemote::formatFacesJson( ptree& parent )
+void ForwarderStatusPublisher::formatFacesJson( ptree& parent )
 {
     ptree pt;
     auto now = time::steady_clock::now();
@@ -330,12 +333,12 @@ void ForwarderStatusRemote::formatFacesJson( ptree& parent )
     }
     parent.add_child("nfdStatus.faces.face", pt);
 }
-void ForwarderStatusRemote::formatRibJson( ptree& parent )
+void ForwarderStatusPublisher::formatRibJson( ptree& parent )
 {
     ptree pt;
     parent.add_child("nfdStatus.rib", pt);
 }
-void ForwarderStatusRemote::formatFibJson( ptree& parent )
+void ForwarderStatusPublisher::formatFibJson( ptree& parent )
 {
     ptree pt;
 
@@ -400,7 +403,7 @@ void ForwarderStatusRemote::formatFibJson( ptree& parent )
     parent.add_child("nfdStatus.fib.fibEntry", pt);
 }
 
-void ForwarderStatusRemote::formatScJson( ptree& parent )
+void ForwarderStatusPublisher::formatScJson( ptree& parent )
 {
 	ptree pt;
 #ifndef ETRI_NFD_ORG_ARCH
@@ -425,7 +428,7 @@ void ForwarderStatusRemote::formatScJson( ptree& parent )
 #endif
 	parent.add_child("nfdStatus.strategyChoices.strategyChoice", pt);
 }
-void ForwarderStatusRemote::formatCsJson( ptree& parent )
+void ForwarderStatusPublisher::formatCsJson( ptree& parent )
 {
         //ndn::nfd::CsInfo info;
 
@@ -463,126 +466,88 @@ void ForwarderStatusRemote::formatCsJson( ptree& parent )
 parent.add_child("nfdStatus.cs", pt);
 }
 
-void
-ForwarderStatusRemote::prepareNextData(const ndn::Interest &interest, uint64_t referenceSegmentNo)
+std::string
+ForwarderStatusPublisher::prepareNextData()
 {
-  // make sure m_data has [referenceSegmentNo, referenceSegmentNo + PRE_SIGN_DATA_COUNT] Data
-    if (m_isFinished)
-	    return;
+    ptree nfd_info;
+    auto status = this->collectGeneralStatus();
+    formatStatusJson(nfd_info, status);
+    formatChannelsJson(nfd_info);
+    formatFacesJson(nfd_info);
+    formatFibJson(nfd_info);
+    formatRibJson(nfd_info);
+    formatCsJson(nfd_info);
+    formatScJson(nfd_info);
 
-	ptree nfd_info;
-	    auto status = this->collectGeneralStatus();
-	formatStatusJson(nfd_info, status);
-formatChannelsJson(nfd_info);
-	formatFacesJson(nfd_info);
-		formatFibJson(nfd_info);
-	formatRibJson(nfd_info);
-		formatCsJson(nfd_info);
-	formatScJson(nfd_info);
-
-		std::ostringstream buf;
-	write_json (buf, nfd_info, false);
-		std::string nfdStatus = buf.str();
-
-
-	int segments = nfdStatus.length()/1500;
-		std::cout << "segments: " << segments << std::endl;
-	uint8_t *ptr = (uint8_t*)nfdStatus.c_str();
-	int sent = 0;
-	int len=0;
-
-  size_t nDataToPrepare = PRE_SIGN_DATA_COUNT;
-
-	if (!m_data.empty()) {
-		uint64_t maxSegmentNo = m_data.rbegin()->first;
-
-			if (maxSegmentNo - referenceSegmentNo >= nDataToPrepare) {
-				  // nothing to prepare
-				return;
-			}
-
-		nDataToPrepare -= maxSegmentNo - referenceSegmentNo;
-  }
-
-
-	for(int i=0;i <= segments ;i++){
-        if( i < (segments) ){
-			len = 1500;
-		}else{
-			len = nfdStatus.length() - sent;
-		 	m_isFinished = true;
-		}
-
-		std::cout << "i = " << i << ", len: " << len << ", isFinal=" << m_isFinished << std::endl;
-		//auto pitToken = interest.getTag<lp::PitToken>();
-		//if(pitToken != nullptr) {
-			//data.setTag(interest.getTag<lp::PitToken>());
-			////std::cerr << "Sending metadata pitToken: " << *pitToken << std::endl;
-		//}
-
-		auto data = make_shared<ndn::Data>(Name(interest.getName()).appendSegment(i));
-			data->setTag(interest.getTag<lp::PitToken>());
-
-		m_keyChain.sign(*data, ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_SHA256));
-
-	 if (m_isFinished) {
-		   data->setFinalBlock(ndn::name::Component::fromSegment(i));
-	 }
- 
-
- 	data->setContent(ptr, len);
-	data->setFreshnessPeriod(1_s);
-	m_keyChain.sign(*data);
-
-	m_data.insert(std::make_pair(m_currentSegmentNo, data));
-
- 	++m_currentSegmentNo;
-	}
+    std::ostringstream buf;
+    write_json (buf, nfd_info, false);
+    std::string nfdStatus = buf.str();
+    return nfdStatus;
 }
 
 
-bool
-ForwarderStatusRemote::getNfdGeneralStatus(const ndn::Name& prefix, const Interest& interest, ndn::Face &face)
+void
+ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& interest, ndn::Face &face)
 {
 
-#if 1
-	 if (interest.getName().size() == prefix.size()) {
-	//     sendManifest(prefix, interest);
-	     return false;
-   }
+    std::cout << "I: " << interest << std::endl;
 
-     uint64_t segmentNo;
-   try {
-       ndn::Name::Component segmentComponent = interest.getName().get(prefix.size());
-       segmentNo = segmentComponent.toSegment();
-    }
-   catch (const tlv::Error& e) {
-	       if (1) {
-	         std::cerr << "Error processing incoming interest " << interest << ": "
-                << e.what() << std::endl;
-	     }
-	     return false;
-   }
-
-    prepareNextData(interest, segmentNo);
-
-   DataContainer::iterator item = m_data.find(segmentNo);
-    if (item == m_data.end()) {
-	     if (1) {
-       std::cerr << "Requested segment [" << segmentNo << "] does not exist" << std::endl;
-      }
-      return false;
+    const ndn::Name& interestName = interest.getName();
+    uint64_t interestSegment = 0;
+    if (interestName[-1].isSegment()) {
+        interestSegment = interestName[-1].toSegment();
     }
 
-  if (m_isFinished) {
-       uint64_t final = m_currentSegmentNo - 1;
-      item->second->setFinalBlock(ndn::name::Component::fromSegment(final));
-   }
-  //m_face.put(*item->second);
-  face.put(*item->second);
+    if(interestSegment==0)
+        m_nfdStatus = prepareNextData();
 
-	return true;
-  #endif
+    auto buffer = std::make_shared<const ndn::Buffer>(m_nfdStatus.c_str(), m_nfdStatus.length());
+
+    const uint8_t* rawBuffer = buffer->data();
+    const uint8_t* segmentBegin = rawBuffer;
+    const uint8_t* end = rawBuffer + buffer->size();
+
+    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 1); 
+
+    uint64_t totalSegments = buffer->size() / maxPacketSize;
+
+    ndn::Name segmentPrefix(dataName);
+    segmentPrefix.appendVersion();
+
+    uint64_t segmentNo = 0;
+    do {
+        const uint8_t* segmentEnd = segmentBegin + maxPacketSize;
+        if (segmentEnd > end) {
+            segmentEnd = end;
+        }   
+
+        ndn::Name segmentName(segmentPrefix);
+        segmentName.appendSegment(segmentNo);
+
+        // We get a std::exception: bad_weak_ptr from m_ims if we don't use shared_ptr for data
+        auto data = std::make_shared<ndn::Data>(segmentName);
+        data->setTag(interest.getTag<lp::PitToken>());
+        data->setContent(segmentBegin, segmentEnd - segmentBegin);
+        data->setFreshnessPeriod(1_s);
+        data->setFinalBlock(ndn::name::Component::fromSegment(totalSegments));
+
+        segmentBegin = segmentEnd;
+
+        //m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
+        m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_ID, "/etri"));
+        //m_keyChain.sign(*data);
+
+        // Put on face only the segment which has a pending interest
+        // otherwise the segment is unsolicited
+        if (interestSegment == segmentNo) {
+            face.put(*data);
+            std::cout << *data << std::endl;
+            break;
+        }   
+
+        ++segmentNo;
+    } while (segmentBegin < end);
+
 }
 
 } // namespace nfd
