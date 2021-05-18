@@ -59,7 +59,7 @@ extern size_t g_nEnqMiss[COUNTERS_MAX];
 
 namespace nfd {
 
-int getIfIndexFromRt();
+int getIfIndexFromRt(const char *);
 time::system_clock::TimePoint g_startTimestamp(time::system_clock::now());
 bool g_commandRxFlag[DCN_MAX_WORKERS];
 void resetCommandRx()
@@ -667,10 +667,6 @@ return;
 
 bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
 {
-<<<<<<< Updated upstream
-=======
-	//std::cout << "dcnReceivePacket on CPU " << sched_getcpu() << std::endl;
->>>>>>> Stashed changes
 #ifdef ETRI_NFD_ORG_ARCH
 	return false;
 #else
