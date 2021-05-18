@@ -48,39 +48,24 @@ using OptionalConfigSection = boost::optional<const ConfigSection&>;
 
 using namespace ndn;
 
-static thread_local unique_ptr<boost::asio::io_service> g_ioService;
-
-boost::asio::io_service ios0;
-boost::asio::io_service ios1;
-boost::asio::io_service ios2;
-boost::asio::io_service ios3;
-boost::asio::io_service ios4;
-boost::asio::io_service ios5;
-boost::asio::io_service ios6;
-boost::asio::io_service ios7;
-boost::asio::io_service ios8;
-
+std::shared_ptr<boost::asio::io_service> io_svc[10];
 
 class Client {
 private:
-    boost::asio::io_service* m_ios;
-		boost::asio::signal_set m_signalSet;
-    boost::asio::deadline_timer m_timer;
+		std::shared_ptr<boost::asio::signal_set> m_signalSet;
+    std::shared_ptr<boost::asio::deadline_timer> m_timer;
 		shared_ptr<Face> m_faces[10];
 		std::string m_prefix;
     size_t m_window = DEFAULT_WINDOW;
     size_t m_interval = DEFAULT_INTERVAL;
     bool m_digest = DEFAULT_DIGEST;
-
-		unique_ptr<Face> m_face;
-
     bool m_first = true;
     std::atomic<uint64_t> m_payload_size {0};
     uint64_t m_pkt_count[8] = {0,};
-    std::atomic<int> m_rtt {0};
+    std::atomic<uint64_t> m_rtt {0};
     size_t m_ptime[8] = {0,};
 		size_t m_max_cnt = 0;
-		std::atomic<size_t>  m_data_cnt {0};
+		std::atomic<uint64_t>  m_data_cnt {0};
 		long m_total_cnt = 0;
 
     boost::thread_group m_threadGroup;
@@ -97,9 +82,11 @@ private:
 		size_t m_prefix_list_size = 0;
     bool m_canbeprefix = DEFAULT_CANBEPREFIX;
     bool m_mustbefresh = DEFAULT_MUSTBEFRESH;
+    std::atomic<uint64_t> m_peakRtt {0};
+    Name m_peakName;
 
 public:
-    Client(boost::asio::io_service* ios, std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, size_t prefix_list_size, bool canbeprefix, bool mustbefresh);
+    Client(std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, size_t prefix_list_size, bool canbeprefix, bool mustbefresh);
 
     ~Client() = default;
 
@@ -138,10 +125,8 @@ public:
     }
 };
 
-Client::Client(boost::asio::io_service* ios, std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, size_t prefix_list_size, bool canbeprefix, bool mustbefresh)
-				: m_signalSet(*ios, SIGINT, SIGTERM)
-				, m_timer(*ios)
-        , m_prefix(prefix)
+Client::Client(std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, size_t prefix_list_size, bool canbeprefix, bool mustbefresh)
+        : m_prefix(prefix)
         , m_window(window)
 				, m_interval(interval) 
         , m_digest(digest)
@@ -150,15 +135,15 @@ Client::Client(boost::asio::io_service* ios, std::string prefix, size_t window, 
 				, m_canbeprefix(canbeprefix)
 				, m_mustbefresh(mustbefresh)
 {
-				m_ios = ios;
+        io_svc[0] = std::make_shared<boost::asio::io_service>();
+        m_signalSet = std::make_shared<boost::asio::signal_set>(*io_svc[0], SIGINT, SIGTERM);
+        m_timer = std::make_shared<boost::asio::deadline_timer>(*io_svc[0]);
 }
 
 bool Client::makePrefixList() {
 
 	std::cout << "Prefix Name = " << m_prefix << " list size = " << m_prefix_list_size << ", CanBePrefix = " << m_canbeprefix << ", MustBeFresh = " << m_mustbefresh << std::endl;
 
-	const uint8_t VALUE[] = {0x11, 0x12, 0x13, 0x14};
-  auto b= std::make_shared<Buffer>(VALUE, sizeof(VALUE));
   int mark = 0;
   int mark2 = 0;
 
@@ -170,19 +155,24 @@ bool Client::makePrefixList() {
       mark2 = line_cnt % 5;
 			gen_random(chararray,  mark * 2 + mark2);
 
+#if 1
 			Name name(m_prefix);
       name.append(std::to_string(mark));
+			name.append(std::to_string(line_cnt));
+#else
+
+      Name name(std::to_string(mark));
 
       if(mark == 0) {
 			  name.append(chararray).append(std::to_string(line_cnt));
       } else {
 			  name.append(chararray).append(std::to_string(line_cnt));
       }
+#endif
 
 			Interest interest(name);
 			interest.setMustBeFresh(m_mustbefresh);
 			interest.setCanBePrefix(m_canbeprefix);
-			interest.setTag(std::make_shared<lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
 			m_prefixList.push_back(interest);   
 	}
 
@@ -198,21 +188,18 @@ void Client::start() {
 		m_concurrency = m_cores.size();
 		std::cout << "Concurrency = " << m_concurrency << std::endl;
 
-		makePrefixList();
+		//makePrefixList();
 
-		int i =0;
+    size_t i = 0;
 
-		m_faces[0] = make_shared<Face>(*m_ios);
-		m_faces[1] = make_shared<Face>(ios0);
-		m_faces[2] = make_shared<Face>(ios1);
-		m_faces[3] = make_shared<Face>(ios2);
-		m_faces[4] = make_shared<Face>(ios3);
-		m_faces[5] = make_shared<Face>(ios4);
-		m_faces[6] = make_shared<Face>(ios5);
-		m_faces[7] = make_shared<Face>(ios6);
-		m_faces[8] = make_shared<Face>(ios7);
-		m_faces[9] = make_shared<Face>(ios8);
+		m_faces[0] = make_shared<Face>(*io_svc[0]);
 
+    for(i=1; i< m_concurrency; i++) {
+      io_svc[i] = std::make_shared<boost::asio::io_service>();
+      m_faces[i] = make_shared<Face>(*io_svc[i]);
+    }
+
+    i=0;
     for(std::vector<size_t>::iterator it = m_cores.begin(); it!=m_cores.end(); ++it) {
 			m_threadGroup.create_thread(boost::bind(&Client::process, this, i, *it));
 			i++;
@@ -226,7 +213,6 @@ void Client::process(int i, int core)
     std::cout << "Client start with window = " << m_window << ", Interval = " << m_interval << "ms" <<std::endl;
 
 		size_t line_cnt = 0;
-		size_t line_idx = 0;
 
 		std::cout << "Process  on CPU: " << core << std::endl;
 		cpu_set_t  mask;
@@ -238,6 +224,7 @@ void Client::process(int i, int core)
 
 		m_threadGroup.create_thread(boost::bind(&Face::processEvents, m_faces[i].get(), time::milliseconds::zero(), false));
 
+#if 0
 		for (line_cnt = 0; line_cnt < m_window; ++line_cnt) {
 			line_idx = (m_bulk * i) + line_cnt;
 			std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
@@ -246,11 +233,26 @@ void Client::process(int i, int core)
 														boost::bind(&Client::onTimeout, this, _1, 2, start, i));
 			++m_interest_cnt[i];
 		}
+#else
+		for (line_cnt = 0; line_cnt < m_window; ++line_cnt) {
+			Name name(m_prefix);
+      name.append(std::to_string(i));
+			name.append(std::to_string(++m_interest_cnt[i]));
+			Interest interest(name);
+			interest.setMustBeFresh(m_mustbefresh);
+			interest.setCanBePrefix(m_canbeprefix);
+
+			std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+			m_faces[i]->expressInterest(interest, boost::bind(&Client::onData, this, _1, _2, start, i),
+														boost::bind(&Client::onNack, this, _1, _2),
+														boost::bind(&Client::onTimeout, this, _1, 2, start, i));
+		}
+#endif
 }
 
 void Client::waitNextDisplay() {
-    m_timer.expires_from_now(boost::posix_time::seconds(2));
-    m_timer.async_wait(boost::bind(&Client::display, this));
+    m_timer->expires_from_now(boost::posix_time::seconds(2));
+    m_timer->async_wait(boost::bind(&Client::display, this));
 }
 
 void Client::onNack(const Interest &interest, const lp::Nack &nack) {
@@ -259,8 +261,16 @@ void Client::onNack(const Interest &interest, const lp::Nack &nack) {
 
 void Client::onData(const Interest &interest, const Data &data, std::chrono::steady_clock::time_point start, int i) {
 
+    uint64_t rtt = 0;
 		++m_data_cnt;
     m_rtt += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
+    rtt = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
+
+    if(m_peakRtt < rtt) {
+      m_peakRtt = rtt;
+      m_peakName = interest.getName();
+    }
+
     if (m_first) {
 				m_keyType = data.getSignatureInfo().getSignatureType();
         std::cout << "Server signature type(0:Sha256, 1:Sha256WithRsa, 3:Sha256WithEcdsa, 4:HmacWithSha256) = " << m_keyType << std::endl;
@@ -285,14 +295,29 @@ void Client::onData(const Interest &interest, const Data &data, std::chrono::ste
 
 		m_payload_size += data.getContent().value_size();
 
-		int line_cnt = (m_interest_cnt[i] + (m_bulk * i)) % m_max_cnt;
+#if 0
+		int line_cnt = (++m_interest_cnt[i] + (m_bulk * i)) % m_max_cnt;
 		m_faces[i]->expressInterest(m_prefixList[line_cnt], boost::bind(&Client::onData, this, _1, _2, new_start, i),
 													boost::bind(&Client::onNack, this, _1, _2),
 													boost::bind(&Client::onTimeout, this, _1, 2, start, i));
-		++m_interest_cnt[i];
+#else
+			Name name(m_prefix);
+      name.append(std::to_string(i));
+			name.append(std::to_string(++m_interest_cnt[i]));
+			Interest interest(name);
+			interest.setMustBeFresh(m_mustbefresh);
+			interest.setCanBePrefix(m_canbeprefix);
+
+			std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+			m_faces[i]->expressInterest(interest, boost::bind(&Client::onData, this, _1, _2, start, i),
+														boost::bind(&Client::onNack, this, _1, _2),
+														boost::bind(&Client::onTimeout, this, _1, 2, start, i));
+#endif
 
 		m_ptime[i] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - new_start).count();
-		//std::this_thread::sleep_for(std::chrono::milliseconds(m_interval));
+    if(m_interval > 0) {
+	    std::this_thread::sleep_for(std::chrono::milliseconds(m_interval));
+    }
 }
 
 void Client::onTimeout(const Interest &interest, int n, std::chrono::steady_clock::time_point start, int i) {
@@ -324,11 +349,12 @@ void Client::display() {
 		}
 
 		std::strftime(mbstr, sizeof(mbstr), "%c - ", std::localtime(&time));
-		std::cout << mbstr << pay_load << " Kbps (" << (m_data_cnt / 2) << " pkt/s) - latency = " << rtt << " us " << std::endl;
+		std::cout << mbstr << pay_load << " Kbps (" << (m_data_cnt / 2) << " pkt/s) - latency = " << rtt << " us, peak = " << m_peakRtt << " us name = " << m_peakName << std::endl;
 
 		m_payload_size = 0;
 		m_data_cnt = 0;
 		m_rtt = 0;
+		m_peakRtt = 0;
     waitNextDisplay();
 }
 
@@ -341,7 +367,6 @@ Client::stop()
 		}
 
 		m_threadGroup.join_all();
-    m_ios->stop();
 }
 
 void signalHandler(int signum) {
@@ -452,9 +477,7 @@ int main(int argc, char *argv[]) {
 
 		inputFile.close();
 	
-		g_ioService = make_unique<boost::asio::io_service>();
-
-    Client client(g_ioService.get(), prefix, window_size, interval, digest, core_assign, prefix_list_size, canbeprefix, mustbefresh);
+    Client client(prefix, window_size, interval, digest, core_assign, prefix_list_size, canbeprefix, mustbefresh);
 
 		signal(SIGINT, signalHandler);
 
