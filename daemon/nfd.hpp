@@ -106,7 +106,7 @@ public:
 
   bool config_bulk_fib(FaceId faceId0, FaceId faceId1, std::string fib_path);
 
-  void onInterestForKoren(const ndn::Name& name, const ndn::Interest& interest);
+  void onInterestRemoteAccess(const ndn::Name& name, const ndn::Interest& interest);
 
 private:
   explicit

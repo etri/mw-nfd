@@ -16,6 +16,7 @@ using boost::property_tree::ptree;
 #include <ndn-cxx/mgmt/nfd/forwarder-status.hpp>
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
+#include <ndn-cxx/ims/in-memory-storage-fifo.hpp>
 
 using std::map;
 
@@ -24,9 +25,11 @@ namespace nfd {
 class ForwarderStatusPublisher: noncopyable
 {
 public:
-  ForwarderStatusPublisher();
+  ForwarderStatusPublisher(size_t imsLimit=256);
   void
   publish(const ndn::Name &, const Interest &, ndn::Face &);
+
+    bool replyFromStore(const ndn::Interest& interestName, ndn::Face &);
 
     std::string prepareNextData();
 
@@ -46,8 +49,10 @@ private:
 	//using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
 	  //DataContainer m_data;
 	  ndn::KeyChain m_keyChain;
+	  //ndn::Scheduler m_scheduler;
       std::string m_nfdStatus;
 
+       ndn::InMemoryStorageFifo m_ims;
 };
 
 } // namespace nfd

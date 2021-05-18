@@ -55,7 +55,7 @@ InternalForwarderTransport::receivePacket(const Block& packet)
     NFD_LOG_FACE_TRACE("Received: " << packet.size() << " bytes");
     //modori
 #ifndef ETRI_NFD_ORG_ARCH
-    if( getFace()->getId()==FACEID_KOREN ){
+    if( getFace()->getId()==FACEID_REMOTE_ACCESS ){
     
         dcnReceivePacket(packet.wire(), packet.size(), getFace()->getId());
             

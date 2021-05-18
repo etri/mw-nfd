@@ -342,10 +342,10 @@ void MwNfd::processNfdcCommand( char * cmd)
 #ifndef ETRI_NFD_ORG_ARCH
                     Name rtPrefix(getRouterName()+"/nfd/status");
                     fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
-                    auto korenFace = m_faceTable->get(FACEID_KOREN);
+                    auto korenFace = m_faceTable->get(FACEID_REMOTE_ACCESS);
                     m_forwarder->getFib().addOrUpdateNextHop(*entry, *korenFace, 0);
 
-                    m_face =m_faceTable->get(FACEID_KOREN);    
+                    m_face =m_faceTable->get(FACEID_REMOTE_ACCESS);    
                     gls = std::make_shared<nfd::face::GenericLinkService>(options);
 
                     gls->afterReceiveInterest.connect(
@@ -361,7 +361,7 @@ void MwNfd::processNfdcCommand( char * cmd)
                             this->m_forwarder->startProcessNack(FaceEndpoint(*m_face, endpointId), nack);
                             });    
 
-                    m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(FACEID_KOREN,std::move(gls)) );
+                    m_genericLinkServiceList.insert ( std::pair<FaceId,shared_ptr<nfd::face::GenericLinkService>>(FACEID_REMOTE_ACCESS,std::move(gls)) );
 
 #endif
 				}
@@ -677,7 +677,7 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
 
 		if (fp==NULL) {
-			//getGlobalLogger().info("MW-NFD: bulk_fib_test: can't read bulk-fib-file:{}", getBulkFibFilePath());
+			std::cout << "MW-NFD: bulk_fib_test: can't read bulk-fib-file:" << getBulkFibFilePath() << std::endl;
             return false;
 		}
 

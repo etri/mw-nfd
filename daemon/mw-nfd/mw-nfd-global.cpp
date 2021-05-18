@@ -524,6 +524,7 @@ int getIfIndex(const char *addr)
 			if(!strcmp(host, "127.0.0.1"))
 				continue;
 
+			printf("Host: %s/netmask:%s\n", host, netmask);
 			ip::network_v4 host_v4(ip::address_v4::from_string(host), 
 					ip::address_v4::from_string(netmask));
 
@@ -652,6 +653,7 @@ return;
 
 bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
 {
+	std::cout << "dcnReceivePacket on CPU " << sched_getcpu() << std::endl;
 #ifdef ETRI_NFD_ORG_ARCH
 	return false;
 #else

@@ -43,8 +43,7 @@ static const time::milliseconds STATUS_FRESHNESS(5000);
 extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
-ForwarderStatusPublisher::ForwarderStatusPublisher( size_t imsLimit)
-	:m_ims(imsLimit)
+ForwarderStatusPublisher::ForwarderStatusPublisher( )
 {
 }
 
@@ -486,18 +485,6 @@ ForwarderStatusPublisher::prepareNextData()
     return nfdStatus;
 }
 
-bool
-ForwarderStatusPublisher::replyFromStore(const ndn::Interest& interest, ndn::Face &face)
-{
-	auto it = m_ims.find(interest);
-
-	//std::cout << "replyFromStore: " << interest << std::endl;
-	if (it != nullptr) {
-		face.put(*it);
-		return true;
-	}
-	return false;
-}
 
 void
 ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& interest, ndn::Face &face)
@@ -511,7 +498,7 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
 
     if(interestSegment==0){
         m_nfdStatus = prepareNextData();
-//	std::cout << "m_nfdStatus: " << m_nfdStatus.length() << std::endl;
+	//std::cout << m_nfdStatus << std::endl;
     }
 
     auto buffer = std::make_shared<const ndn::Buffer>(m_nfdStatus.c_str(), m_nfdStatus.length());
@@ -520,11 +507,12 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
     const uint8_t* segmentBegin = rawBuffer;
     const uint8_t* end = rawBuffer + buffer->size();
 
-    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 1); 
+    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 4); 
 
     uint64_t totalSegments = buffer->size() / maxPacketSize;
 
-    ndn::Name segmentPrefix(dataName);
+    //ndn::Name segmentPrefix(dataName);
+    ndn::Name segmentPrefix(interest.getName());
     segmentPrefix.appendVersion();
 
     uint64_t segmentNo = 0;
@@ -539,8 +527,7 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
 
         // We get a std::exception: bad_weak_ptr from m_ims if we don't use shared_ptr for data
         auto data = std::make_shared<ndn::Data>(segmentName);
-	//auto pit = interest.getTag<lp::PitToken>();
-	//if(pit!=nullptr) data->setTag(pit);
+        data->setTag(interest.getTag<lp::PitToken>());
         data->setContent(segmentBegin, segmentEnd - segmentBegin);
         data->setFreshnessPeriod(1_s);
         data->setFinalBlock(ndn::name::Component::fromSegment(totalSegments));
@@ -556,18 +543,13 @@ ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& int
         // otherwise the segment is unsolicited
         if (interestSegment == segmentNo) {
             face.put(*data);
+            std::cout << *data << std::endl;
+            break;
         }   
-
-	m_ims.insert(*data, 4_s);
-	getScheduler().schedule(4_s, [this, segmentName] { 
-			m_ims.erase(segmentName); });
 
         ++segmentNo;
     } while (segmentBegin < end);
 
-    //std::cout << "ims_size:" << m_ims.size() << ", segmentNo: " << segmentNo << std::endl;
 }
-
-
 
 } // namespace nfd

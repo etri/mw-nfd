@@ -301,14 +301,21 @@ ignoreRibAndLogSections(const std::string& filename, const std::string& sectionN
   }
 }
 
-void Nfd::onInterestForKoren(const ndn::Name& name, const ndn::Interest& interest)
+void Nfd::onInterestRemoteAccess(const ndn::Name& name, const ndn::Interest& interest)
 {
-    NDN_LOG_INFO("onInterestForKoren: " << name );
+    NDN_LOG_INFO("onInterestRemoteAccess: " << name );
+    ndn::Name interestName(interest.getName());
 
 #ifndef ETRI_NFD_ORG_ARCH
-    ndn::Name rtName(interest.getName());
+#if 1
+     if (interestName[-2].isVersion()) {
+	m_forwarderStatusPublisher.replyFromStore(interest, *m_internalClientFaceKoren);
+        return;
+     }
+#endif
     m_forwarderStatusPublisher.publish(name, interest, *m_internalClientFaceKoren);
 #endif
+    return;
 }
 
 void
@@ -358,9 +365,9 @@ Nfd::initializeManagement()
   m_dispatcher->addTopPrefix(topPrefix, false);
 
   std::tie(m_internalFaceKoren, m_internalClientFaceKoren) = face::makeInternalFace(m_keyChain);
-  m_faceTable->addReserved(m_internalFaceKoren, FACEID_KOREN);
+  m_faceTable->addReserved(m_internalFaceKoren, FACEID_REMOTE_ACCESS);
   m_internalClientFaceKoren->setInterestFilter(getRouterName()+"/nfd/status", 
-          std::bind(&Nfd::onInterestForKoren, this, _1, _2)
+          std::bind(&Nfd::onInterestRemoteAccess, this, _1, _2)
           );
 }
 
