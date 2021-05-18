@@ -62,14 +62,7 @@ namespace global {
     const size_t DEFAULT_FRESHNESS = 0;
 }
 
-boost::asio::io_service ios0;
-boost::asio::io_service ios1;
-boost::asio::io_service ios2;
-boost::asio::io_service ios3;
-boost::asio::io_service ios4;
-boost::asio::io_service ios5;
-boost::asio::io_service ios6;
-boost::asio::io_service ios7;
+std::shared_ptr<boost::asio::io_service> io_svc[10];
 
 class Server {
 private:
@@ -84,9 +77,9 @@ private:
     }
 
     bool m_stop = false;
-    const Name m_prefix;
+    std::string m_prefix;
     boost::thread_group m_thread_pool;
-		boost::asio::io_service m_ioService;
+		//boost::asio::io_service m_ioService;
 
     shared_ptr<Face> m_faces[10];
 
@@ -96,7 +89,7 @@ private:
     size_t m_key_size = 0;
     security::Key m_key;
 
-#if 0
+#if 1
     moodycamel::ConcurrentQueue<std::pair<std::shared_ptr<Interest>, int >> m_queue;
 #else
     moodycamel::BlockingConcurrentQueue<std::pair<std::shared_ptr<Interest>, int>> m_queue;
@@ -115,15 +108,19 @@ private:
 		size_t m_max_cnt = 0;
 		int m_sendTime = 0;
 
+    size_t m_multi_face = 0;
+    bool m_proceesFlag[10] = {0,};
+
 public:
-    Server(const char *prefix, tlv::SignatureTypeValue key_type, size_t key_size,
-           size_t payload_size, size_t freshness, std::vector<size_t> &cores)
+    Server(std::string prefix, tlv::SignatureTypeValue key_type, size_t key_size,
+           size_t payload_size, size_t freshness, std::vector<size_t> &cores, size_t multi_face)
         : m_prefix(prefix)
         , m_key_type(key_type)
         , m_key_size(key_size)
         , m_payload_size(payload_size) 
         , m_freshness(freshness) 
         , m_cores(cores) 
+        , m_multi_face(multi_face) 
 		{
         if (m_key_type != tlv::DigestSha256) {
             auto it = m_keychain.getPib().getIdentities().find(m_prefix);
@@ -157,14 +154,10 @@ public:
 
         std::cout << "Concurrency = " << cores.size() << std::endl;
 
-        m_faces[0] = make_shared<Face>(m_ioService);
-        m_faces[1] = make_shared<Face>(ios1);
-        m_faces[2] = make_shared<Face>(ios2);
-        m_faces[3] = make_shared<Face>(ios3);
-        m_faces[4] = make_shared<Face>(ios4);
-        m_faces[5] = make_shared<Face>(ios5);
-        m_faces[6] = make_shared<Face>(ios6);
-        m_faces[7] = make_shared<Face>(ios7);
+        for(size_t  i=0; i< cores.size(); i++) {
+          io_svc[i] = std::make_shared<boost::asio::io_service>();
+          m_faces[i] = make_shared<Face>(*io_svc[i]);
+        }
 
         m_stat_cnts = new int[cores.size() * 4](); // [concurrency][0: payload sum, 1: packet count, 2:qtime, 3: ptime]
 
@@ -197,7 +190,7 @@ public:
         // stop the threads
         std::cout << "Waiting for other threads... " << std::endl;
         m_stop = true;
-        Name name(m_prefix);
+				Name name(m_prefix);
         name.append("dummy");
 				Interest interest(name);
         for (size_t i = 0; i < m_cores.size(); ++i) {
@@ -221,13 +214,29 @@ public:
 				int ret  = pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
 				std::cout << "rsched_setaffiniti's ret: " << ret << std::endl;
 
+#if 1
 				Name name(m_prefix);
 				name.append(std::to_string(i));
-				std::cout << "setInterestFilter name =  " << name << std::endl;
+#else
+				Name name(std::to_string(i));
+#endif
 
+#if 1
+        size_t face_idx = 0;
+
+        face_idx = i % m_multi_face;
+        if( !m_proceesFlag[face_idx]) {
+          m_thread_pool.create_thread(boost::bind(&Face::processEvents, m_faces[face_idx].get(), time::milliseconds::zero(), false));
+          m_proceesFlag[face_idx] = 1;
+				  std::cout << "processEvents face_idx = " << face_idx <<" on CPU: " << core << std::endl;
+        }
+        m_faces[face_idx]->setInterestFilter(name, bind(&Server::on_interest, this, _2, face_idx), bind(&Server::on_register_failed, this, _2, 1));
+				std::cout << "setInterestFilter face = "<< face_idx << " core = " << core << " name =  " << name << std::endl;
+#else
         m_thread_pool.create_thread(boost::bind(&Face::processEvents, m_faces[i].get(), time::milliseconds::zero(), false));
         m_faces[i]->setInterestFilter(name, bind(&Server::on_interest, this, _2, i), bind(&Server::on_register_failed, this, _2, 1));
-
+				std::cout << "setInterestFilter face = "<< i << " core = " << core << " name =  " << name << std::endl;
+#endif
 
     }
 
@@ -250,7 +259,7 @@ public:
 
 					for(j = 0; j < bulk_size; j++) {
 
-            //auto start = std::chrono::steady_clock::now();
+            auto start = std::chrono::steady_clock::now();
 
             Name name = interest_pairs[j].first->getName();
 
@@ -265,8 +274,6 @@ public:
 						}
 
 						data->setContent(m_content);
-						//m_stat_cnts[i*4] += m_payload_size;
-						//m_stat_cnts[i*4] += (m_payload_size >> 8);
             ++m_stat_cnts[i*4];
 
             if (m_key_type != tlv::DigestSha256) {
@@ -280,7 +287,7 @@ public:
 
            	m_faces[face_idx]->put(*data);
             ++m_stat_cnts[i*4+1];
-            //m_stat_cnts[i*4+3] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
+            m_stat_cnts[i*4+3] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
 					}
 					bulk_size = 0;
         }
@@ -289,6 +296,40 @@ public:
     void on_interest(const Interest &interest, int i) {
 				//std::cout << "receive interest : " << interest << std::endl;
         m_queue.enqueue(std::make_pair(std::make_shared<Interest>(interest), i));
+
+    }
+
+    void on_interest_data(const Interest &interest, int i) {
+				//std::cout << "receive interest : " << interest << std::endl;
+        KeyChain keychain;
+
+        auto start = std::chrono::steady_clock::now();
+
+        Name name = interest.getName();
+
+        auto pitToken = interest.getTag<lp::PitToken>();
+
+        auto data = make_shared<Data>(name);
+        data->setFreshnessPeriod(m_freshness);
+
+        if(pitToken != nullptr) {       
+          data->setTag(pitToken);
+          //std::cout << "PitToken = " << *pitToken << std::endl;
+        }
+
+        data->setContent(m_content);
+        ++m_stat_cnts[i*4];
+
+        if (m_key_type != tlv::DigestSha256) {
+            keychain.sign(*data, security::SigningInfo(m_key));
+        } else {
+            // sign with DigestSha256
+            keychain.sign(*data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
+        }
+
+        m_faces[i]->put(*data);
+        ++m_stat_cnts[i*4+1];
+        m_stat_cnts[i*4+3] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
 
     }
 
@@ -348,9 +389,10 @@ printUsage(std::ostream& os, const std::string& programName)
 
 int main(int argc, char *argv[]) {
     // default values
-    const char *prefix = global::DEFAULT_PREFIX;
+    std::string prefix("mw-ndnperf");
     tlv::SignatureTypeValue key_type = global::DEFAULT_SIGNATURE_TYPE;
     size_t key_size = 0;
+    size_t multi_face = 1;
     size_t payload_size = global::DEFAULT_CHUNK_SIZE;
     size_t freshness = global::DEFAULT_FRESHNESS;
 
@@ -414,6 +456,9 @@ int main(int argc, char *argv[]) {
 				}
 			}
 
+      if( tn.first == "prefix" )
+        prefix = boost::lexical_cast<std::string>(val);
+
 			if( tn.first == "signature-type" ){
 				if( val == "DigestSha256" )
 					key_type = tlv::DigestSha256;
@@ -432,11 +477,14 @@ int main(int argc, char *argv[]) {
 
 			if( tn.first == "freshness" )
 				freshness = boost::lexical_cast<size_t>(val);
+
+			if( tn.first == "multi-face" )
+				multi_face = boost::lexical_cast<size_t>(val);
 		}
 
 		inputFile.close();
 
-		Server server(prefix, key_type, key_size, payload_size, freshness, core_assign);
+		Server server(prefix, key_type, key_size, payload_size, freshness, core_assign, multi_face);
     signal(SIGINT, signalHandler);
     server.start();
 
