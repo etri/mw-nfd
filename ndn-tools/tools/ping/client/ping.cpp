@@ -23,10 +23,93 @@
 
 #include "ping.hpp"
 #include <ndn-cxx/util/random.hpp>
+#include <ndn-cxx/util/segment-fetcher.hpp>
+#include <ndn-cxx/security/validator-config.hpp>
+#include <ndn-cxx/security/validator-null.hpp>
+#include <ndn-cxx/security/certificate-fetcher-direct-fetch.hpp>
+#include "ndn-cxx/security/certificate-fetcher-offline.hpp"
 
 namespace ndn {
 namespace ping {
 namespace client {
+
+    class DummyValidationPolicy : public security::v2::ValidationPolicy
+    {
+        public:
+              /** \brief constructor
+               *    *  \param shouldAccept whether to accept or reject all validation requests
+               *       */
+              explicit
+                    DummyValidationPolicy(bool shouldAccept = true)
+                      {
+                              this->setResult(shouldAccept);
+                                }
+
+                /** \brief change the validation result
+                 *    *  \param shouldAccept whether to accept or reject all validation requests
+                 *       */
+                void
+                      setResult(bool shouldAccept)
+                        {
+                                m_decide = [shouldAccept] (const Name&) { return shouldAccept; };
+                                  }
+
+                  /** \brief set a callback for validation
+                   *    *  \param cb a callback which receives the Interest/Data name for each validation request;
+                   *       *            its return value determines the validation result
+                   *          */
+                  void
+                        setResultCallback(const function<bool(const Name&)>& cb) 
+                          {
+                                  m_decide = cb; 
+                                    }
+
+        protected:
+                    void
+                          checkPolicy(const Data& data, const shared_ptr<security::v2::ValidationState>& state,
+                                                const ValidationContinuation& continueValidation) override
+                            {
+                                    if (m_decide(data.getName())) {
+                                              continueValidation(nullptr, state);
+                                                  }   
+                                        else {
+                                                  state->fail(security::v2::ValidationError::NO_ERROR);
+                                                      }   
+                                          }
+
+                      void
+                            checkPolicy(const Interest& interest, const shared_ptr<security::v2::ValidationState>& state,
+                                                  const ValidationContinuation& continueValidation) override
+                              {
+                                      if (m_decide(interest.getName())) {
+                                                continueValidation(nullptr, state);
+                                                    }   
+                                          else {
+                                                    state->fail(security::v2::ValidationError::NO_ERROR);
+                                                        }   
+                                            }
+
+        private:
+                        function<bool(const Name&)> m_decide;
+    };
+
+    class DummyValidator : public security::v2::Validator
+    {
+        public:
+              explicit
+                    DummyValidator(bool shouldAccept = true)
+                        : security::v2::Validator(make_unique<DummyValidationPolicy>(shouldAccept),
+                                                              make_unique<security::v2::CertificateFetcherOffline>())
+                            {
+                                  }
+
+                DummyValidationPolicy&
+                      getPolicy()
+                        {
+                                return static_cast<DummyValidationPolicy&>(security::v2::Validator::getPolicy());
+                                  }
+    };
+
 
 Ping::Ping(Face& face, const Options& options)
   : m_options(options)
@@ -53,23 +136,84 @@ Ping::stop()
   m_nextPingEvent.cancel();
 }
 
+ void
+onError(uint32_t errorCode)
+{
+}
+
+    void
+onComplete(ConstBufferPtr data)
+{
+}
+
+    void
+onInOrderComplete()
+{
+}
+
+    void
+onInOrderData(ConstBufferPtr data)
+{
+}
+
+
+
+static std::unique_ptr<ndn::security::CertificateFetcherDirectFetch>
+makeCertificateFetcher(ndn::Face& face)
+{
+      auto fetcher = std::make_unique<ndn::security::CertificateFetcherDirectFetch>(face);
+        fetcher->setSendDirectInterestOnly(true);
+          return fetcher;
+}
+
+
 void
 Ping::performPing()
 {
   BOOST_ASSERT((m_options.nPings < 0) || (m_nSent < m_options.nPings));
 
-  Interest interest(makePingName(m_nextSeq));
-  interest.setCanBePrefix(false);
-  interest.setMustBeFresh(!m_options.shouldAllowStaleData);
+  //Interest interest(makePingName(m_nextSeq));
+  Interest interest("/dcn/etri/hii/%C1.Router/DCN-05/nfd/status");
+  interest.setCanBePrefix(true);
+  interest.setMustBeFresh(true);
   interest.setInterestLifetime(m_options.timeout);
 
+#if 0
   auto now = time::steady_clock::now();
+  m_nextSeq =0;
   m_face.expressInterest(interest,
-                         bind(&Ping::onData, this, m_nextSeq, now),
+                         bind(&Ping::onData, this, _2, m_nextSeq, now),
                          bind(&Ping::onNack, this, _2, m_nextSeq, now),
                          bind(&Ping::onTimeout, this, m_nextSeq));
 
-  ++m_nSent;
+#else
+  ndn::util::SegmentFetcher::Options options;
+     options.interestLifetime = ndn::time::seconds(4);
+     ndn::security::v2::ValidatorNull acceptValidator;
+
+     ndn::security::ValidatorConfig validator(makeCertificateFetcher(m_face));
+
+     validator.load("./val.conf");
+
+      auto fetcher = ndn::util::SegmentFetcher::start(m_face, interest, acceptValidator, options);
+
+
+      fetcher->afterSegmentValidated.connect([this] (const ndn::Data& data) {
+              std::cout << data << std::endl; 
+              });
+
+      fetcher->onComplete.connect([=] (const ndn::ConstBufferPtr& bufferPtr) {
+              std::cout << bufferPtr << std::endl; 
+              });
+
+      fetcher->onError.connect([=] (uint32_t errorCode, const std::string& msg) {
+              std::cout << "error Code:" << errorCode << ", msg: " << msg << std::endl; 
+              exit(0);
+              });
+
+#endif
+
+#if 0
   ++m_nextSeq;
   ++m_nOutstanding;
 
@@ -79,14 +223,31 @@ Ping::performPing()
   else {
     finish();
   }
+#endif
 }
 
 void
-Ping::onData(uint64_t seq, const time::steady_clock::TimePoint& sendTime)
+Ping::onData(const Data &data, uint64_t seq, const time::steady_clock::TimePoint& sendTime)
 {
+    seq +=1;
   time::nanoseconds rtt = time::steady_clock::now() - sendTime;
-  afterData(seq, rtt);
-  finish();
+  std::cout << data << std::endl;
+  Name name("/dcn/etri/hii/%C1.Router/DCN-05/nfd/status");
+  name.appendSegment(seq);
+  Interest interest(name);
+  interest.setCanBePrefix(true);
+  interest.setMustBeFresh(true);
+  interest.setInterestLifetime(m_options.timeout);
+
+
+  auto now = time::steady_clock::now();
+  m_face.expressInterest(interest,
+          bind(&Ping::onData, this, _2, m_nextSeq, now),
+          bind(&Ping::onNack, this, _2, m_nextSeq, now),
+          bind(&Ping::onTimeout, this, m_nextSeq));
+
+  //afterData(seq, rtt);
+  //finish();
 }
 
 void
@@ -117,11 +278,13 @@ Name
 Ping::makePingName(uint64_t seq) const
 {
   Name name(m_options.prefix);
+
   name.append("ping");
   if (!m_options.clientIdentifier.empty()) {
     name.append(m_options.clientIdentifier);
   }
   name.append(to_string(seq));
+
   return name;
 }
 

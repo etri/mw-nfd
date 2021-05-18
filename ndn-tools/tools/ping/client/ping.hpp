@@ -127,7 +127,7 @@ private:
    * @param sendTime time ping sent
    */
   void
-  onData(uint64_t seq, const time::steady_clock::TimePoint& sendTime);
+  onData(const Data &,uint64_t seq, const time::steady_clock::TimePoint& sendTime);
 
   /**
    * @brief Called when a Nack is received in response to a ping
