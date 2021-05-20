@@ -1,5 +1,5 @@
 
-#include "forwarder-status-publisher.hpp"
+#include "forwarder-remote-access.hpp"
 #include "fw/forwarder.hpp"
 #include "face/face.hpp"
 #include "core/version.hpp"
@@ -34,7 +34,7 @@ using boost::property_tree::write_json;
 #include <iostream>
 
 using namespace ndn;
-NFD_LOG_INIT(ForwarderStatusPublisher);
+NFD_LOG_INIT(ForwarderRemoteAccess);
 
 namespace nfd {
 
@@ -43,13 +43,13 @@ static const time::milliseconds STATUS_FRESHNESS(5000);
 extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
-ForwarderStatusPublisher::ForwarderStatusPublisher( size_t imsLimit)
+ForwarderRemoteAccess::ForwarderRemoteAccess( size_t imsLimit)
 	:m_ims(imsLimit)
 {
 }
 
 ndn::nfd::ForwarderStatus
-ForwarderStatusPublisher::collectGeneralStatus()
+ForwarderRemoteAccess::collectGeneralStatus()
 {
   ndn::nfd::ForwarderStatus status;
 
@@ -134,7 +134,7 @@ ForwarderStatusPublisher::collectGeneralStatus()
   return status;
 }
 
-void ForwarderStatusPublisher::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
+void ForwarderRemoteAccess::formatStatusJson( ptree& parent, const ndn::nfd::ForwarderStatus& item)
 {
 	ptree pt;
 #if 1
@@ -160,7 +160,7 @@ void ForwarderStatusPublisher::formatStatusJson( ptree& parent, const ndn::nfd::
 parent.add_child("nfdStatus.generalStatus", pt);
 }
 
-void ForwarderStatusPublisher::formatChannelsJson( ptree& parent )
+void ForwarderRemoteAccess::formatChannelsJson( ptree& parent )
 {
 	ptree pt;
 
@@ -276,7 +276,7 @@ makeFaceStatus(const Face& face, const time::steady_clock::TimePoint& now)
 
   return status;
 }
-void ForwarderStatusPublisher::formatFacesJson( ptree& parent )
+void ForwarderRemoteAccess::formatFacesJson( ptree& parent )
 {
     ptree pt;
     auto now = time::steady_clock::now();
@@ -334,12 +334,12 @@ void ForwarderStatusPublisher::formatFacesJson( ptree& parent )
     }
     parent.add_child("nfdStatus.faces.face", pt);
 }
-void ForwarderStatusPublisher::formatRibJson( ptree& parent )
+void ForwarderRemoteAccess::formatRibJson( ptree& parent )
 {
     ptree pt;
     parent.add_child("nfdStatus.rib", pt);
 }
-void ForwarderStatusPublisher::formatFibJson( ptree& parent )
+void ForwarderRemoteAccess::formatFibJson( ptree& parent )
 {
     ptree pt;
 
@@ -404,7 +404,7 @@ void ForwarderStatusPublisher::formatFibJson( ptree& parent )
     parent.add_child("nfdStatus.fib.fibEntry", pt);
 }
 
-void ForwarderStatusPublisher::formatScJson( ptree& parent )
+void ForwarderRemoteAccess::formatScJson( ptree& parent )
 {
 	ptree pt;
 #ifndef ETRI_NFD_ORG_ARCH
@@ -429,7 +429,7 @@ void ForwarderStatusPublisher::formatScJson( ptree& parent )
 #endif
 	parent.add_child("nfdStatus.strategyChoices.strategyChoice", pt);
 }
-void ForwarderStatusPublisher::formatCsJson( ptree& parent )
+void ForwarderRemoteAccess::formatCsJson( ptree& parent )
 {
         //ndn::nfd::CsInfo info;
 
@@ -468,7 +468,7 @@ parent.add_child("nfdStatus.cs", pt);
 }
 
 std::string
-ForwarderStatusPublisher::prepareNextData()
+ForwarderRemoteAccess::prepareNextData()
 {
     ptree nfd_info;
     auto status = this->collectGeneralStatus();
@@ -487,7 +487,7 @@ ForwarderStatusPublisher::prepareNextData()
 }
 
 bool
-ForwarderStatusPublisher::replyFromStore(const ndn::Interest& interest, ndn::Face &face)
+ForwarderRemoteAccess::replyFromStore(const ndn::Interest& interest, ndn::Face &face)
 {
 	auto it = m_ims.find(interest);
 
@@ -500,7 +500,7 @@ ForwarderStatusPublisher::replyFromStore(const ndn::Interest& interest, ndn::Fac
 }
 
 void
-ForwarderStatusPublisher::publish(const ndn::Name& dataName, const Interest& interest, ndn::Face &face)
+ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& interest, ndn::Face &face)
 {
 
     const ndn::Name& interestName = interest.getName();

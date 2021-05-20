@@ -34,7 +34,7 @@
 
 #include "common/config-file.hpp"
 #include "fw/face-table.hpp"
-#include "mw-nfd/forwarder-status-publisher.hpp"
+#include "mw-nfd/forwarder-remote-access.hpp"
 
 namespace nfd {
 
@@ -154,7 +154,7 @@ private:
 	int m_face1;
 	int m_face2;
 
-	ForwarderStatusPublisher m_forwarderStatusPublisher;
+	ForwarderRemoteAccess m_forwarderRemoteAccess;
 
 };
 

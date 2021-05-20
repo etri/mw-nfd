@@ -309,11 +309,11 @@ void Nfd::onInterestRemoteAccess(const ndn::Name& name, const ndn::Interest& int
 #ifndef ETRI_NFD_ORG_ARCH
 #if 1
      if (interestName[-2].isVersion()) {
-	m_forwarderStatusPublisher.replyFromStore(interest, *m_internalClientFaceKoren);
+	m_forwarderRemoteAccess.replyFromStore(interest, *m_internalClientFaceKoren);
         return;
      }
 #endif
-    m_forwarderStatusPublisher.publish(name, interest, *m_internalClientFaceKoren);
+    m_forwarderRemoteAccess.publish(name, interest, *m_internalClientFaceKoren);
 #endif
     return;
 }

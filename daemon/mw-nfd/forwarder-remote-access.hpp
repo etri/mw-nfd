@@ -22,10 +22,10 @@ using std::map;
 
 namespace nfd {
 
-class ForwarderStatusPublisher: noncopyable
+class ForwarderRemoteAccess: noncopyable
 {
 public:
-  ForwarderStatusPublisher(size_t imsLimit=256);
+  ForwarderRemoteAccess(size_t imsLimit=256);
   void
   publish(const ndn::Name &, const Interest &, ndn::Face &);
 

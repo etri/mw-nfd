@@ -788,19 +788,20 @@ static inline int rtm_get_table(struct rtmsg *r, struct rtattr **tb)
     return table;
 }
 
-void print_route(struct nlmsghdr* nl_header_answer, const char *addr)
+int handle_route(struct nlmsghdr* nl_header_answer, const char *addr)
 {
     struct rtmsg* r = (struct rtmsg*)NLMSG_DATA(nl_header_answer);
     int len = nl_header_answer->nlmsg_len;
     struct rtattr* tb[RTA_MAX+1];
     int table;
     char buf[256];
+    int ifIndex=0;
 
     len -= NLMSG_LENGTH(sizeof(*r));
 
     if (len < 0) {
         perror("Wrong message length");
-        return;
+        return -1;
     }
 
     parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
@@ -808,12 +809,12 @@ void print_route(struct nlmsghdr* nl_header_answer, const char *addr)
     table = rtm_get_table(r, tb);
 
     if (r->rtm_family != AF_INET && table != RT_TABLE_MAIN) {
-        return;
+        return -1;
     }
 
     if (tb[RTA_DST]) {
         if ((r->rtm_dst_len != 24) && (r->rtm_dst_len != 16)) {
-            return;
+            return -1;
         }
 
         printf("%s/%u ", inet_ntop(r->rtm_family, RTA_DATA(tb[RTA_DST]), buf, sizeof(buf)), r->rtm_dst_len);
@@ -840,6 +841,7 @@ void print_route(struct nlmsghdr* nl_header_answer, const char *addr)
     }
 
     printf("\n");
+    return ifIndex;
 }
 
 int open_netlink()
@@ -857,6 +859,7 @@ int open_netlink()
 
     saddr.nl_family = AF_NETLINK;
     saddr.nl_pid = getpid();
+    saddr.nl_groups = 0;
 
     if (bind(sock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
         perror("Failed to bind to netlink socket");
@@ -895,6 +898,8 @@ int get_route_dump_response(int sock, const char *addr)
         .msg_iovlen = 1,
     };
 
+    int ifIndex=-1;
+
     char *buf;
     int dump_intr = 0;
 
@@ -921,19 +926,20 @@ int get_route_dump_response(int sock, const char *addr)
             free(buf);
         }
 
-        print_route(h, addr);
+        ifIndex=handle_route(h, addr);
 
         h = NLMSG_NEXT(h, msglen);
     }
 
     free(buf);
 
-    return status;
+    return ifIndex;
 }
 
 int getIfIndexFromRt( const char * addr)
 {
-
+	std::cout << "getIfIndexFromRt: " << addr << std::endl;
+	int ifIndex=-1;
     int nl_sock = open_netlink();
 
     if (do_route_dump_requst(nl_sock) < 0) {
@@ -942,11 +948,11 @@ int getIfIndexFromRt( const char * addr)
         return -1;
     }
 
-    get_route_dump_response(nl_sock, addr);
+    ifIndex = get_route_dump_response(nl_sock, addr);
 
     close (nl_sock);
 
-    return 0;
+    return ifIndex;
 }
 
 
