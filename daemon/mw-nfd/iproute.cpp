@@ -114,8 +114,7 @@ namespace nfd {
 
 	int rcvbuf = 1024 * 1024;
 
-	int rtnl_open_byproto(struct rtnl_handle *rth, unsigned int subscriptions,
-			int protocol)
+	int rtnl_open_byproto(struct rtnl_handle *rth, unsigned int subscriptions)
 	{
 		socklen_t addr_len;
 		int sndbuf = 32768;
@@ -123,8 +122,8 @@ namespace nfd {
 
 		memset(rth, 0, sizeof(*rth));
 
-		rth->proto = protocol;
-		rth->fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, protocol);
+		rth->proto = NETLINK_ROUTE;
+		rth->fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
 		if (rth->fd < 0) {
 			perror("Cannot open netlink socket");
 			return -1;
@@ -506,224 +505,22 @@ next:
 		return parse_rtattr_flags(tb, max, rta, len, 0);
 	}   
 
-	static int filter_nlmsg(struct nlmsghdr *n, struct rtattr **tb, int host_len)
-	{
-		struct rtmsg *r = (struct rtmsg *)NLMSG_DATA(n);
-		inet_prefix dst ;
-		dst.family = r->rtm_family;
-		inet_prefix src ;
-		src.family = r->rtm_family ;
-		inet_prefix via;
-		via.family = r->rtm_family;
-
-		inet_prefix prefsrc;
-		prefsrc.family = r->rtm_family;
-		__u32 table;
-		static int ip6_multiple_tables;
-
-		table = rtm_get_table(r, tb);
-
-		if (preferred_family != AF_UNSPEC && r->rtm_family != preferred_family)
-			return 0;
-
-		if (r->rtm_family == AF_INET6 && table != RT_TABLE_MAIN)
-			ip6_multiple_tables = 1;
-
-		if (filter.cloned == !(r->rtm_flags & RTM_F_CLONED))
-			return 0;
-
-		if (r->rtm_family == AF_INET6 && !ip6_multiple_tables) {
-			if (filter.tb) {
-				if (filter.tb == RT_TABLE_LOCAL) {
-					if (r->rtm_type != RTN_LOCAL)
-						return 0;
-				} else if (filter.tb == RT_TABLE_MAIN) {
-					if (r->rtm_type == RTN_LOCAL)
-						return 0;
-				} else {
-					return 0;
-				}
-			}
-		} else {
-			if (filter.tb > 0 && filter.tb != table)
-				return 0;
-		}
-		if ((filter.protocol^r->rtm_protocol)&filter.protocolmask)
-			return 0;
-		if ((filter.scope^r->rtm_scope)&filter.scopemask)
-			return 0;
-		if (filter.typemask && !(filter.typemask & (1 << r->rtm_type)))
-			return 0;
-		if ((filter.tos^r->rtm_tos)&filter.tosmask)
-			return 0;
-		if (filter.rdst.family) {
-			if (r->rtm_family != filter.rdst.family ||
-					filter.rdst.bitlen > r->rtm_dst_len)
-				return 0;
-		} else if (filter.rdst.flags & PREFIXLEN_SPECIFIED) {
-			if (filter.rdst.bitlen > r->rtm_dst_len)
-				return 0;
-		}
-		if (filter.mdst.family) {
-			if (r->rtm_family != filter.mdst.family ||
-					(filter.mdst.bitlen >= 0 &&
-					 filter.mdst.bitlen < r->rtm_dst_len))
-				return 0;
-		} else if (filter.mdst.flags & PREFIXLEN_SPECIFIED) {
-			if (filter.mdst.bitlen >= 0 &&
-					filter.mdst.bitlen < r->rtm_dst_len)
-				return 0;
-		}
-		if (filter.rsrc.family) {
-			if (r->rtm_family != filter.rsrc.family ||
-					filter.rsrc.bitlen > r->rtm_src_len)
-				return 0;
-		} else if (filter.rsrc.flags & PREFIXLEN_SPECIFIED) {
-			if (filter.rsrc.bitlen > r->rtm_src_len)
-				return 0;
-		}
-		if (filter.msrc.family) {
-			if (r->rtm_family != filter.msrc.family ||
-					(filter.msrc.bitlen >= 0 &&
-					 filter.msrc.bitlen < r->rtm_src_len))
-				return 0;
-		} else if (filter.msrc.flags & PREFIXLEN_SPECIFIED) {
-			if (filter.msrc.bitlen >= 0 &&
-					filter.msrc.bitlen < r->rtm_src_len)
-				return 0;
-		}
-		if (filter.rvia.family) {
-			int family = r->rtm_family;
-
-			if (tb[RTA_VIA]) {
-				struct rtvia *via = (struct rtvia *)RTA_DATA(tb[RTA_VIA]);
-
-				family = via->rtvia_family;
-			}
-			if (family != filter.rvia.family)
-				return 0;
-		}
-		if (filter.rprefsrc.family && r->rtm_family != filter.rprefsrc.family)
-			return 0;
-
-		if (tb[RTA_DST])
-			memcpy(&dst.data, RTA_DATA(tb[RTA_DST]), (r->rtm_dst_len+7)/8);
-		if (filter.rsrc.family || filter.msrc.family ||
-				filter.rsrc.flags & PREFIXLEN_SPECIFIED ||
-				filter.msrc.flags & PREFIXLEN_SPECIFIED) {
-			if (tb[RTA_SRC])
-				memcpy(&src.data, RTA_DATA(tb[RTA_SRC]), (r->rtm_src_len+7)/8);
-		}
-		if (filter.rvia.bitlen > 0) {
-			if (tb[RTA_GATEWAY])
-				memcpy(&via.data, RTA_DATA(tb[RTA_GATEWAY]), host_len/8);
-			if (tb[RTA_VIA]) {
-				size_t len = RTA_PAYLOAD(tb[RTA_VIA]) - 2;
-				struct rtvia *rtvia = (struct rtvia *)RTA_DATA(tb[RTA_VIA]);
-
-				via.family = rtvia->rtvia_family;
-				memcpy(&via.data, rtvia->rtvia_addr, len);
-			}
-		}
-		if (filter.rprefsrc.bitlen > 0) {
-			if (tb[RTA_PREFSRC])
-				memcpy(&prefsrc.data, RTA_DATA(tb[RTA_PREFSRC]), host_len/8);
-		}
-
-		if ((filter.rdst.family || filter.rdst.flags & PREFIXLEN_SPECIFIED) &&
-				inet_addr_match(&dst, &filter.rdst, filter.rdst.bitlen))
-			return 0;
-		if ((filter.mdst.family || filter.mdst.flags & PREFIXLEN_SPECIFIED) &&
-				inet_addr_match(&dst, &filter.mdst, r->rtm_dst_len))
-			return 0;
-
-		if ((filter.rsrc.family || filter.rsrc.flags & PREFIXLEN_SPECIFIED) &&
-				inet_addr_match(&src, &filter.rsrc, filter.rsrc.bitlen))
-			return 0;
-		if ((filter.msrc.family || filter.msrc.flags & PREFIXLEN_SPECIFIED) &&
-				filter.msrc.bitlen >= 0 &&
-				inet_addr_match(&src, &filter.msrc, r->rtm_src_len))
-			return 0;
-
-		if (filter.rvia.family && inet_addr_match(&via, &filter.rvia, filter.rvia.bitlen))
-			return 0;
-		if (filter.rprefsrc.family && inet_addr_match(&prefsrc, &filter.rprefsrc, filter.rprefsrc.bitlen))
-			return 0;
-		if (filter.realmmask) {
-			__u32 realms = 0;
-
-			if (tb[RTA_FLOW])
-				realms = rta_getattr_u32(tb[RTA_FLOW]);
-			if ((realms^filter.realm)&filter.realmmask)
-				return 0;
-		}
-		if (filter.iifmask) {
-			int iif = 0;
-
-			if (tb[RTA_IIF])
-				iif = rta_getattr_u32(tb[RTA_IIF]);
-			if ((iif^filter.iif)&filter.iifmask)
-				return 0;
-		}
-		if (filter.oifmask) {
-			int oif = 0;
-
-			if (tb[RTA_OIF])
-				oif = rta_getattr_u32(tb[RTA_OIF]);
-			if ((oif^filter.oif)&filter.oifmask)
-				return 0;
-		}
-		if (filter.markmask) {
-			int mark = 0;
-
-			if (tb[RTA_MARK])
-				mark = rta_getattr_u32(tb[RTA_MARK]);
-			if ((mark ^ filter.mark) & filter.markmask)
-				return 0;
-		}
-		if (filter.metricmask) {
-			__u32 metric = 0;
-
-			if (tb[RTA_PRIORITY])
-				metric = rta_getattr_u32(tb[RTA_PRIORITY]);
-			if ((metric ^ filter.metric) & filter.metricmask)
-				return 0;
-		}
-		if (filter.flushb &&
-				r->rtm_family == AF_INET6 &&
-				r->rtm_dst_len == 0 &&
-				r->rtm_type == RTN_UNREACHABLE &&
-				tb[RTA_PRIORITY] &&
-				rta_getattr_u32(tb[RTA_PRIORITY]) == -1)
-			return 0;
-
-		return 1;
-	}
-
-	int get_rta_if(FILE *fp, const struct rtattr *rta, const char *prefix)
+	int get_rta_if(const struct rtattr *rta, const char *prefix)
 	{
 		//const char *ifname = ll_index_to_name(rta_getattr_u32(rta));
-
 		printf("GotIfIndex: %d\n", rta_getattr_u32(rta));
 		return rta_getattr_u32(rta);
 	}
 
-	int get_if_index(struct nlmsghdr *n, void *arg)
+	int get_if_index(struct nlmsghdr *n)
 	{
 		int ifIndex = -1;
-		FILE *fp = (FILE *)arg;
 		struct rtmsg *r = ( struct rtmsg *)NLMSG_DATA(n);
 		int len = n->nlmsg_len;
 		struct rtattr *tb[RTA_MAX+1];
-		int family, color, host_len;
-		__u32 table;
-		int ret;
-
-		SPRINT_BUF(b1);
 
 		if (n->nlmsg_type != RTM_NEWROUTE && n->nlmsg_type != RTM_DELROUTE) {
-			fprintf(stderr, "Not a route: %08x %08x %08x\n",
-					n->nlmsg_len, n->nlmsg_type, n->nlmsg_flags);
+			fprintf(stderr, "Not a route: %08x %08x %08x\n", n->nlmsg_len, n->nlmsg_type, n->nlmsg_flags);
 			return -1;
 		}
 		if (filter.flushb && n->nlmsg_type != RTM_NEWROUTE)
@@ -734,17 +531,16 @@ next:
 			return -1;
 		}
 
-		host_len = af_bit_len(r->rtm_family);
+		//af_bit_len(r->rtm_family);
 
 		parse_rtattr(tb, RTA_MAX, RTM_RTA(r), len);
-		table = rtm_get_table(r, tb);
+		rtm_get_table(r, tb);
 
 		if (tb[RTA_OIF] && filter.oifmask != -1)
-			ifIndex = get_rta_if(fp, tb[RTA_OIF], "dev");
+			ifIndex = get_rta_if(tb[RTA_OIF], "dev");
 
 		return ifIndex;
 	}
-
 
 	static int get_netmask(unsigned int *val, char *arg, int base)
 	{
@@ -848,24 +644,6 @@ next:
 			addr->bitlen = -1;
 			return 0;
 		}
-		if (family == AF_MPLS) {
-			unsigned int maxlabels;
-			int i;
-
-			addr->family = AF_MPLS;
-			//if (mpls_pton(AF_MPLS, name, addr->data, sizeof(addr->data)) <= 0)
-				//return -1;
-			addr->bytelen = 4;
-			addr->bitlen = 20;
-			/* How many bytes do I need? */
-			//maxlabels = sizeof(addr->data) / sizeof(struct mpls_label);
-			//for (i = 0; i < maxlabels; i++) { if (ntohl(addr->data[i]) & MPLS_LS_S_MASK) {
-					//addr->bytelen = (i + 1)*4;
-					//break;
-				//}
-			//}
-			return 0;
-		}
 
 		addr->family = AF_INET;
 		if (family != AF_UNSPEC && family != AF_INET)
@@ -962,15 +740,12 @@ next:
 	int get_prefix(inet_prefix *dst, char *arg, int family)
 	{           
 		if (family == AF_PACKET) {
-			fprintf(stderr,
-					"Error: \"%s\" may be inet prefix, but it is not allowed in this context.\n",
-					arg);
-			exit(1);
+			fprintf(stderr, "Error: \"%s\" may be inet prefix, but it is not allowed in this context.\n", arg);
+			return -1;
 		}       
 
 		if (get_prefix_1(dst, arg, family)) {
-			//fprintf(stderr, "Error: %s prefix is expected rather than \"%s\".\n", family_name_verbose(family), arg);
-			exit(1);
+			return -1;
 		}           
 		return 0;
 	} 
@@ -984,8 +759,7 @@ next:
 		struct rtattr *rta;
 
 		if (NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len) > maxlen) {
-			fprintf(stderr, "addattr_l ERROR: message exceeded bound of %d\n",
-					maxlen);
+			fprintf(stderr, "addattr_l ERROR: message exceeded bound of %d\n", maxlen);
 			return -1;  
 		}           
 		rta = NLMSG_TAIL(n);
@@ -1011,18 +785,24 @@ next:
 		req.n.nlmsg_flags = NLM_F_REQUEST;
 		req.n.nlmsg_type = RTM_GETROUTE;
 		req.r.rtm_family = preferred_family;
+		req.r.rtm_flags = 0;
 		req.r.rtm_flags |= RTM_F_LOOKUP_TABLE;
 
 		struct nlmsghdr *answer;
 
 		inet_prefix addr;
 		char *tmp = const_cast<char*>(addrIn);
-		get_prefix(&addr, tmp, req.r.rtm_family);
+
+		if( get_prefix(&addr, tmp, req.r.rtm_family) == -1 ){
+			fprintf(stderr, "Error: ifIndex:%d.\n", ifIndex);
+			return ifIndex;
+		}
+
 		if (req.r.rtm_family == AF_UNSPEC)
 			req.r.rtm_family = addr.family;
 		if (addr.bytelen)
-			addattr_l(&req.n, sizeof(req),
-					RTA_DST, &addr.data, addr.bytelen);
+			addattr_l(&req.n, sizeof(req), RTA_DST, &addr.data, addr.bytelen);
+
 		if (req.r.rtm_family == AF_INET && addr.bitlen != 32) {
 			fprintf(stderr, "Warning: /%u as prefix is invalid, only /32 (or none) is supported.\n", addr.bitlen);
 			req.r.rtm_dst_len = 32;
@@ -1034,11 +814,11 @@ next:
 
 		req.r.rtm_family = AF_INET;
 		struct rtnl_handle rth;
-		rtnl_open_byproto(&rth, 0, NETLINK_ROUTE);
+		rtnl_open_byproto(&rth, 0);
 
-		int ret = rtnl_talk(&rth, &req.n, &answer) ;
+		rtnl_talk(&rth, &req.n, &answer) ;
 
-		ifIndex = get_if_index(answer, (void *)stdout);
+		ifIndex = get_if_index(answer);
 //		close(rth->fd);
 		return ifIndex;
 	}
