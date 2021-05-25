@@ -105,7 +105,7 @@ ForwarderStatusManager::collectGeneralStatus()
   nPit += m_forwarder.getPit().size();
   nM +=  m_forwarder.getMeasurements().size();
   nCs +=m_forwarder.getCs().size();
-#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
+#if defined(ETRI_DUAL_CS)
   nExCs +=m_forwarder.getCs().sizeExact();
 #endif
 
@@ -131,7 +131,7 @@ ForwarderStatusManager::collectGeneralStatus()
       nPit += worker->getPitTable().size();
       nM += worker->getMeasurementsTable().size();
       nCs += worker->getCsTable().size();
-#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
+#if defined(ETRI_DUAL_CS)
       nExCs += worker->getCsTable().sizeExact();
 #endif
 
@@ -173,7 +173,7 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setNMeasurementsEntries(nM);
 
 	size_t nCsEntries = 0;
-#if defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)
+#if defined(ETRI_DUAL_CS) 
 	int size = sizeof(size_t);
 	nCsEntries = (nCs << ((size/2)*8));
 	nCsEntries |= nExCs;
