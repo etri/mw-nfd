@@ -199,7 +199,7 @@ Strategy::onDroppedInterest(const Face& egress, const Interest& interest)
 pit::OutRecord*
 Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
 {
-    auto b = make_shared<ndn::Buffer>(32);
+    auto b = make_shared<ndn::Buffer>(sizeof(ST_PIT_TOKEN));
     ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
 
 #if !defined(ETRI_NFD_ORG_ARCH) || defined(ETRI_DUAL_CS) || defined(ETRI_PITTOKEN_HASH)

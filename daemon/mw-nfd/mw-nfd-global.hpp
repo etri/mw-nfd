@@ -144,7 +144,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
 #define FACEID_REMOTE_ACCESS 2
 
-	typedef struct pit_token_st {
+	typedef struct __attribute__((__packed__)) pit_token_st {
 		uint8_t workerId;
 		uint8_t CanBePrefix;
         uint64_t hashValue;
