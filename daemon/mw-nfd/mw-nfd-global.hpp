@@ -133,6 +133,10 @@ const std::string MW_NFDC_VERB_FIELD[MW_NFDC_VERB_UNBOUND] = {
 };
 #endif
 
+#ifdef ETRI_DEBUG_COUNTERS
+extern size_t g_nMQdist[COUNTERS_MAX][DEQUEUE_BULK_MAX];
+#endif
+
 namespace nfd {
 
 extern face::FaceSystem* g_faceSystem;

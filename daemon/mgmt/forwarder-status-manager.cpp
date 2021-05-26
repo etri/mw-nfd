@@ -45,6 +45,7 @@ size_t g_nEnqMiss[COUNTERS_MAX];
 size_t g_nDropped[COUNTERS_MAX];
 size_t g_nIfDropped[COUNTERS_MAX];
 size_t g_nUdpIn[COUNTERS_MAX];
+size_t g_nMQdist[COUNTERS_MAX][DEQUEUE_BULK_MAX];
 #endif
 
 #include <iostream>
@@ -144,6 +145,16 @@ ForwarderStatusManager::collectGeneralStatus()
     nOutNacks += counters.nOutNacks;
     nSatisfiedInterests += counters.nSatisfiedInterests;
     nUnsatisfiedInterests += counters.nUnsatisfiedInterests;
+
+#ifdef ETRI_DEBUG_COUNTERS
+    std::cout << "worker: " <<  i << std::endl;
+    for(int q=0;q<DEQUEUE_BULK_MAX;q++){
+        std::cout << g_nMQdist[i][q] << ",";
+        if( q == DEQUEUE_BULK_MAX-1 )
+            std::cout << "/n";
+    }
+#endif
+
   }
 #endif
 
@@ -165,6 +176,8 @@ ForwarderStatusManager::collectGeneralStatus()
         if(g_nUdpIn[i]!=0)
             std::cout << "Face(" << i+face::FACEID_RESERVED_MAX << ") - nUdpIn: " << g_nUdpIn[i] << std::endl;
     }
+
+
 #endif
 
   status.setNNameTreeEntries(nNameTree);

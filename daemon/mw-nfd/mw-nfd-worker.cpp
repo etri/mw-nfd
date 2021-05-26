@@ -597,9 +597,14 @@ void MwNfd::runWorker()
 	NDN_MSG msg;
 
 	NDN_MSG items[DEQUEUE_BULK_MAX];
-	int deq=0, idx;
+	int nItems=0, idx;
 
 	int32_t inputMQs = m_inputWorkers *2;
+
+#ifdef ETRI_DEBUG_COUNTERS
+    for( ; nItems < DEQUEUE_BULK_MAX ; nItems++)
+        g_nMQdist[m_workerId][nItems]=0;
+#endif
 
 	do{
 
@@ -607,17 +612,23 @@ void MwNfd::runWorker()
 			handleNfdcCommand();
 		}
 		for(iw=0; iw < inputMQs; iw+=2){
-			deq = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
-			for(idx=0;idx<deq;idx++){
+			nItems = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
+			for(idx=0;idx<nItems;idx++){
 				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
+#ifdef ETRI_DEBUG_COUNTERS
+            g_nMQdist[m_workerId][nItems]+=1;
+#endif
 		}
 
 		for(iw=0; iw < inputMQs; iw+=2){
-			deq = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
-			for(idx=0;idx<deq;idx++){
+			nItems = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
+			for(idx=0;idx<nItems;idx++){
 				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
+#ifdef ETRI_DEBUG_COUNTERS
+            g_nMQdist[m_workerId][nItems]+=1;
+#endif
 		}
 
 		if(g_workerTimerTriggerList[m_workerId]){
