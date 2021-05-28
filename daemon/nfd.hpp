@@ -134,8 +134,8 @@ private:
   shared_ptr<face::Face> m_internalFace;
   shared_ptr<ndn::Face> m_internalClientFace;
 
-  shared_ptr<face::Face> m_internalFaceKoren;
-  shared_ptr<ndn::Face> m_internalClientFaceKoren;
+  shared_ptr<face::Face> m_internalFaceRemoteAccess;
+  shared_ptr<ndn::Face> m_internalClientFaceRemoteAccess;
 
   unique_ptr<ndn::mgmt::Dispatcher> m_dispatcher;
   shared_ptr<CommandAuthenticator> m_authenticator;
