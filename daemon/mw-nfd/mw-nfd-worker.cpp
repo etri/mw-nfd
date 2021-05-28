@@ -232,6 +232,14 @@ void MwNfd::handleNfdcCommand()
 void MwNfd::processNfdcCommand( char * cmd)
 {
 	using ndn::nfd::CsFlagBit;
+
+    const uint8_t *pos;
+    const uint8_t *end;
+    uint32_t type;
+    uint32_t tl_size;
+    uint64_t length;
+    bool ret __attribute__((unused));
+
 	mw_nfdc_ptr nfdc = (mw_nfdc_ptr)cmd;
 	if(nfdc->mgr == MW_NFDC_MGR_FIB){
 
@@ -263,7 +271,20 @@ void MwNfd::processNfdcCommand( char * cmd)
 				if(prefix.size() >= getPrefixLength4Distribution() and m_wantFibSharding ){
 					auto block = prefix.wireEncode();
 					int32_t wid;//, ndnType;
-					wid = computeWorkerId(block.wire(), block.size());
+
+                    pos = block.wire();
+                    end = block.wire() + block.size();
+
+                    ret=tlv::readType(pos, end, type);
+                    if(ret==false) goto response;
+                    ret=tlv::readVarNumber(pos, end, length);
+                    if(ret==false) goto response;
+
+                    tl_size = pos - block.wire();
+                    wid = computeWorkerId(pos, block.size()-tl_size);
+
+					//wid = computeWorkerId(block.wire(), block.size());
+
 					if(wid!=m_workerId){
 						nfdc->ret = MW_NFDC_CMD_NOK;
 						goto response;
@@ -701,6 +722,14 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 
 		fp =  fopen (getBulkFibFilePath().c_str(), "r");
 
+        bool ret __attribute__((unused));
+
+        const uint8_t *pos;
+        const uint8_t *end;
+        uint32_t type;
+        uint32_t tl_size;
+        uint64_t length;
+
 		while ( !feof(fp) ) {
 				ptr = fgets(line, sizeof(line), fp);
 				if(strlen(line)==0) continue;
@@ -724,7 +753,20 @@ bool MwNfd::config_bulk_fib(FaceId faceId0, FaceId faceId1, bool sharding)
 				Face* face = m_faceTable->get(nextHopId);
 
                 if( sharding and prefix.size() >= getPrefixLength4Distribution() ){
-                    wid = computeWorkerId(prefix.wireEncode().wire(), prefix.wireEncode().size());
+
+                    pos = prefix.wireEncode().wire();
+                    end = prefix.wireEncode().wire() + prefix.wireEncode().size();
+
+                    ret=tlv::readType(pos, end, type);
+                    if(ret==false) continue;
+                    ret=tlv::readVarNumber(pos, end, length);
+                    if(ret==false) continue;
+
+                    tl_size = pos - prefix.wireEncode().wire();
+                    wid = computeWorkerId(pos, prefix.wireEncode().size()-tl_size);
+
+                    //wid = computeWorkerId(prefix.wireEncode().wire(), prefix.wireEncode().size());
+                    
                     if(wid!=m_workerId){
 				        ndx++;
                         continue;
