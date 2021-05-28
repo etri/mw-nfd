@@ -63,6 +63,12 @@
 
 #include <iostream>
 
+//For power-saving in idle time 
+#include <ctime>
+#define SLEEP_STEP_NS	1000L
+#define MAX_SLEEP_NS	128000L
+#define ZERO_RX_TH		10L
+
 nfd::face::Face *face0=nullptr;
 nfd::face::Face *face1=nullptr;
 
@@ -620,6 +626,11 @@ void MwNfd::runWorker()
 	NDN_MSG items[DEQUEUE_BULK_MAX];
 	int nItems=0, idx;
 
+	int32_t rx_cnt = 0;
+	int32_t zero_rx_cnt = 0;
+	struct timespec request{0,0}; 
+	
+
 	int32_t inputMQs = m_inputWorkers *2;
 
 #ifdef ETRI_DEBUG_COUNTERS
@@ -634,6 +645,7 @@ void MwNfd::runWorker()
 		}
 		for(iw=0; iw < inputMQs; iw+=2){
 			nItems = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
+			rx_cnt +=nItems;
 			for(idx=0;idx<nItems;idx++){
 				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
@@ -644,6 +656,7 @@ void MwNfd::runWorker()
 
 		for(iw=0; iw < inputMQs; iw+=2){
 			nItems = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
+			rx_cnt += nItems;
 			for(idx=0;idx<nItems;idx++){
 				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
@@ -659,6 +672,26 @@ void MwNfd::runWorker()
 				m_doneBulk= bulk_test_case_01(); 
 			}
 		}
+
+/* For power-saving in idle time: 
+   Add nanosleep() when consecutive zero-rx events (ZERO_RX_TH times) happen, and increase sleep time. 
+   The sleep time can be increased up to MAX_SLEEP_NS
+   Sleep time is reset to 0 when non-negative rx_cnt occurs
+   This drastically reduces idle time cpu utilization of forwarding worker from 100% to 2 ~ 2.7%, without loss of performance in busy time 
+*/
+		if (rx_cnt == 0) {
+			 zero_rx_cnt++;
+			 if (zero_rx_cnt > ZERO_RX_TH ) {
+			 	request.tv_nsec = std::min(request.tv_nsec + SLEEP_STEP_NS, MAX_SLEEP_NS); 
+			 	nanosleep(&request, NULL);
+			 }
+		} 
+		else {
+			rx_cnt = 0;
+			zero_rx_cnt = 0;
+			request.tv_nsec = 0;
+		}
+
 
 	}while(!m_done);
 
