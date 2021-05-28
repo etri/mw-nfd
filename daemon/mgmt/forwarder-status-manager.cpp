@@ -46,7 +46,7 @@ size_t g_nDropped[COUNTERS_MAX];
 size_t g_nIfDropped[COUNTERS_MAX];
 size_t g_nUdpIn[COUNTERS_MAX];
 size_t g_nMQdist[COUNTERS_MAX][DEQUEUE_BULK_MAX];
-size_t g_nInputPollEvent[8][400]; //bsh, poll
+//size_t g_nInputPollEvent[8][400]; //bsh, poll
 #endif
 
 #include <iostream>
@@ -121,8 +121,9 @@ ForwarderStatusManager::collectGeneralStatus()
         nSatisfiedInterests += (counters.nSatisfiedInterests);
         nUnsatisfiedInterests +=(counters.nUnsatisfiedInterests);
 
+/*
 #ifdef ETRI_DEBUG_COUNTERS
-//bsh, poll
+//bsh, input-thread poll
 for (int32_t i=1; i<3 ;i++) {
     std::cout << "InputThread: " <<  i << std::endl;
     for(int q=0;q<400;q++){
@@ -131,6 +132,7 @@ for (int32_t i=1; i<3 ;i++) {
 	std::cout << std::endl;
 }
 #endif 
+*/
 
 #ifndef ETRI_NFD_ORG_ARCH
   int32_t workers = getForwardingWorkers();
