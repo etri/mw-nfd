@@ -95,6 +95,18 @@ public:
     return m_limit;
   }
 
+  // Modified by dmsul for change CS Max packet 20210531
+  size_t
+  getPmLimit() const
+  {
+    return m_pm_limit;
+  }
+
+  size_t
+  getEmLimit() const
+  {
+    return m_em_limit;
+  }
   /** \brief sets hard limit (in number of entries)
    *  \post getLimit() == nMaxEntries
    *  \post cs.size() <= getLimit()
@@ -103,6 +115,13 @@ public:
    */
   void
   setLimit(size_t nMaxEntries);
+
+  // Modified by dmsul for change CS Max packet 20210531
+  void
+  setPmLimit(size_t nMaxEntries);
+
+  void
+  setEmLimit(size_t nMaxEntries);
 
 public:
   /** \brief a reference to an CS entry
@@ -275,6 +294,8 @@ private: // registry
 private:
   std::string m_policyName;
   size_t m_limit;
+  size_t m_pm_limit;
+  size_t m_em_limit;
   Cs* m_cs;
 };
 

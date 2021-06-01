@@ -80,6 +80,30 @@ Policy::setLimit(size_t nMaxEntries)
 }
 
 void
+Policy::setPmLimit(size_t nMaxEntries)
+{
+#ifdef __linux__
+  NFD_LOG_INFO("setPmLimit " << nMaxEntries << " on CPU " << sched_getcpu());
+#elif __APPLE__
+  NFD_LOG_INFO("setPmLimit " << nMaxEntries );
+#endif
+  m_pm_limit = nMaxEntries;
+  this->evictEntries();
+}
+
+void
+Policy::setEmLimit(size_t nMaxEntries)
+{
+#ifdef __linux__
+  NFD_LOG_INFO("setEmLimit " << nMaxEntries << " on CPU " << sched_getcpu());
+#elif __APPLE__
+  NFD_LOG_INFO("setEmLimit " << nMaxEntries );
+#endif
+  m_em_limit = nMaxEntries;
+  this->evictEntriesExact();
+}
+
+void
 Policy::afterInsert(EntryRef i)
 {
   BOOST_ASSERT(m_cs != nullptr);

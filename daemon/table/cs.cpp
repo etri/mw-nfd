@@ -47,13 +47,16 @@ makeDefaultPolicy()
 Cs::Cs(size_t nMaxPackets)
 {
   setPolicyImpl(makeDefaultPolicy());
-  m_policy->setLimit(nMaxPackets);
+  // Modified by dmsul for change CS Max packet 20210531
+  m_policy->setPmLimit(nMaxPackets);
+  m_policy->setEmLimit(nMaxPackets);
 }
 
 void
 Cs::insert(const Data& data, bool isUnsolicited)
 {
-  if (!m_shouldAdmit || m_policy->getLimit() == 0) {
+  // Modified by dmsul for change CS Max packet 20210531
+  if (!m_shouldAdmit) {
     return;
   }
   NFD_LOG_DEBUG("insert " << data.getName());
@@ -165,7 +168,7 @@ Cs::findImplExact(const Interest& interest) const
 {
   NFD_LOG_DEBUG("findImplExact interest name = " << interest.getName());
 
-  if (!m_shouldServe || m_policy->getLimit() == 0) {
+  if (!m_shouldServe || m_policy->getEmLimit() == 0) {
     return m_tableExact.end();
   }
 
@@ -255,7 +258,8 @@ Cs::findImpl(const Interest& interest) const
 {
   NFD_LOG_DEBUG("findImpl interest name = " << interest.getName() << "start. ");
 
-  if (!m_shouldServe || m_policy->getLimit() == 0) {
+  // Modified by dmsul for change CS Max packet 20210531
+  if (!m_shouldServe || m_policy->getPmLimit() == 0) {
     return m_table.end();
   }
 
@@ -287,9 +291,12 @@ Cs::setPolicy(unique_ptr<Policy> policy)
 {
   BOOST_ASSERT(policy != nullptr);
   BOOST_ASSERT(m_policy != nullptr);
-  size_t limit = m_policy->getLimit();
+  // Modified by dmsul for change CS Max packet 20210531
+  size_t pm_limit = m_policy->getPmLimit();
+  size_t em_limit = m_policy->getEmLimit();
   this->setPolicyImpl(std::move(policy));
-  m_policy->setLimit(limit);
+  m_policy->setPmLimit(pm_limit);
+  m_policy->setEmLimit(em_limit);
 }
 
 void

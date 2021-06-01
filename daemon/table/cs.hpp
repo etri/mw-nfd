@@ -148,12 +148,36 @@ public: // configuration
     return m_policy->getLimit();
   }
 
+  size_t
+  getPmLimit() const
+  {
+    return m_policy->getPmLimit();
+  }
+
+  size_t
+  getEmLimit() const
+  {
+    return m_policy->getEmLimit();
+  }
+
   /** \brief change capacity (in number of packets)
    */
   void
   setLimit(size_t nMaxPackets)
   {
     return m_policy->setLimit(nMaxPackets);
+  }
+
+  void
+  setPmLimit(size_t nMaxPackets)
+  {
+    return m_policy->setPmLimit(nMaxPackets);
+  }
+
+  void
+  setEmLimit(size_t nMaxPackets)
+  {
+    return m_policy->setEmLimit(nMaxPackets);
   }
 
   /** \brief get replacement policy

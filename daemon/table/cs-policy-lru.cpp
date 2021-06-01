@@ -67,7 +67,8 @@ void
 LruPolicy::evictEntries()
 {
   BOOST_ASSERT(this->getCs() != nullptr);
-  while (this->getCs()->size() > this->getLimit()) {
+  // Modified by dmsul for change CS Max packet 20210531
+  while (this->getCs()->size() > this->getPmLimit()) {
     BOOST_ASSERT(!m_queue.empty());
     EntryRef i = m_queue.front();
     m_queue.pop_front();
@@ -119,7 +120,8 @@ void
 LruPolicy::evictEntriesExact()
 {
   BOOST_ASSERT(this->getCs() != nullptr);
-  while (this->getCs()->sizeExact() > this->getLimit()) {
+  // Modified by dmsul for change CS Max packet 20210531
+  while (this->getCs()->sizeExact() > this->getEmLimit()) {
     BOOST_ASSERT(!m_queueExact.empty());
     EntryRefExact i = m_queueExact.front();
     m_queueExact.pop_front();
