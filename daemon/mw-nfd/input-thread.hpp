@@ -69,7 +69,7 @@ class InputThread : noncopyable
          void run();
     private:
         boost::asio::signal_set m_terminationSignalSet;
-
+		int m_Id;
 };
 
 } // namespace nfd

@@ -307,13 +307,11 @@ void Nfd::onInterestRemoteAccess(const ndn::Name& name, const ndn::Interest& int
     ndn::Name interestName(interest.getName());
 
 #ifndef ETRI_NFD_ORG_ARCH
-#if 1
-     if (interestName[-2].isVersion()) {
-	m_forwarderRemoteAccess.replyFromStore(interest, *m_internalClientFaceKoren);
+    if (interestName[-2].isVersion()) {
+        m_forwarderRemoteAccess.replyFromStore(interest, *m_internalClientFaceRemoteAccess);
         return;
-     }
-#endif
-    m_forwarderRemoteAccess.publish(name, interest, *m_internalClientFaceKoren);
+    }
+    m_forwarderRemoteAccess.publish(name, interest, *m_internalClientFaceRemoteAccess);
 #endif
     return;
 }
@@ -364,9 +362,9 @@ Nfd::initializeManagement()
   m_forwarder->getFib().addOrUpdateNextHop(*entry, *m_internalFace, 0);
   m_dispatcher->addTopPrefix(topPrefix, false);
 
-  std::tie(m_internalFaceKoren, m_internalClientFaceKoren) = face::makeInternalFace(m_keyChain);
-  m_faceTable->addReserved(m_internalFaceKoren, FACEID_REMOTE_ACCESS);
-  m_internalClientFaceKoren->setInterestFilter(getRouterName()+"/nfd/status", 
+  std::tie(m_internalFaceRemoteAccess, m_internalClientFaceRemoteAccess) = face::makeInternalFace(m_keyChain);
+  m_faceTable->addReserved(m_internalFaceRemoteAccess, FACEID_REMOTE_ACCESS);
+  m_internalClientFaceRemoteAccess->setInterestFilter(getRouterName()+"/nfd/status", 
           std::bind(&Nfd::onInterestRemoteAccess, this, _1, _2)
           );
 }

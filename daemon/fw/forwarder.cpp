@@ -137,6 +137,7 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
     ++m_counters.nInInterests;
 
 #ifdef ETRI_DEBUG_COUNTERS
+    if(ingress.face.getId() >= face::FACEID_RESERVED_MAX)
     ++m_counters.nFaceCounters[ingress.face.getId()-face::FACEID_RESERVED_MAX][0];
 #endif
 		// drop if HopLimit zero, decrement otherwise (if present)
@@ -473,6 +474,7 @@ Forwarder::onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
   ++m_counters.nOutInterests;
 
 #ifdef ETRI_DEBUG_COUNTERS
+  if(egress.getId() >= face::FACEID_RESERVED_MAX)
     ++m_counters.nFaceCounters[egress.getId()-face::FACEID_RESERVED_MAX][1];
 #endif
 	return &*it;
@@ -513,6 +515,7 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
   ++m_counters.nInData;
 
 #ifdef ETRI_DEBUG_COUNTERS
+  if(ingress.face.getId() >= face::FACEID_RESERVED_MAX)
     ++m_counters.nFaceCounters[ingress.face.getId()-face::FACEID_RESERVED_MAX][2];
 #endif
 
@@ -795,6 +798,7 @@ Forwarder::onOutgoingData(const Data& data, Face& egress)
   ++m_counters.nOutData;
 
 #ifdef ETRI_DEBUG_COUNTERS
+  if(egress.getId() >= face::FACEID_RESERVED_MAX)
     ++m_counters.nFaceCounters[egress.getId()-face::FACEID_RESERVED_MAX][3];
 #endif
 

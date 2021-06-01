@@ -296,33 +296,41 @@ namespace nfd {
 	{
 		uint32_t type = 0;
 		uint64_t length = 0;
+		uint64_t tot_len = 0;
+
 		int nameComponentCnt = 0;
 		size_t hash=0;
 
 		const uint8_t* pos = wire;
 		const uint8_t* end = wire+size;
 
+		const uint8_t* curr;
 		bool ret __attribute__((unused));
 
 		do{ 
-			ret=tlv::readType(pos, end, type);
+            curr = pos;
+            ret=tlv::readType(pos, end, type);
+            if(ret==false) break;
 			ret=tlv::readVarNumber(pos, end, length);
+            if(ret==false) break;
 
 			if( !memcmp(pos, "localhost", 9) or g_forwardingWorkers==0){
 				return DCN_LOCALHOST_PREFIX;
 			}
 
-			if(type == tlv::GenericNameComponent){
-				hash ^= CityHash64( (char *)pos, length       );  
-				++nameComponentCnt;
-				if(nameComponentCnt==g_prefixLength4Distribution)
-					break;
+            ++nameComponentCnt;
 
-				pos += length;
-			}   
+            tot_len += (pos-curr); 
+            tot_len += length;
 
-		}while(pos!=end);
+            pos += length;
 
+		}while(nameComponentCnt!=g_prefixLength4Distribution);
+
+        if(nameComponentCnt!=g_prefixLength4Distribution)
+            return 0;
+
+        hash = CityHash64( (char *)wire, tot_len );  
 		return (hash % g_forwardingWorkers);
 	}
 
