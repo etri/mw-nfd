@@ -132,7 +132,7 @@ void
 Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& interest, int8_t workerId)
 {
     // receive Interest
-    NFD_LOG_DEBUG("onIncomingInterest in=" << ingress << " interest=" << interest.getName());
+    NFD_LOG_DEBUG("onIncomingInterest in=" << ingress << " interest=" << interest.getName() << " workerId=" << workerId);
     interest.setTag(make_shared<lp::IncomingFaceIdTag>(ingress.face.getId()));
     ++m_counters.nInInterests;
 
@@ -197,9 +197,11 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
         this->onInterestLoop(ingress, interest);
         return;
     }
-
-    // is pending?
-    if (!pitEntry->hasInRecords()) {
+// Modified by dmsul for change CS Max packet 20210531
+#ifndef ETRI_DUAL_CS
+    size_t pm_cs_limit = m_cs.getPmLimit();
+    // is pending & pm_cs enable ?
+    if (!pitEntry->hasInRecords() && pm_cs_limit) {
         m_cs.find(interest,
                 bind(&Forwarder::onContentStoreHit, this, ingress, pitEntry, _1, _2),
                 bind(&Forwarder::onContentStoreMiss, this, ingress, pitEntry, _1));
@@ -207,6 +209,35 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
     else {
         this->onContentStoreMiss(ingress, pitEntry, interest);
     }
+#else
+		bool isCanBePrefix = 0;
+		isCanBePrefix = interest.getCanBePrefix();
+
+    if(isCanBePrefix) {
+      size_t pm_cs_limit = m_cs.getPmLimit();
+      // is pending & pm_cs enable ?
+      if (!pitEntry->hasInRecords() && pm_cs_limit) {
+          m_cs.find(interest,
+                  bind(&Forwarder::onContentStoreHit, this, ingress, pitEntry, _1, _2),
+                  bind(&Forwarder::onContentStoreMiss, this, ingress, pitEntry, _1));
+      }
+      else {
+          this->onContentStoreMiss(ingress, pitEntry, interest);
+      }
+    } else {
+      size_t em_cs_limit = m_cs.getEmLimit();
+      NFD_LOG_DEBUG("onIncomingInterest dual_cs em_cs_limit= " << em_cs_limit);
+      // is pending & pm_cs enable ?
+      if (!pitEntry->hasInRecords() && em_cs_limit) {
+          m_cs.find(interest,
+                  bind(&Forwarder::onContentStoreHit, this, ingress, pitEntry, _1, _2),
+                  bind(&Forwarder::onContentStoreMiss, this, ingress, pitEntry, _1));
+      }
+      else {
+          this->onContentStoreMiss(ingress, pitEntry, interest);
+      }
+    }
+#endif
 }
 
 void
@@ -274,8 +305,12 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
         return;
     }
 
-    // is pending?
-    if (!pitEntry->hasInRecords()) {
+// Modified by dmsul for change CS Max packet 20210531
+#ifndef ETRI_DUAL_CS
+    size_t pm_cs_limit = m_cs.getPmLimit();
+    NFD_LOG_DEBUG("onIncomingInterest pm_cs_limit= " << pm_cs_limit);
+    // is pending & pm_cs enable ?
+    if (!pitEntry->hasInRecords() && pm_cs_limit) {
         m_cs.find(interest,
                 bind(&Forwarder::onContentStoreHit, this, ingress, pitEntry, _1, _2),
                 bind(&Forwarder::onContentStoreMiss, this, ingress, pitEntry, _1));
@@ -283,6 +318,36 @@ Forwarder::onIncomingInterest(const FaceEndpoint& ingress, const Interest& inter
     else {
         this->onContentStoreMiss(ingress, pitEntry, interest);
     }
+#else
+		bool isCanBePrefix = 0;
+		isCanBePrefix = interest.getCanBePrefix();
+
+    if(isCanBePrefix) {
+      size_t pm_cs_limit = m_cs.getPmLimit();
+      NFD_LOG_DEBUG("onIncomingInterest dual_cs pm_cs_limit= " << pm_cs_limit);
+      // is pending & pm_cs enable ?
+      if (!pitEntry->hasInRecords() && pm_cs_limit) {
+          m_cs.find(interest,
+                  bind(&Forwarder::onContentStoreHit, this, ingress, pitEntry, _1, _2),
+                  bind(&Forwarder::onContentStoreMiss, this, ingress, pitEntry, _1));
+      }
+      else {
+          this->onContentStoreMiss(ingress, pitEntry, interest);
+      }
+    } else {
+      size_t em_cs_limit = m_cs.getEmLimit();
+      NFD_LOG_DEBUG("onIncomingInterest dual_cs em_cs_limit= " << em_cs_limit);
+      // is pending & pm_cs enable ?
+      if (!pitEntry->hasInRecords() && em_cs_limit) {
+          m_cs.find(interest,
+                  bind(&Forwarder::onContentStoreHit, this, ingress, pitEntry, _1, _2),
+                  bind(&Forwarder::onContentStoreMiss, this, ingress, pitEntry, _1));
+      }
+      else {
+          this->onContentStoreMiss(ingress, pitEntry, interest);
+      }
+    }
+#endif
 }
 
 void
@@ -487,8 +552,12 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
     return;
   }
   
-  // CS insert
- 	m_cs.insert(data);
+  // Modified by dmsul for change CS Max packet 20210531
+  size_t pm_cs_limit = m_cs.getPmLimit();
+	NFD_LOG_DEBUG("onIncomingData pm_cs_limit = " << pm_cs_limit);
+  if(pm_cs_limit) {
+ 	  m_cs.insert(data);
+  }
 
 	// when only one PIT entry is matched, trigger strategy: after receive Data
 	if (pitMatches.size() == 1) {
@@ -576,7 +645,6 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 #ifdef ETRI_PITTOKEN_HASH   // Dual_CS and PitToken hash exact match
 		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
 		hashValue = pitToken->hashValue;
-		NFD_LOG_DEBUG("hashValue: " << pitToken->hashValue );
 #endif
 	}
 
@@ -604,7 +672,19 @@ Forwarder::onIncomingData(const FaceEndpoint& ingress, const Data& data)
 	}
 	
 	// CS insert
-	m_cs.insert(data);
+  // Modified by dmsul for change CS Max packet 20210531
+  if(isCanBePrefix) {
+    size_t pm_cs_limit = m_cs.getPmLimit();
+    if(pm_cs_limit) {
+	    m_cs.insert(data);
+    }
+  } else {
+    size_t em_cs_limit = m_cs.getEmLimit();
+		NFD_LOG_DEBUG("onIncomingData DUAL_CS mode em_cs_limit = " << em_cs_limit);
+    if(em_cs_limit) {
+	    m_cs.insert(data);
+    }
+  }
 
 	// when only one PIT entry is matched, trigger strategy: after receive Data
 	if (pitMatches.size() == 1) {

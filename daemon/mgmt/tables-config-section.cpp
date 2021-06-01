@@ -66,6 +66,18 @@ TablesConfigSection::processConfig(const ConfigSection& section, bool isDryRun)
     nCsMaxPackets = ConfigFile::parseNumber<size_t>(*csMaxPacketsNode, "cs_max_packets", "tables");
   }
 
+  // Modified by dmsul for change CS Max packet 20210531
+  size_t nPmCsMaxPackets = 0;
+  OptionalConfigSection csPmMaxPacketsNode = section.get_child_optional("pm_cs_max_packets");
+  if (csPmMaxPacketsNode) {
+    nPmCsMaxPackets = ConfigFile::parseNumber<size_t>(*csPmMaxPacketsNode, "pm_cs_max_packets", "tables");
+  }
+  size_t nEmCsMaxPackets = 0;
+  OptionalConfigSection csEmMaxPacketsNode = section.get_child_optional("em_cs_max_packets");
+  if (csEmMaxPacketsNode) {
+    nEmCsMaxPackets = ConfigFile::parseNumber<size_t>(*csEmMaxPacketsNode, "em_cs_max_packets", "tables");
+  }
+
   unique_ptr<cs::Policy> csPolicy;
   OptionalConfigSection csPolicyNode = section.get_child_optional("cs_policy");
   if (csPolicyNode) {
@@ -104,7 +116,19 @@ TablesConfigSection::processConfig(const ConfigSection& section, bool isDryRun)
   }
 
   Cs& cs = m_forwarder.getCs();
-  cs.setLimit(nCsMaxPackets);
+
+  // Modified by dmsul for change CS Max packet 20210531
+  if (csPmMaxPacketsNode) {
+    cs.setPmLimit(nPmCsMaxPackets);
+  }
+#ifdef ETRI_DUAL_CS
+  if (csEmMaxPacketsNode) {
+    cs.setEmLimit(nEmCsMaxPackets);
+  } else {
+    cs.setEmLimit(nPmCsMaxPackets);
+  }
+#endif
+
   if (cs.size() == 0 && csPolicy != nullptr) {
     cs.setPolicy(std::move(csPolicy));
   }

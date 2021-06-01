@@ -511,10 +511,19 @@ MwNfd::initializeManagement()
 		nrt.insert(Name(pair.first));
 	}
 
-	auto sCsMaxPackets = config.get_child_optional("tables.cs_max_packets");
-	auto nCsMaxPackets = sCsMaxPackets->get_value<std::size_t>();
-
-	nCsMaxPackets /= getForwardingWorkers();
+  // Modified by dmsul for change CS Max packet 20210531
+	auto sPmCsMaxPackets = config.get_child_optional("tables.pm_cs_max_packets");
+  size_t nPmCsMaxPackets = 0;
+  if(sPmCsMaxPackets) {
+  	nPmCsMaxPackets = sPmCsMaxPackets->get_value<std::size_t>();
+	  nPmCsMaxPackets /= getForwardingWorkers();
+  }
+	auto sEmCsMaxPackets = config.get_child_optional("tables.em_cs_max_packets");
+  size_t nEmCsMaxPackets = 0;
+  if(sEmCsMaxPackets) {
+	  nEmCsMaxPackets = sEmCsMaxPackets->get_value<std::size_t>();
+	  nEmCsMaxPackets /= getForwardingWorkers();
+  }
 
 	auto&& policyName = config.get<std::string>("tables.cs_policy", "lru");
 
@@ -524,7 +533,14 @@ MwNfd::initializeManagement()
 		NDN_THROW(ConfigFile::Error("Unknown cs_policy '" + policyName + "' in section 'tables'"));
 	}
 
-	m_forwarder->getCs().setLimit(nCsMaxPackets);
+  // Modified by dmsul for change CS Max packet 20210531
+	m_forwarder->getCs().setPmLimit(nPmCsMaxPackets);
+  if(sEmCsMaxPackets) {
+	  m_forwarder->getCs().setEmLimit(nEmCsMaxPackets);
+  } else {
+	  m_forwarder->getCs().setEmLimit(nPmCsMaxPackets);
+  }
+
 	if (m_forwarder->getCs().size() == 0 && csPolicy != nullptr) {
 		m_forwarder->getCs().setPolicy(std::move(csPolicy));
 	}

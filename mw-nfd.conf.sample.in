@@ -47,7 +47,9 @@ tables
 {
   ; ContentStore size limit in number of packets
   ; default is 65536, about 500MB with 8KB packet size
-  cs_max_packets 65536
+  ;cs_max_packets 65536
+  pm_cs_max_packets 65536
+  em_cs_max_packets 65536
 
   ; Set the CS replacement policy.
   ; Available policies are: priority_fifo, lru
