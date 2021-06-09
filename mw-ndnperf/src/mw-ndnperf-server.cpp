@@ -51,6 +51,10 @@ using namespace ndn;
 using ConfigSection = boost::property_tree::ptree;
 using OptionalConfigSection = boost::optional<const ConfigSection&>;
 
+#define SLEEP_STEP_NS 1000L
+#define MAX_SLEEP_NS  128000L
+#define ZERO_BULK_TH    5L
+
 // global constants and variables
 namespace global {
     const size_t DEFAULT_THREAD_COUNT = boost::thread::hardware_concurrency();
@@ -79,8 +83,6 @@ private:
     bool m_stop = false;
     std::string m_prefix;
     boost::thread_group m_thread_pool;
-		//boost::asio::io_service m_ioService;
-
     shared_ptr<Face> m_faces[10];
 
     KeyChain m_keychain;
@@ -89,19 +91,13 @@ private:
     size_t m_key_size = 0;
     security::Key m_key;
 
-#if 1
     moodycamel::ConcurrentQueue<std::pair<std::shared_ptr<Interest>, int >> m_queue;
-#else
-    moodycamel::BlockingConcurrentQueue<std::pair<std::shared_ptr<Interest>, int>> m_queue;
-#endif
 
     // vars for pre computed part of Data packets
+    std::shared_ptr<boost::asio::deadline_timer> m_timer;
     Block m_content;
     const size_t m_payload_size;
     const time::milliseconds m_freshness;
-
-    // array for statistics
-    int *m_stat_cnts; // may be less accurate than atomic variables but no sync required
 
 		std::vector<size_t>& m_cores;
 		std::vector<std::string> m_prefixList;
@@ -110,6 +106,11 @@ private:
 
     size_t m_multi_face = 0;
     bool m_proceesFlag[10] = {0,};
+    std::atomic<uint64_t> m_stat_pkt {0};
+    std::atomic<uint64_t> m_stat_time {0};
+
+    std::atomic<uint64_t> m_gapCount {0};
+    std::chrono::steady_clock::time_point m_gapTime = std::chrono::steady_clock::now();
 
 public:
     Server(std::string prefix, tlv::SignatureTypeValue key_type, size_t key_size,
@@ -159,7 +160,7 @@ public:
           m_faces[i] = make_shared<Face>(*io_svc[i]);
         }
 
-        m_stat_cnts = new int[cores.size() * 4](); // [concurrency][0: payload sum, 1: packet count, 2:qtime, 3: ptime]
+        m_timer = std::make_shared<boost::asio::deadline_timer>(*io_svc[0]);
 
         // build once for all the data carried by the packets (packets generated from files ignore this)
         char *chararray = new char[payload_size];
@@ -183,7 +184,6 @@ public:
         }
         std::cout << "Start server with " << m_cores.size() << " signing threads" << std::endl;
         m_thread_pool.create_thread(boost::bind(&Server::display, this));
-
     }
 
     void stop() {
@@ -214,14 +214,9 @@ public:
 				int ret  = pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
 				std::cout << "rsched_setaffiniti's ret: " << ret << std::endl;
 
-#if 1
 				Name name(m_prefix);
 				name.append(std::to_string(i));
-#else
-				Name name(std::to_string(i));
-#endif
 
-#if 1
         size_t face_idx = 0;
 
         face_idx = i % m_multi_face;
@@ -232,11 +227,6 @@ public:
         }
         m_faces[face_idx]->setInterestFilter(name, bind(&Server::on_interest, this, _2, face_idx), bind(&Server::on_register_failed, this, _2, 1));
 				std::cout << "setInterestFilter face = "<< face_idx << " core = " << core << " name =  " << name << std::endl;
-#else
-        m_thread_pool.create_thread(boost::bind(&Face::processEvents, m_faces[i].get(), time::milliseconds::zero(), false));
-        m_faces[i]->setInterestFilter(name, bind(&Server::on_interest, this, _2, i), bind(&Server::on_register_failed, this, _2, 1));
-				std::cout << "setInterestFilter face = "<< i << " core = " << core << " name =  " << name << std::endl;
-#endif
 
     }
 
@@ -252,116 +242,89 @@ public:
 				size_t bulk_size = 0;
 				size_t j = 0;
 				size_t face_idx = 0;
+				size_t zero_bulk_cnt = 0;
+        struct timespec request{0,0};
 
         std::pair<std::shared_ptr<Interest>, int> interest_pairs[10];
         while (!m_stop) {
 					bulk_size = m_queue.try_dequeue_bulk(interest_pairs, 3);
 
-					for(j = 0; j < bulk_size; j++) {
+          if(bulk_size) {
+            for(j = 0; j < bulk_size; j++) {
 
-            auto start = std::chrono::steady_clock::now();
+              auto start = std::chrono::steady_clock::now();
 
-            Name name = interest_pairs[j].first->getName();
+              Name name = interest_pairs[j].first->getName();
 
-						auto pitToken = interest_pairs[j].first->getTag<lp::PitToken>();
+              auto pitToken = interest_pairs[j].first->getTag<lp::PitToken>();
 
-            auto data = make_shared<Data>(name);
-            data->setFreshnessPeriod(m_freshness);
+              auto data = make_shared<Data>(name);
+              data->setFreshnessPeriod(m_freshness);
 
-						if(pitToken != nullptr) {       
-							data->setTag(pitToken);
-							//std::cout << "PitToken = " << *pitToken << std::endl;
-						}
+              if(pitToken != nullptr) {       
+                data->setTag(pitToken);
+                //std::cout << "PitToken = " << *pitToken << std::endl;
+              }
 
-						data->setContent(m_content);
-            ++m_stat_cnts[i*4];
+              data->setContent(m_content);
+              ++m_stat_pkt;
 
-            if (m_key_type != tlv::DigestSha256) {
-                keychain.sign(*data, security::SigningInfo(m_key));
-            } else {
-                // sign with DigestSha256
-                keychain.sign(*data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
+              if (m_key_type != tlv::DigestSha256) {
+                  keychain.sign(*data, security::SigningInfo(m_key));
+              } else {
+                  // sign with DigestSha256
+                  keychain.sign(*data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
+              }
+
+              face_idx = interest_pairs[j].second;
+
+              m_faces[face_idx]->put(*data);
+              m_stat_time += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
             }
-
-            face_idx = interest_pairs[j].second;
-
-           	m_faces[face_idx]->put(*data);
-            ++m_stat_cnts[i*4+1];
-            m_stat_cnts[i*4+3] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-					}
-					bulk_size = 0;
+            bulk_size = 0;
+            zero_bulk_cnt = 0;
+            request.tv_nsec = 0;
+          } else {
+            zero_bulk_cnt++;
+            if(zero_bulk_cnt > ZERO_BULK_TH) {
+              request.tv_nsec = std::min(request.tv_nsec + SLEEP_STEP_NS, MAX_SLEEP_NS);
+              nanosleep(&request, NULL);
+            }              
+          }
         }
     }
 
     void on_interest(const Interest &interest, int i) {
 				//std::cout << "receive interest : " << interest << std::endl;
+
         m_queue.enqueue(std::make_pair(std::make_shared<Interest>(interest), i));
-
-    }
-
-    void on_interest_data(const Interest &interest, int i) {
-				//std::cout << "receive interest : " << interest << std::endl;
-        KeyChain keychain;
-
-        auto start = std::chrono::steady_clock::now();
-
-        Name name = interest.getName();
-
-        auto pitToken = interest.getTag<lp::PitToken>();
-
-        auto data = make_shared<Data>(name);
-        data->setFreshnessPeriod(m_freshness);
-
-        if(pitToken != nullptr) {       
-          data->setTag(pitToken);
-          //std::cout << "PitToken = " << *pitToken << std::endl;
-        }
-
-        data->setContent(m_content);
-        ++m_stat_cnts[i*4];
-
-        if (m_key_type != tlv::DigestSha256) {
-            keychain.sign(*data, security::SigningInfo(m_key));
-        } else {
-            // sign with DigestSha256
-            keychain.sign(*data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-        }
-
-        m_faces[i]->put(*data);
-        ++m_stat_cnts[i*4+1];
-        m_stat_cnts[i*4+3] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-
     }
 
     void display() {
         std::time_t time;
         char mbstr[32];
-        int log_vars[8] = {}; // [0: payload sum, 1: packet count, 2:qtime, 3: ptime][1: new, 2: last]
+        uint64_t payload_sum = 0;
+        uint64_t packet_count = 0;
+        uint64_t process_time = 0;
 
-        while (!m_stop) {
-            // accumulate value and compare with last
-            for (int i = 0; i < 8; i += 2) {
-                log_vars[i + 1] = -log_vars[i];
-                log_vars[i] = 0;
-            }
-            for (size_t i = 0; i < m_cores.size(); ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    log_vars[2 * j] += m_stat_cnts[4 * i + j];
-                }
-            }
-            for (int i = 0; i < 8; i += 2) {
-                log_vars[i + 1] += log_vars[i];
-            }
-            log_vars[1] = (log_vars[1] * m_payload_size ) >> 8; // in kilobits per second each 2 seconds (10 + 1 - 3), in decimal 8/(1024*2);
-            log_vars[5] /= log_vars[3] != 0 ? log_vars[3] : -1; // negative value if unusual
-            log_vars[7] /= log_vars[3] != 0 ? log_vars[3] : -1; // negative value if unusual
-            log_vars[3] >>= 1; // per second each 2 seconds
+        packet_count = m_stat_pkt;
+        m_stat_pkt = 0;
+        process_time = m_stat_time;
+        m_stat_time = 0;
 
-            time = std::time(NULL);
-            std::strftime(mbstr, sizeof(mbstr), "%c - ", std::localtime(&time));
-            std::cout << mbstr << log_vars[1] << " Kbps( " << log_vars[3] << " pkt/s) - qtime= " << log_vars[5] << " us, ptime= " << log_vars[7] << " us" << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-        }
+        payload_sum = (packet_count * m_payload_size ) >> 8; // in kilobits per second each 2 seconds (10 + 1 - 3), in decimal 8/(1024*2);
+        process_time /=  packet_count!= 0 ? packet_count : -1; // negative value if unusual
+        packet_count >>= 1; // per second each 2 seconds
+
+        time = std::time(NULL);
+        std::strftime(mbstr, sizeof(mbstr), "%c - ", std::localtime(&time));
+        std::cout << mbstr << payload_sum << " Kbps( " << packet_count << " pkt/s) " << ", ptime= " << process_time << " us " <<  std::endl;
+        waitNextDisplay();
+    }
+
+    void waitNextDisplay() {    
+      m_timer->expires_from_now(boost::posix_time::seconds(2));
+      m_timer->async_wait(boost::bind(&Server::display, this));  
     }
 
     void on_register_failed(std::string reason, int index){
