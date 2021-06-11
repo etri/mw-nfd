@@ -125,7 +125,7 @@ public:
 		{
         if (m_key_type != tlv::DigestSha256) {
             auto it = m_keychain.getPib().getIdentities().find(m_prefix);
-            m_identity = it != m_keychain.getPib().getIdentities().end() ? *it : m_keychain.createIdentity(prefix);
+            //m_identity = it != m_keychain.getPib().getIdentities().end() ? *it : m_keychain.createIdentity(m_prefix);
 
             switch (m_key_type) {
                 default:
@@ -134,7 +134,8 @@ public:
                         m_key_size = global::DEFAULT_RSA_KEY_SIZE;
                     }
                     std::cout << "Generating new " << m_key_size << " bits RSA key pair" << std::endl;
-                    m_key = m_keychain.createKey(m_identity, RsaKeyParams(m_key_size));
+                    //m_key = m_keychain.createKey(m_identity, RsaKeyParams(m_key_size));
+                    m_identity = it != m_keychain.getPib().getIdentities().end() ? *it : m_keychain.createIdentity(m_prefix, RsaKeyParams(m_key_size));
                     break;
                 }
                 case tlv::SignatureSha256WithEcdsa: {
@@ -142,13 +143,14 @@ public:
                         m_key_size = global::DEFAULT_EC_KEY_SIZE;
                     }
                     std::cout << "Generating new " << m_key_size << " bits ECDSA key pair" << std::endl;
-                    m_key = m_keychain.createKey(m_identity, EcKeyParams(m_key_size));
+                    //m_key = m_keychain.createKey(m_identity, EcKeyParams(m_key_size));
+                    m_identity = it != m_keychain.getPib().getIdentities().end() ? *it : m_keychain.createIdentity(m_prefix, EcKeyParams(m_key_size));
                     break;
                 }
             }
 
-            std::cout << "Using key " << m_key.getName() << "\n"
-                      << m_key.getDefaultCertificate() << std::endl;
+            std::cout << "Using key " << m_identity.getName() << "\n"
+                      << m_identity.getDefaultKey() << std::endl;
         } else {
             std::cout << "Using SHA-256 signature" << std::endl;
         }
@@ -200,10 +202,13 @@ public:
         m_thread_pool.join_all();
 
         // clean up
+#if 0
         if (m_key_type > 0) {
             std::cout << "Deleting generated key... " << std::endl;
             m_keychain.deleteKey(m_identity, m_key);
         }
+#endif
+
     }
 
     void process(int i, int core) {
@@ -270,7 +275,8 @@ public:
               ++m_stat_pkt;
 
               if (m_key_type != tlv::DigestSha256) {
-                  keychain.sign(*data, security::SigningInfo(m_key));
+                  //keychain.sign(*data, security::SigningInfo(m_key));
+                  keychain.sign(*data, security::SigningInfo(m_identity));
               } else {
                   // sign with DigestSha256
                   keychain.sign(*data, security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
