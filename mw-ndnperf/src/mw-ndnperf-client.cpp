@@ -38,7 +38,7 @@ static const int DEFAULT_INTERVAL = 100;
 static const bool DEFAULT_DIGEST = true;
 static const bool DEFAULT_CANBEPREFIX = false;
 static const bool DEFAULT_MUSTBEFRESH = false;
-static const int MAX_CORE_COUNT = 10;
+static const int MAX_CORE_COUNT = 30;
 
 static bool g_stop = false;
 
@@ -53,12 +53,13 @@ class Client {
 private:
 		std::shared_ptr<boost::asio::signal_set> m_signalSet;
     std::shared_ptr<boost::asio::deadline_timer> m_timer;
-		shared_ptr<Face> m_faces[10];
+		shared_ptr<Face> m_faces[30];
 		std::string m_prefix;
     size_t m_window = DEFAULT_WINDOW;
     size_t m_interval = DEFAULT_INTERVAL;
     bool m_digest = DEFAULT_DIGEST;
     std::atomic<bool> m_first {true};
+    std::atomic<bool> m_findkey {false};
     std::atomic<uint64_t> m_payload_size {0};
     std::atomic<uint64_t> m_rtt {0};
 		size_t m_max_cnt = 0;
@@ -81,6 +82,9 @@ private:
     Name m_peakName;
     std::atomic<uint64_t> m_gapTime {0};
     std::chrono::steady_clock::time_point m_startTime;
+
+    KeyChain m_keychain;
+    security::Identity m_identity;
 
 public:
     Client(std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, bool canbeprefix, bool mustbefresh);
@@ -218,38 +222,72 @@ void Client::onData(const Interest &interest, const Data &data, std::chrono::ste
 #endif
 
     if (m_first) {
+        m_first = false;
 				m_keyType = data.getSignatureInfo().getSignatureType();
         std::cout << "Server signature type(0:Sha256, 1:Sha256WithRsa, 3:Sha256WithEcdsa, 4:HmacWithSha256) = " << m_keyType << std::endl;
         std::cout << "Server packet size= " << data.getContent().value_size() << std::endl;
 		    m_payload_size = data.getContent().value_size();
-        m_first = false;
         m_startTime = std::chrono::steady_clock::now();
-    }
 
-		if(m_digest) {
+        auto it = m_keychain.getPib().getIdentities().find(m_prefix);
+
+        if(it != m_keychain.getPib().getIdentities().end()) {
+          m_identity = *it;
+          security::Key key = m_identity.getDefaultKey();
+          std::cout << "Find " << m_prefix << " key " << key.getName() << "\n"
+                    << key.getDefaultCertificate() << std::endl;
+          m_findkey = true;
+        } else {
+          std::cout << "Not Find " << m_prefix << " key !!!! " << std::endl;
+        }
+    }
+    
+#if 1
+    Name name(m_prefix);
+    name.append(std::to_string(i));
+    name.append(std::to_string(++m_interest_cnt[i]));
+    Interest new_interest(name);
+    new_interest.setMustBeFresh(m_mustbefresh);
+    new_interest.setCanBePrefix(m_canbeprefix);
+
+    std::chrono::steady_clock::time_point new_start = std::chrono::steady_clock::now();
+    m_faces[i]->expressInterest(new_interest, boost::bind(&Client::onData, this, _1, _2, new_start, i),
+                          boost::bind(&Client::onNack, this, _1, _2),
+                          boost::bind(&Client::onTimeout, this, _1, 2, new_start, i));
+#endif
+
+		if(m_digest && m_findkey) {
 			switch (m_keyType) {
 				case tlv::DigestSha256 :
 					if(security::verifyDigest(data, DigestAlgorithm::SHA256)) {
         		//std::cout << "verifyDigest is OK, " << data.getName().toUri() << std::endl;
 					}
+					break;
 				case tlv::SignatureSha256WithRsa :
 				case tlv::SignatureSha256WithEcdsa :
+					if(security::verifySignature(data, m_identity.getDefaultKey())) {
+        		//std::cout << "verifySignature is OK, " << data.getName().toUri() << std::endl;
+					} else {
+        		std::cout << "verifySignature is Error, " << data.getName().toUri() << std::endl;
+          }
 				case tlv::SignatureHmacWithSha256:
 					break;
 			}
 		} 
 
+#if 0
     Name name(m_prefix);
     name.append(std::to_string(i));
     name.append(std::to_string(++m_interest_cnt[i]));
-    Interest interest(name);
-    interest.setMustBeFresh(m_mustbefresh);
-    interest.setCanBePrefix(m_canbeprefix);
+    Interest new_interest(name);
+    new_interest.setMustBeFresh(m_mustbefresh);
+    new_interest.setCanBePrefix(m_canbeprefix);
 
-    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-    m_faces[i]->expressInterest(interest, boost::bind(&Client::onData, this, _1, _2, start, i),
+    std::chrono::steady_clock::time_point new_start = std::chrono::steady_clock::now();
+    m_faces[i]->expressInterest(new_interest, boost::bind(&Client::onData, this, _1, _2, new_start, i),
                           boost::bind(&Client::onNack, this, _1, _2),
-                          boost::bind(&Client::onTimeout, this, _1, 2, start, i));
+                          boost::bind(&Client::onTimeout, this, _1, 2, new_start, i));
+#endif
 
     if(m_interval > 0) {
 	    std::this_thread::sleep_for(std::chrono::milliseconds(m_interval));
@@ -306,12 +344,13 @@ Client::stop()
 		m_threadGroup.join_all();
     
     size_t pps = m_total_cnt / testTime ;
-    size_t bps = pps * m_payload_size >> 7;
+    size_t kbps = (pps * m_payload_size) >> 7;
     double giga = 1024 * 1024;
-    double gbps = bps / giga;
+    double gbps = kbps / giga;
 
     std::cout.precision(3);
-		std::cout << "Total Test Time = " << testTime<< " s, "<< bps <<" Kbps(" << gbps << "G), " <<pps << " pkt/s" << std::endl;
+    std::cout << " Payload Size = " << m_payload_size << std::endl;
+		std::cout << " Total Test Time = " << testTime<< " s, "<< kbps <<" Kbps(" << gbps << "G), " <<pps << " pkt/s" << std::endl;
 }
 
 void signalHandler(int signum) {
