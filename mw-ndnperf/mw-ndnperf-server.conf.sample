@@ -1,10 +1,10 @@
-master-core 2
-process-core 10,11
+prefix perf
+multi-face 4
+process-core 19,21,23,25,27,29,31,33
 signature-type DigestSha256
-; signature-type SignatureSha256WithRsa
-; signature-type SignatureSha256WithEcdsa
+;signature-type SignatureSha256WithRsa
+signature-type SignatureSha256WithEcdsa
 chunk-size 4096
 rsa-key-size 2048
 ec-key-size 256
 freshness 1; unit: ms
-
