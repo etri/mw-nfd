@@ -671,6 +671,46 @@ namespace nfd {
 			return;
 		}
 
+	bool dcnReceivePacket(ndn::ConstBufferPtr buffer, size_t len, uint64_t face)
+	{
+#ifdef ETRI_NFD_ORG_ARCH
+		return false;
+#else
+		int32_t packetType=0;
+		int32_t worker=0;
+		bool isOk=false;
+		bool ret __attribute__((unused));
+		std::tie(isOk, packetType, worker) = dissectNdnPacket( buffer->data(), len );
+
+		if( !isOk ){
+			if(packetType==ndn::lp::tlv::LpPacket)
+				return false;
+		}
+
+		if(worker==DCN_LOCALHOST_PREFIX){
+			return false;
+		}
+
+		if(packetType>=0 and worker >=0){
+			NDN_MSG msg;
+			msg.buffer2 = buffer;
+			msg.endpoint = 0;
+			msg.type = CONST_BUFFER; // ConstBuffer type
+			msg.faceId = face;
+
+			if(packetType==tlv::Interest)
+				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId() ][worker]->try_enqueue(msg);
+			else
+				ret = nfd::g_dcnMoodyMQ[ getGlobalIwId()+1 ][worker]->try_enqueue(msg);
+#ifdef ETRI_DEBUG_COUNTERS
+			if(ret==false) g_nEnqMiss[face-face::FACEID_RESERVED_MAX]+=1;
+#endif
+		}   
+
+		return true;
+#endif
+	}
+
 	bool dcnReceivePacket(const uint8_t * pkt, size_t len, uint64_t face)
 	{
 		//std::cout << "face: " << face << ", dcnReceivePacket on CPU " << sched_getcpu() << std::endl;

@@ -32,6 +32,9 @@
 #include "concurrentqueue.h"
 #include "mw-nfd-worker.hpp"
 
+#include <ndn-cxx/encoding/buffer.hpp>
+#include <boost/asio/buffer.hpp>
+
 #include <ndn-cxx/mgmt/nfd/control-parameters.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/multi_index_container.hpp>
@@ -199,8 +202,6 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters, bool);
 
     typedef struct st_ndn_out_msg {
-        //std::shared_ptr<ndn::Interest> interest;
-        //std::shared_ptr<ndn::Data> data;
         const ndn::Interest* interest;
         const ndn::Data* data;
 			const lp::Nack *nack;
@@ -210,6 +211,8 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
     typedef struct st_ndn_msg {
         std::shared_ptr<ndn::Buffer> buffer;
+        ndn::ConstBufferPtr buffer2;
+#define CONST_BUFFER 3
         std::shared_ptr<ndn::Interest> interest;
         std::shared_ptr<ndn::Data> data;
         nfd::face::EndpointId endpoint;
@@ -236,6 +239,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
     void setGlobalNetName(bool);
 
     bool dcnReceivePacket(const uint8_t *, size_t, uint64_t);
+    bool dcnReceivePacket(ndn::ConstBufferPtr, size_t, uint64_t);
 
 int getIfIndex(const char *addr);
 int32_t computeWorkerId( const uint8_t *wire, size_t size );
@@ -245,8 +249,6 @@ void setPrefixLength4Distribution(size_t);
 size_t getPrefixLength4Distribution();
 void setForwardingWorkers(int8_t);
 int8_t  getForwardingWorkers();
-//void setFibSharding(bool);
-//bool getFibSharding();
 
 boost::asio::io_service*
 getGlobalIoService(int);

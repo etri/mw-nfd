@@ -86,6 +86,8 @@ public:
 
 	void decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
 			size_t faceId, EndpointId ep);
+	void decodeNetPacketFromMq2(shared_ptr<const ndn::Buffer> buffer, 
+			size_t faceId, EndpointId ep);
 	//void processNfdcCommand( void * );
 
 	std::tuple<uint64_t,uint64_t,uint64_t> getLinkServiceCounters(FaceId);

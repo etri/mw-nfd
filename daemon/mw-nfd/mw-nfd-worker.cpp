@@ -663,7 +663,10 @@ void MwNfd::runWorker()
 			nItems = nfd::g_dcnMoodyMQ[iw+1][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Data
 			rx_cnt +=nItems;
 			for(idx=0;idx<nItems;idx++){
-				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
+                if(items[idx].type == CONST_BUFFER)
+				    decodeNetPacketFromMq2(items[idx].buffer2, items[idx].faceId, items[idx].endpoint);
+                else
+				    decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
 #ifdef ETRI_DEBUG_COUNTERS
             g_nMQdist[m_workerId][nItems]+=1;
@@ -674,7 +677,10 @@ void MwNfd::runWorker()
 			nItems = nfd::g_dcnMoodyMQ[iw][m_workerId]->try_dequeue_bulk(items, DEQUEUE_BULK_MAX-1); // for Interest
 			rx_cnt += nItems;
 			for(idx=0;idx<nItems;idx++){
-				decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
+                if(items[idx].type == CONST_BUFFER)
+				    decodeNetPacketFromMq2(items[idx].buffer2, items[idx].faceId, items[idx].endpoint);
+                else
+				    decodeNetPacketFromMq(items[idx].buffer, items[idx].faceId, items[idx].endpoint);
 			}
 #ifdef ETRI_DEBUG_COUNTERS
             g_nMQdist[m_workerId][nItems]+=1;
@@ -711,6 +717,34 @@ void MwNfd::runWorker()
 
 	}while(!m_done);
 
+}
+
+void MwNfd::decodeNetPacketFromMq2(shared_ptr<const ndn::Buffer> buffer, 
+		size_t faceId, EndpointId endpoint)
+{
+    m_face = m_faceTable->get(faceId);
+	if(m_face==nullptr){
+#ifdef __linux__
+		NFD_LOG_WARN("There is no face Entry with " << faceId << " on CPU " << sched_getcpu());
+#endif
+		return;
+	}
+
+    Block packet(buffer->data(), buffer->size()) ;
+
+	std::map<FaceId,std::shared_ptr<nfd::face::GenericLinkService>>::iterator it;
+	it = m_genericLinkServiceList.find(faceId);
+	//if( faceId != face::FACEID_INTERNAL_FACE and it == m_genericLinkServiceList.end() ){
+	if( it == m_genericLinkServiceList.end() ){
+#ifdef __linux__
+		NFD_LOG_WARN("There is no LinkService(for decodeNetPacketFromMq) Entry with " << faceId << " on CPU " << sched_getcpu());
+#endif
+		return;
+	}
+
+	std::shared_ptr<nfd::face::GenericLinkService> mw_linkservice = it->second;
+
+	mw_linkservice->receivePacket(packet, endpoint);
 }
 
 void MwNfd::decodeNetPacketFromMq(const shared_ptr<ndn::Buffer> buffer, 
