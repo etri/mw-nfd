@@ -229,16 +229,18 @@ void Client::onData(const Interest &interest, const Data &data, std::chrono::ste
 		    m_payload_size = data.getContent().value_size();
         m_startTime = std::chrono::steady_clock::now();
 
-        auto it = m_keychain.getPib().getIdentities().find(m_prefix);
+        if(m_keyType) {
+          auto it = m_keychain.getPib().getIdentities().find(m_prefix);
 
-        if(it != m_keychain.getPib().getIdentities().end()) {
-          m_identity = *it;
-          security::Key key = m_identity.getDefaultKey();
-          std::cout << "Find " << m_prefix << " key " << key.getName() << "\n"
-                    << key.getDefaultCertificate() << std::endl;
-          m_findkey = true;
-        } else {
-          std::cout << "Not Find " << m_prefix << " key !!!! " << std::endl;
+          if(it != m_keychain.getPib().getIdentities().end()) {
+            m_identity = *it;
+            security::Key key = m_identity.getDefaultKey();
+            std::cout << "Find " << m_prefix << " key " << key.getName() << "\n"
+                      << key.getDefaultCertificate() << std::endl;
+            m_findkey = true;
+          } else {
+            std::cout << "Not Find " << m_prefix << " key !!!! " << std::endl;
+          }
         }
     }
     
