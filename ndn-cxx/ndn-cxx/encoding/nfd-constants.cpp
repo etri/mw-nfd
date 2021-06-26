@@ -178,7 +178,9 @@ operator<<(std::ostream& os, RouteFlags routeFlags)
 
   static const std::map<RouteFlags, std::string> knownBits = {
     {ROUTE_FLAG_CHILD_INHERIT, "child-inherit"},
-    {ROUTE_FLAG_CAPTURE, "capture"}
+    {ROUTE_FLAG_CAPTURE, "capture"},
+    //added by MODORI on 20210626
+    {ROUTE_FLAG_NET_NAME, "net-name"}
   };
 
   auto join = make_ostream_joiner(os, '|');

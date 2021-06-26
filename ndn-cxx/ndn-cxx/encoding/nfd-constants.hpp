@@ -94,6 +94,14 @@ enum CsFlagBit {
   BIT_CS_ENABLE_SERVE = 1, ///< enables the CS to satisfy Interests using cached Data
 };
 
+// added by MODORI on 20210624
+enum NamePrefixType : uint16_t {
+  NAME_PREFIX_TYPE_NONE          = std::numeric_limits<uint16_t>::max(),
+  NAME_PREFIX_TYPE_APP= 1,
+  NAME_PREFIX_TYPE_NETWORK= 2
+};
+// end MODORI
+
 /** \ingroup management
  */
 enum RouteOrigin : uint16_t {
@@ -124,6 +132,8 @@ enum RouteFlags : uint64_t {
   ROUTE_FLAGS_NONE         = 0,
   ROUTE_FLAG_CHILD_INHERIT = 1,
   ROUTE_FLAG_CAPTURE       = 2,
+  // added by MODORI on 20210626
+  ROUTE_FLAG_NET_NAME       = 4,
 };
 
 std::ostream&
