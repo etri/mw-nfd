@@ -162,7 +162,6 @@ RibModule::add(ExecuteContext& ctx)
 
 
   auto registerRoute = [&] (uint64_t faceId) {
-std::cout << "registerRoute faceId: " << faceId << std::endl;
     ControlParameters registerParams;
     registerParams
       .setName(prefix)
@@ -177,8 +176,6 @@ std::cout << "registerRoute faceId: " << faceId << std::endl;
     if (expiresMillis) {
       registerParams.setExpirationPeriod(time::milliseconds(*expiresMillis));
     }   
-
-    std::cout << "flsls: " << registerParams.getFlags() << std::endl;
 
     ctx.controller.start<ndn::nfd::RibRegisterCommand>(
       registerParams,
