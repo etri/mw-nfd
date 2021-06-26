@@ -116,6 +116,10 @@ operator>>(std::istream& is, RouteOrigin& routeOrigin)
     routeOrigin = ROUTE_ORIGIN_AUTOCONF;
   else if (iequals(s, "nlsr"))
     routeOrigin = ROUTE_ORIGIN_NLSR;
+    //added by MODORI on 20210626
+  else if (iequals(s, "bgp"))
+    routeOrigin = ROUTE_ORIGIN_BGP;
+    //end 
   else if (iequals(s, "prefixann"))
     routeOrigin = ROUTE_ORIGIN_PREFIXANN;
   else if (iequals(s, "static"))
@@ -159,6 +163,9 @@ operator<<(std::ostream& os, RouteOrigin routeOrigin)
       return os << "client";
     case ROUTE_ORIGIN_AUTOCONF:
       return os << "autoconf";
+      //added by MODORI on 20210626
+    case ROUTE_ORIGIN_BGP:
+      return os << "bgp";
     case ROUTE_ORIGIN_NLSR:
       return os << "nlsr";
     case ROUTE_ORIGIN_PREFIXANN:

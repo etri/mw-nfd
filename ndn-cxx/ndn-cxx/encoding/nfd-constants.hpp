@@ -111,6 +111,8 @@ enum RouteOrigin : uint16_t {
   ROUTE_ORIGIN_CLIENT        = 65,
   ROUTE_ORIGIN_AUTOCONF      = 66,
   ROUTE_ORIGIN_NLSR          = 128,
+  //added by MODORI on 20210626
+  ROUTE_ORIGIN_BGP          = 130,
   ROUTE_ORIGIN_PREFIXANN     = 129,
   ROUTE_ORIGIN_STATIC        = 255,
 };
