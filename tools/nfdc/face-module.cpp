@@ -27,6 +27,8 @@
 #include "canonizer.hpp"
 #include "find-face.hpp"
 
+#include <iostream>
+
 namespace nfd {
 namespace tools {
 namespace nfdc {
@@ -254,6 +256,7 @@ FaceModule::create(ExecuteContext& ctx)
     if (canonicalLocal) {
       params.setLocalUri(canonicalLocal->toString());
     }
+	std::cout << "params.getUri: " << canonicalRemote->toString() << ", local: " << params.getLocalUri() << std::endl;
     params.setFacePersistency(persistency);
     if (!boost::logic::indeterminate(lpReliability)) {
       params.setFlagBit(ndn::nfd::BIT_LP_RELIABILITY_ENABLED, bool(lpReliability));

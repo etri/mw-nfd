@@ -100,6 +100,8 @@ public:
    */
   time::steady_clock::TimePoint annExpires;
 
+    // added by MODORI on 20210626
+    bool netNamePrefix;
 private:
   scheduler::EventId m_expirationEvent;
 };

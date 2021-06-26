@@ -170,17 +170,15 @@ std::cout << "registerRoute faceId: " << faceId << std::endl;
       .setOrigin(origin)
       .setCost(cost)
       .setFlags((wantChildInherit ? ndn::nfd::ROUTE_FLAG_CHILD_INHERIT : ndn::nfd::ROUTE_FLAGS_NONE) |
-                (wantCapture ? ndn::nfd::ROUTE_FLAG_CAPTURE : ndn::nfd::ROUTE_FLAGS_NONE));
+                (wantCapture ? ndn::nfd::ROUTE_FLAG_CAPTURE : ndn::nfd::ROUTE_FLAGS_NONE) |
+                // added by MODORI on 20210624
+                (wantNetName ? ndn::nfd::ROUTE_FLAG_NET_NAME : ndn::nfd::ROUTE_FLAGS_NONE)
+                );
     if (expiresMillis) {
       registerParams.setExpirationPeriod(time::milliseconds(*expiresMillis));
     }   
 
-// added by ETRI(modori) on 20210223
-  if(wantNetName) {
-      auto flags = registerParams.getFlags();
-      flags |= 1UL << 32; // ROUTE_FLAGS_NET_NAME
-    registerParams.setFlags(flags);
-  }
+    std::cout << "flsls: " << registerParams.getFlags() << std::endl;
 
     ctx.controller.start<ndn::nfd::RibRegisterCommand>(
       registerParams,
@@ -426,6 +424,11 @@ RibModule::formatRouteText(std::ostream& os, const RibEntry& entry, const Route&
   else {
     os << ia("expires") << "never";
   }
+
+if(route.isAppNamePrefix())
+  os << ia("type") << "app";
+  else
+  os << ia("type") << "network";
 }
 
 } // namespace nfdc

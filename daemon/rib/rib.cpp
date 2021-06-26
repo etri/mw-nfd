@@ -101,6 +101,7 @@ Rib::insert(const Name& prefix, const Route& route)
 
     RibEntry::iterator entryIt;
     bool didInsert = false;
+
     std::tie(entryIt, didInsert) = entry->insertRoute(route);
 
     if (didInsert) {

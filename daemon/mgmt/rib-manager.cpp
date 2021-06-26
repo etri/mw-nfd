@@ -272,11 +272,10 @@ RibManager::registerEntry(const Name& topPrefix, const Interest& interest,
 
   // added by ETRI(modor) on 20201014
   auto flags = parameters.getFlags();
-  if( (flags >> ROUTE_FLAGS_NET_NAME) & 1U ){
-    setGlobalNetName(true);
-    flags &=~(1UL << ROUTE_FLAGS_NET_NAME);
-    route.flags = flags;
-  }
+  if( parameters.getFlags() & ndn::nfd::ROUTE_FLAG_NET_NAME ){
+    route.netNamePrefix = true;
+  }else
+    route.netNamePrefix = false;
 
   beginAddRoute(parameters.getName(), std::move(route), expires, [] (RibUpdateResult) {});
 }
@@ -370,6 +369,7 @@ RibManager::listEntries(const Name& topPrefix, const Interest& interest,
       r.setOrigin(route.origin);
       r.setCost(route.cost);
       r.setFlags(route.flags);
+
       if (route.expires) {
         r.setExpirationPeriod(time::duration_cast<time::milliseconds>(*route.expires - now));
       }
