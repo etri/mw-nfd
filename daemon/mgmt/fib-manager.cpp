@@ -66,6 +66,8 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
   FaceId faceId = parameters.getFaceId();
   uint64_t cost = parameters.getCost();
 
+  std::cout << "prefix: " << prefix << " addNextHop: " << parameters.getFlags() << std::endl;
+
   if (prefix.size() > Fib::getMaxDepth()) {
     NFD_LOG_DEBUG("fib/add-nexthop(" << prefix << ',' << faceId << ',' << cost <<
                   "): FAIL prefix-too-long");
@@ -99,6 +101,7 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
 
 #endif
 
+    parameters.unsetFlags();
   return done(ControlResponse(200, "Success").setBody(parameters.wireEncode()));
 }
 

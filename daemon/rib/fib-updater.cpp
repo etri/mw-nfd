@@ -240,6 +240,8 @@ FibUpdater::sendAddNextHopUpdate(const FibUpdate& update,
     ControlParameters()
       .setName(update.name)
       .setFaceId(update.faceId)
+      //added by MODORI on 20210626
+      .setFlags(update.flags)
       .setCost(update.cost), 
     bind(&FibUpdater::onUpdateSuccess, this, update, onSuccess, onFailure),
     bind(&FibUpdater::onUpdateError, this, update, onSuccess, onFailure, _1, nTimeouts));
@@ -342,7 +344,7 @@ FibUpdater::addInheritedRoutes(const RibEntry& entry, const Rib::RouteSet& route
       // Create a record of the inherited route so it can be added to the RIB later
       addInheritedRoute(entry.getName(), route);
 
-      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), route.faceId, route.cost));
+      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), route.faceId, route.cost, route.flags));
     }
   }
 }
@@ -356,7 +358,7 @@ FibUpdater::addInheritedRoutes(const Name& name, const Rib::RouteSet& routesToAd
       // Create a record of the inherited route so it can be added to the RIB later
       addInheritedRoute(name, route);
 
-      addFibUpdate(FibUpdate::createAddUpdate(name, route.faceId, route.cost));
+      addFibUpdate(FibUpdate::createAddUpdate(name, route.faceId, route.cost, route.flags));
     }
   }
 }
@@ -378,7 +380,7 @@ FibUpdater::createFibUpdatesForNewRibEntry(const Name& name, const Route& route,
                                            const Rib::RibEntryList& children)
 {
   // Create FIB update for new entry
-  addFibUpdate(FibUpdate::createAddUpdate(name, route.faceId, route.cost));
+  addFibUpdate(FibUpdate::createAddUpdate(name, route.faceId, route.cost, route.flags));
 
   // No flags are set
   if (!route.isChildInherit() && !route.isRibCapture()) {
@@ -455,7 +457,7 @@ FibUpdater::createFibUpdatesForNewRoute(const RibEntry& entry, const Route& rout
   const Route* other = entry.getRouteWithLowestCostByFaceId(route.faceId);
 
   if (other == nullptr || route.cost <= other->cost) {
-    addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), route.faceId, route.cost));
+    addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), route.faceId, route.cost, route.flags));
   }
 }
 
@@ -478,12 +480,12 @@ FibUpdater::createFibUpdatesForUpdatedRoute(const RibEntry& entry, const Route& 
     // Create update if this route's cost is lower than other routes
     if (route.cost <= entry.getRouteWithLowestCostByFaceId(route.faceId)->cost) {
       // Create FIB update for the updated entry
-      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), route.faceId, route.cost));
+      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), route.faceId, route.cost, route.flags));
     }
     else if (existingRoute.cost < entry.getRouteWithLowestCostByFaceId(route.faceId)->cost) {
       // Create update if this route used to be the lowest route but is no longer
       // the lowest cost route.
-      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), prevRoute->faceId, prevRoute->cost));
+      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), prevRoute->faceId, prevRoute->cost, prevRoute->flags));
     }
 
     // If another route with same faceId and lower cost and ChildInherit exists,
@@ -621,7 +623,7 @@ FibUpdater::createFibUpdatesForErasedRoute(const RibEntry& entry, const Route& r
 
     if (it != ancestorRoutes.end()) {
       addInheritedRoute(entry.getName(), *it);
-      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), it->faceId, it->cost));
+      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), it->faceId, it->cost, it->flags));
     }
   }
 }
@@ -682,7 +684,7 @@ FibUpdater::traverseSubTree(const RibEntry& entry, Rib::Rib::RouteSet routesToAd
     // Only add route if it does not override an existing route
     if (!entry.hasFaceId(addIt->faceId)) {
       addInheritedRoute(entry.getName(), *addIt);
-      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), addIt->faceId, addIt->cost));
+      addFibUpdate(FibUpdate::createAddUpdate(entry.getName(), addIt->faceId, addIt->cost, addIt->flags));
     }
 
     ++addIt;

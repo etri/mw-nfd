@@ -31,25 +31,14 @@ namespace nfd {
 namespace rib {
 
 FibUpdate
-FibUpdate::createAddUpdateWithNetName(const Name& name, const uint64_t faceId, const uint64_t cost, const shared_ptr<ndn::Name> netName)
+FibUpdate::createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost, const uint64_t flags)
 {
   FibUpdate update;
 
   update.name = name;
   update.faceId = faceId;
   update.cost = cost;
-  update.action = ADD_NEXTHOP;
-
-  return update;
-}
-FibUpdate
-FibUpdate::createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost)
-{
-  FibUpdate update;
-
-  update.name = name;
-  update.faceId = faceId;
-  update.cost = cost;
+  update.flags = flags;
   update.action = ADD_NEXTHOP;
 
   return update;
@@ -58,7 +47,6 @@ FibUpdate::createAddUpdate(const Name& name, const uint64_t faceId, const uint64
 FibUpdate
 FibUpdate::createRemoveUpdate(const Name& name, const uint64_t faceId)
 {
-//    std::cout << __func__ << std::endl;
   FibUpdate update;
 
   update.name = name;

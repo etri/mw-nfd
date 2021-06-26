@@ -219,7 +219,9 @@ RibManager::registerTopPrefix(const Name& topPrefix)
   // add FIB nexthop
   m_nfdController.start<ndn::nfd::FibAddNextHopCommand>(
     ControlParameters().setName(Name(topPrefix).append(MGMT_MODULE_NAME))
-                       .setFaceId(0),
+                       .setFaceId(0)
+                       //added by MODORI on 20210626
+                       .setFlags(0),
     [=] (const ControlParameters& res) {
       NFD_LOG_DEBUG("Successfully registered " << topPrefix << " with NFD");
 

@@ -40,6 +40,8 @@ public:
   FibUpdate()
     : faceId(0)
     , cost(0)
+            //added MODORI 20210626
+    , flags(0)
   {
   }
 
@@ -49,13 +51,13 @@ public:
     return (this->name == other.name &&
             this->faceId == other.faceId &&
             this->cost == other.cost &&
+            //added MODORI
+            this->flags == other.flags &&
             this->action == other.action);
   }
 
   static FibUpdate
-  createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost);
-  static FibUpdate
-  createAddUpdateWithNetName(const Name& name, const uint64_t faceId, const uint64_t cost, const shared_ptr<Name> netName);
+  createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost, const uint64_t flags);
 
   static FibUpdate
   createRemoveUpdate(const Name& name, const uint64_t faceId);
@@ -70,6 +72,7 @@ public:
   uint64_t faceId;
   uint64_t cost;
   Action action;
+  uint64_t flags;
 };
 
 inline std::ostream&
