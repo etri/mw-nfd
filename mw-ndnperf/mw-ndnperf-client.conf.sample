@@ -1,8 +1,8 @@
 prefix mw-ndnperf
 window-size 16
-digest 1
+verify 1
 interval 0
-process-core 21,21;  max_count 10
+process-core 21,21
 can_be_prefix 0
 must_be_fresh 1
 

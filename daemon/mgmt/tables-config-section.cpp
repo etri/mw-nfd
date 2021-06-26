@@ -118,16 +118,23 @@ TablesConfigSection::processConfig(const ConfigSection& section, bool isDryRun)
   Cs& cs = m_forwarder.getCs();
 
   // Modified by dmsul for change CS Max packet 20210531
-  if (csPmMaxPacketsNode) {
-    cs.setPmLimit(nPmCsMaxPackets);
-  }
+  if (csMaxPacketsNode) {
+      cs.setPmLimit(nCsMaxPackets);
 #ifdef ETRI_DUAL_CS
-  if (csEmMaxPacketsNode) {
-    cs.setEmLimit(nEmCsMaxPackets);
-  } else {
-    cs.setEmLimit(nPmCsMaxPackets);
-  }
+      cs.setEmLimit(nCsMaxPackets);
 #endif
+  } else {
+    if (csPmMaxPacketsNode) {
+      cs.setPmLimit(nPmCsMaxPackets);
+    }
+#ifdef ETRI_DUAL_CS
+    if (csEmMaxPacketsNode) {
+      cs.setEmLimit(nEmCsMaxPackets);
+    } else {
+      cs.setEmLimit(nPmCsMaxPackets);
+    }
+#endif
+  }
 
   if (cs.size() == 0 && csPolicy != nullptr) {
     cs.setPolicy(std::move(csPolicy));

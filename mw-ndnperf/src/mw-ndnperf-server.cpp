@@ -54,6 +54,7 @@ using OptionalConfigSection = boost::optional<const ConfigSection&>;
 #define SLEEP_STEP_NS 1000L
 #define MAX_SLEEP_NS  128000L
 #define ZERO_BULK_TH    5L
+#define MAX_THREAD    30
 
 // global constants and variables
 namespace global {
@@ -66,7 +67,7 @@ namespace global {
     const size_t DEFAULT_FRESHNESS = 0;
 }
 
-std::shared_ptr<boost::asio::io_service> io_svc[10];
+std::shared_ptr<boost::asio::io_service> io_svc[MAX_THREAD];
 
 class Server {
 private:
@@ -83,7 +84,7 @@ private:
     bool m_stop = false;
     std::string m_prefix;
     boost::thread_group m_thread_pool;
-    shared_ptr<Face> m_faces[10];
+    shared_ptr<Face> m_faces[MAX_THREAD];
 
     KeyChain m_keychain;
     security::Identity m_identity;
@@ -102,10 +103,11 @@ private:
 		std::vector<size_t>& m_cores;
 		std::vector<std::string> m_prefixList;
 		size_t m_max_cnt = 0;
+		size_t m_max_core = 0;
 		int m_sendTime = 0;
 
     size_t m_multi_face = 0;
-    bool m_proceesFlag[10] = {0,};
+    bool m_proceesFlag[MAX_THREAD] = {0,};
     std::atomic<uint64_t> m_stat_pkt {0};
     std::atomic<uint64_t> m_stat_time {0};
 
@@ -160,6 +162,10 @@ public:
         for(size_t  i=0; i< cores.size(); i++) {
           io_svc[i] = std::make_shared<boost::asio::io_service>();
           m_faces[i] = make_shared<Face>(*io_svc[i]);
+          if(m_max_core < cores[i]) {     
+            m_max_core = cores[i];        
+          }
+
         }
 
         m_timer = std::make_shared<boost::asio::deadline_timer>(*io_svc[0]);
@@ -180,7 +186,7 @@ public:
 				int i =0;
         for(std::vector<size_t>::iterator it = m_cores.begin(); it!=m_cores.end(); ++it) {
             m_thread_pool.create_thread(boost::bind(&Server::process, this, i, *it));
-            m_thread_pool.create_thread(boost::bind(&Server::makeData, this, i, *it+10));
+            m_thread_pool.create_thread(boost::bind(&Server::makeData, this, i, (m_max_core + (i+1)*2)));
             std::this_thread::sleep_for(std::chrono::seconds(1));
 						i++;
         }

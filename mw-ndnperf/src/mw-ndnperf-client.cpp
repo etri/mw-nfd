@@ -35,10 +35,10 @@
 static const std::string DEFAULT_PREFIX = "mw-ndnperf";
 static const int DEFAULT_WINDOW = 32;
 static const int DEFAULT_INTERVAL = 100;
-static const bool DEFAULT_DIGEST = true;
+static const bool DEFAULT_VERIFY = true;
 static const bool DEFAULT_CANBEPREFIX = false;
 static const bool DEFAULT_MUSTBEFRESH = false;
-static const int MAX_CORE_COUNT = 30;
+static const int MAX_THREAD = 30;
 
 static bool g_stop = false;
 
@@ -47,17 +47,17 @@ using OptionalConfigSection = boost::optional<const ConfigSection&>;
 
 using namespace ndn;
 
-std::shared_ptr<boost::asio::io_service> io_svc[MAX_CORE_COUNT];
+std::shared_ptr<boost::asio::io_service> io_svc[MAX_THREAD];
 
 class Client {
 private:
 		std::shared_ptr<boost::asio::signal_set> m_signalSet;
     std::shared_ptr<boost::asio::deadline_timer> m_timer;
-		shared_ptr<Face> m_faces[30];
+		shared_ptr<Face> m_faces[MAX_THREAD];
 		std::string m_prefix;
     size_t m_window = DEFAULT_WINDOW;
     size_t m_interval = DEFAULT_INTERVAL;
-    bool m_digest = DEFAULT_DIGEST;
+    bool m_verify = DEFAULT_VERIFY;
     std::atomic<bool> m_first {true};
     std::atomic<bool> m_findkey {false};
     std::atomic<uint64_t> m_payload_size {0};
@@ -68,7 +68,7 @@ private:
 
     boost::thread_group m_threadGroup;
 
-		long m_interest_cnt[MAX_CORE_COUNT] = {0,};
+		long m_interest_cnt[MAX_THREAD] = {0,};
 
 		std::vector<Interest> m_prefixList;
 		int m_keyType = 200;
@@ -87,7 +87,7 @@ private:
     security::Identity m_identity;
 
 public:
-    Client(std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, bool canbeprefix, bool mustbefresh);
+    Client(std::string prefix, size_t window, size_t interval, bool verify, std::vector<size_t> &cores, bool canbeprefix, bool mustbefresh);
 
     ~Client() = default;
 
@@ -124,11 +124,11 @@ public:
     }
 };
 
-Client::Client(std::string prefix, size_t window, size_t interval, bool digest, std::vector<size_t> &cores, bool canbeprefix, bool mustbefresh)
+Client::Client(std::string prefix, size_t window, size_t interval, bool verify, std::vector<size_t> &cores, bool canbeprefix, bool mustbefresh)
         : m_prefix(prefix)
         , m_window(window)
 				, m_interval(interval) 
-        , m_digest(digest)
+        , m_verify(verify)
 				, m_cores(cores)
 				, m_canbeprefix(canbeprefix)
 				, m_mustbefresh(mustbefresh)
@@ -142,8 +142,8 @@ void Client::start() {
 
 		std::cout << "MW-NDNPerf Start !! " << std::endl;
 		m_concurrency = m_cores.size();
-    if(m_concurrency > MAX_CORE_COUNT) {
-      m_concurrency = MAX_CORE_COUNT;
+    if(m_concurrency > MAX_THREAD) {
+      m_concurrency = MAX_THREAD;
     }
 
 		std::cout << "Concurrency = " << m_concurrency << std::endl;
@@ -229,34 +229,22 @@ void Client::onData(const Interest &interest, const Data &data, std::chrono::ste
 		    m_payload_size = data.getContent().value_size();
         m_startTime = std::chrono::steady_clock::now();
 
-        auto it = m_keychain.getPib().getIdentities().find(m_prefix);
+        if(m_keyType) {
+          auto it = m_keychain.getPib().getIdentities().find(m_prefix);
 
-        if(it != m_keychain.getPib().getIdentities().end()) {
-          m_identity = *it;
-          security::Key key = m_identity.getDefaultKey();
-          std::cout << "Find " << m_prefix << " key " << key.getName() << "\n"
-                    << key.getDefaultCertificate() << std::endl;
-          m_findkey = true;
-        } else {
-          std::cout << "Not Find " << m_prefix << " key !!!! " << std::endl;
+          if(it != m_keychain.getPib().getIdentities().end()) {
+            m_identity = *it;
+            security::Key key = m_identity.getDefaultKey();
+            std::cout << "Find " << m_prefix << " key " << key.getName() << "\n"
+                      << key.getDefaultCertificate() << std::endl;
+            m_findkey = true;
+          } else {
+            std::cout << "Not Find " << m_prefix << " key !!!! " << std::endl;
+          }
         }
     }
     
-#if 1
-    Name name(m_prefix);
-    name.append(std::to_string(i));
-    name.append(std::to_string(++m_interest_cnt[i]));
-    Interest new_interest(name);
-    new_interest.setMustBeFresh(m_mustbefresh);
-    new_interest.setCanBePrefix(m_canbeprefix);
-
-    std::chrono::steady_clock::time_point new_start = std::chrono::steady_clock::now();
-    m_faces[i]->expressInterest(new_interest, boost::bind(&Client::onData, this, _1, _2, new_start, i),
-                          boost::bind(&Client::onNack, this, _1, _2),
-                          boost::bind(&Client::onTimeout, this, _1, 2, new_start, i));
-#endif
-
-		if(m_digest && m_findkey) {
+		if(m_verify) {
 			switch (m_keyType) {
 				case tlv::DigestSha256 :
 					if(security::verifyDigest(data, DigestAlgorithm::SHA256)) {
@@ -265,17 +253,18 @@ void Client::onData(const Interest &interest, const Data &data, std::chrono::ste
 					break;
 				case tlv::SignatureSha256WithRsa :
 				case tlv::SignatureSha256WithEcdsa :
-					if(security::verifySignature(data, m_identity.getDefaultKey())) {
-        		//std::cout << "verifySignature is OK, " << data.getName().toUri() << std::endl;
-					} else {
-        		std::cout << "verifySignature is Error, " << data.getName().toUri() << std::endl;
+          if(m_findkey) {
+            if(security::verifySignature(data, m_identity.getDefaultKey())) {
+              //std::cout << "verifySignature is OK, " << data.getName().toUri() << std::endl;
+            } else {
+              std::cout << "verifySignature is Error, " << data.getName().toUri() << std::endl;
+            }
           }
 				case tlv::SignatureHmacWithSha256:
 					break;
 			}
 		} 
 
-#if 0
     Name name(m_prefix);
     name.append(std::to_string(i));
     name.append(std::to_string(++m_interest_cnt[i]));
@@ -287,7 +276,6 @@ void Client::onData(const Interest &interest, const Data &data, std::chrono::ste
     m_faces[i]->expressInterest(new_interest, boost::bind(&Client::onData, this, _1, _2, new_start, i),
                           boost::bind(&Client::onNack, this, _1, _2),
                           boost::bind(&Client::onTimeout, this, _1, 2, new_start, i));
-#endif
 
     if(m_interval > 0) {
 	    std::this_thread::sleep_for(std::chrono::milliseconds(m_interval));
@@ -372,7 +360,7 @@ printUsage(std::ostream& os, const std::string& programName)
 int main(int argc, char *argv[]) {
     size_t window_size = DEFAULT_WINDOW;
     size_t interval = DEFAULT_INTERVAL;
-    bool digest = DEFAULT_DIGEST;
+    bool verify = DEFAULT_VERIFY;
     bool canbeprefix = DEFAULT_CANBEPREFIX;
     bool mustbefresh = DEFAULT_MUSTBEFRESH;
 		std::string prefix("mw-ndnperf");
@@ -441,8 +429,8 @@ int main(int argc, char *argv[]) {
 			if( tn.first == "prefix" )
 				prefix = boost::lexical_cast<std::string>(val);
 
-			if( tn.first == "digest" )
-				digest = boost::lexical_cast<size_t>(val);
+			if( tn.first == "verify" )
+				verify = boost::lexical_cast<size_t>(val);
 
 			if( tn.first == "interval" )
 				interval = boost::lexical_cast<size_t>(val);
@@ -457,7 +445,7 @@ int main(int argc, char *argv[]) {
 
 		inputFile.close();
 	
-    Client client(prefix, window_size, interval, digest, core_assign, canbeprefix, mustbefresh);
+    Client client(prefix, window_size, interval, verify, core_assign, canbeprefix, mustbefresh);
 
 		signal(SIGINT, signalHandler);
 
