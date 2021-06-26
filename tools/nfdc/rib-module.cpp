@@ -421,11 +421,6 @@ RibModule::formatRouteText(std::ostream& os, const RibEntry& entry, const Route&
   else {
     os << ia("expires") << "never";
   }
-
-if(route.isAppNamePrefix())
-  os << ia("type") << "app";
-  else
-  os << ia("type") << "network";
 }
 
 } // namespace nfdc
