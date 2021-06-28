@@ -70,7 +70,7 @@ FaceTable::add(shared_ptr<Face> face)
 #ifndef ETRI_NFD_ORG_ARCH
     ndn::nfd::ControlParameters param;
     param.setFaceId(faceId);
-    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_CREATE, param, false); 
+    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_CREATE, param); 
 #endif
   return faceId;
 }
@@ -119,7 +119,7 @@ FaceTable::remove(FaceId faceId)
 #ifndef ETRI_NFD_ORG_ARCH
     ndn::nfd::ControlParameters param;
     param.setFaceId(faceId);
-    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, param, false); 
+    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, param); 
 #endif
   // defer Face deallocation, so that Transport isn't deallocated during afterStateChange signal
   getGlobalIoService().post([face] {});

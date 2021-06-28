@@ -60,7 +60,7 @@ StrategyChoiceManager::setStrategy(ControlParameters parameters,
 
 	// added by ETRI(modori) on 20200914
 	auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-	emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
+	emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters);
 
 	NFD_LOG_DEBUG("strategy-choice/set(" << prefix << "," << strategy << "): OK");
 	bool hasEntry = false;
@@ -125,7 +125,7 @@ StrategyChoiceManager::unsetStrategy(ControlParameters parameters,
   // no need to test for ndn:/ , parameter validation takes care of that
 
   auto pa = make_shared<ndn::nfd::ControlParameters>(parameters);
-  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters, false);
+  emitMwNfdcCommand(-1, MW_NFDC_MGR_STRATEGY, MW_NFDC_VERB_SET, parameters);
 
   m_table.erase(parameters.getName());
 

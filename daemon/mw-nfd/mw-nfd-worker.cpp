@@ -254,6 +254,7 @@ void MwNfd::processNfdcCommand( char * cmd)
 			const Name& prefix = nfdc->parameters->getName();
 			FaceId faceId = nfdc->parameters->getFaceId();
 			uint64_t cost = nfdc->parameters->getCost();
+			uint64_t flags = nfdc->parameters->getFlags();
 			Face* face = m_faceTable->get(faceId);
 			if (face == nullptr) {
 				nfdc->ret = MW_NFDC_CMD_NOK;
@@ -267,11 +268,12 @@ void MwNfd::processNfdcCommand( char * cmd)
 			}
 
 			// for network name parameter
-			if( nfdc->netName ){
+			if( flags & ndn::nfd::ROUTE_FLAG_NET_NAME ){
 				fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
 				getFibTable().addOrUpdateNextHop(*entry, *face, cost);
 				goto response;
 			}
+
 
 			if(m_wantFibSharding){
 				if(prefix.size() >= getPrefixLength4Distribution() and m_wantFibSharding ){
@@ -288,8 +290,6 @@ void MwNfd::processNfdcCommand( char * cmd)
 
                     tl_size = pos - block.wire();
                     wid = computeWorkerId(pos, block.size()-tl_size);
-
-					//wid = computeWorkerId(block.wire(), block.size());
 
 					if(wid!=m_workerId){
 						nfdc->ret = MW_NFDC_CMD_NOK;

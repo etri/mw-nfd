@@ -185,7 +185,6 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
         int32_t verb;
         int32_t ret;
         size_t retval;
-        bool netName;
         std::shared_ptr<ndn::Interest> interest;
         std::shared_ptr<ndn::nfd::ControlParameters> parameters;
     }mw_nfdc, *mw_nfdc_ptr;
@@ -199,7 +198,7 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 	bool getOutgoingMwNfd();
 	bool getBulkFibTest();
 
-    size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters, bool);
+    size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters);
 
     typedef struct st_ndn_out_msg {
         const ndn::Interest* interest;
@@ -235,9 +234,6 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 
     void mq_allocation();
     
-    bool getGlobalNetName();
-    void setGlobalNetName(bool);
-
     bool dcnReceivePacket(const uint8_t *, size_t, uint64_t);
     bool dcnReceivePacket(ndn::ConstBufferPtr, size_t, uint64_t);
 

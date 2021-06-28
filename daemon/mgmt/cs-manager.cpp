@@ -66,7 +66,7 @@ CsManager::changeConfig(const ControlParameters& parameters,
 		serve = true;
 
 	if(getForwardingWorkers()>0)
-		limits = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_CONFIG, parameters, false);
+		limits = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_CONFIG, parameters);
 
 	if(getForwardingWorkers()==0){
 		if (parameters.hasCapacity()) {
@@ -127,7 +127,7 @@ CsManager::erase(const ControlParameters& parameters,
 {
 	size_t nTotalErased = 0;
 	if(getForwardingWorkers()>0)
-		nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters, false);
+		nTotalErased = emitMwNfdcCommand(-1, MW_NFDC_MGR_CS, MW_NFDC_VERB_ERASE, parameters);
 
 	size_t count = parameters.hasCount() ?
 		parameters.getCount() :
