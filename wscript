@@ -58,6 +58,9 @@ def options(opt):
                       help='Build other tests')
     optgrp.add_option('--with-counters', action='store_true', default=False,
                       help='face coutnering(NDN Net Packet) Mode')
+    optgrp.add_option('--with-dcn-routing', action='store_true', default=False,
+                      help='Feature Routing Protocol(NSLR, BGP)')
+
     optgrp.add_option('--with-nfd-org-arch', action='store_true', default=False,
                       help='Support NFD original Arch Mode')
     optgrp.add_option('--without-dual-cs', action='store_true', default=False,
@@ -101,6 +104,7 @@ def configure(conf):
     conf.env.WITH_TESTS = conf.options.with_tests
 
     conf.env.WITH_COUNTERS = conf.options.with_counters
+    conf.env.WITH_DCN_ROUTING = conf.options.with_dcn_routing
     conf.env.WITH_NFD_ORG_ARCH = conf.options.with_nfd_org_arch
     conf.env.WITH_POWER_OPTIMIZE = conf.options.with_power_optimize
     conf.env.WITHOUT_DUAL_CS = conf.options.without_dual_cs
@@ -157,6 +161,7 @@ def configure(conf):
     conf.define_cond('WITH_TESTS', conf.env.WITH_TESTS)
     conf.define_cond('WITH_OTHER_TESTS', conf.env.WITH_OTHER_TESTS)
     conf.define_cond('ETRI_DEBUG_COUNTERS', conf.env.WITH_COUNTERS)
+    conf.define_cond('ETRI_DCN_ROUTING', conf.env.WITH_DCN_ROUTING)
     conf.define_cond('ETRI_NFD_ORG_ARCH', conf.env.WITH_NFD_ORG_ARCH)
     conf.define_cond('ETRI_POWER_OPTIMIZE', conf.env.WITH_POWER_OPTIMIZE)
     conf.define_cond('WITHOUT_DUAL_CS', conf.env.WITHOUT_DUAL_CS)
