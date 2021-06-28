@@ -169,13 +169,23 @@ RibModule::add(ExecuteContext& ctx)
       .setOrigin(origin)
       .setCost(cost)
       .setFlags((wantChildInherit ? ndn::nfd::ROUTE_FLAG_CHILD_INHERIT : ndn::nfd::ROUTE_FLAGS_NONE) |
-                (wantCapture ? ndn::nfd::ROUTE_FLAG_CAPTURE : ndn::nfd::ROUTE_FLAGS_NONE) |
-                // added by MODORI on 20210624
-                (wantNetName ? ndn::nfd::ROUTE_FLAG_NET_NAME : ndn::nfd::ROUTE_FLAGS_NONE)
+                (wantCapture ? ndn::nfd::ROUTE_FLAG_CAPTURE : ndn::nfd::ROUTE_FLAGS_NONE) 
+#ifdef ETRI_DCN_ROUTING 
+                |(wantNetName ? ndn::nfd::ROUTE_FLAG_NET_NAME : ndn::nfd::ROUTE_FLAGS_NONE)
+#endif
                 );
     if (expiresMillis) {
       registerParams.setExpirationPeriod(time::milliseconds(*expiresMillis));
     }   
+
+#ifndef ETRI_DCN_ROUTING 
+    if(wantNetName) {
+        auto flags = registerParams.getFlags();
+        flags |= 1UL << 32; // ROUTE_FLAGS_NET_NAME
+        registerParams.setFlags(flags);
+    }
+#endif
+
 
     ctx.controller.start<ndn::nfd::RibRegisterCommand>(
       registerParams,
