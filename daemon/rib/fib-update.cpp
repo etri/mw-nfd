@@ -31,14 +31,20 @@ namespace nfd {
 namespace rib {
 
 FibUpdate
+#ifdef ETRI_DCN_ROUTING
 FibUpdate::createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost, const uint64_t flags)
+#else
+FibUpdate::createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost)
+#endif
 {
   FibUpdate update;
 
   update.name = name;
   update.faceId = faceId;
   update.cost = cost;
+#ifdef ETRI_DCN_ROUTING
   update.flags = flags;
+#endif
   update.action = ADD_NEXTHOP;
 
   return update;

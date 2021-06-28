@@ -381,6 +381,12 @@ printAddedFeatures(std::ostream& os)
     std::cout << "   +  --with-pittoken-hash" << std::endl;
 #endif
 
+#ifdef ETRI_DCN_ROUTING
+    std::cout << "   +  --with-dcn-routing" << std::endl;
+#else
+    std::cout << "   +  --without-dcn-routing" << std::endl;
+#endif
+
     std::cout << "\n \n" << std::endl;
     //std::cout << "\n *v* Visit https://www.etri.re.kr *v*\n" << std::endl;
 cout << "	                  {}\n";

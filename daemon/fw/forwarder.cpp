@@ -113,7 +113,11 @@ Forwarder::Forwarder(FaceTable& faceTable)
 #ifndef ETRI_NFD_ORG_ARCH
             ControlParameters parameters;
             parameters.setFaceId(face.getId());
+#ifdef ETRI_DCN_ROUTING
             emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, parameters);
+#else
+            emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, parameters, getGlobalNetName());
+#endif
 #endif
             cleanupOnFaceRemoval(m_nameTree, m_fib, m_pit, face);
             });

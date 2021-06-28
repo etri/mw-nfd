@@ -273,11 +273,14 @@ RibManager::registerEntry(const Name& topPrefix, const Interest& interest,
   }
 
   // added by ETRI(modor) on 20201014
+#ifndef ETRI_DCN_ROUTING
   auto flags = parameters.getFlags();
   if( parameters.getFlags() & ndn::nfd::ROUTE_FLAG_NET_NAME ){
-    route.netNamePrefix = true;
-  }else
-    route.netNamePrefix = false;
+      setGlobalNetName(true);
+      flags &=~(1UL << ROUTE_FLAGS_NET_NAME);
+      route.flags = flags;
+  }
+#endif
 
   beginAddRoute(parameters.getName(), std::move(route), expires, [] (RibUpdateResult) {});
 }

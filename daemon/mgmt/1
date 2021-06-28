@@ -69,9 +69,7 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
   if (prefix.size() > Fib::getMaxDepth()) {
     NFD_LOG_DEBUG("fib/add-nexthop(" << prefix << ',' << faceId << ',' << cost <<
                   "): FAIL prefix-too-long");
-#ifndef ETRI_DCN_ROUTING
     setGlobalNetName(false);
-#endif
     return done(ControlResponse(414, "FIB entry prefix cannot exceed " +
                                 to_string(Fib::getMaxDepth()) + " components"));
   }
@@ -80,9 +78,7 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
   if (face == nullptr) {
     NFD_LOG_DEBUG("fib/add-nexthop(" << prefix << ',' << faceId << ',' << cost <<
                   "): FAIL unknown-faceid");
-#ifndef ETRI_DCN_ROUTING
     setGlobalNetName(false);
-#endif
     return done(ControlResponse(410, "Face not found"));
   }
 
@@ -91,12 +87,8 @@ FibManager::addNextHop(const Name& topPrefix, const Interest& interest,
       fib::Entry* entry = m_fib.insert(prefix).first;
       m_fib.addOrUpdateNextHop(*entry, *face, cost);
     }else{
-#ifdef ETRI_DCN_ROUTING
-        emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, parameters );
-#else
         emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_ADD, parameters, getGlobalNetName() );
         setGlobalNetName(false);
-#endif
     }
 #else
 
@@ -129,11 +121,7 @@ FibManager::removeNextHop(const Name& topPrefix, const Interest& interest,
   }
 
   if(getForwardingWorkers()>0)
-#ifdef ETRI_DCN_ROUTING
-	  emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, parameters);
-#else
 	  emitMwNfdcCommand(-1, MW_NFDC_MGR_FIB, MW_NFDC_VERB_REMOVE, parameters, getGlobalNetName());
-#endif
   else{
 	  fib::Entry* entry = m_fib.findExactMatch(parameters.getName());
 	  if (entry == nullptr) {

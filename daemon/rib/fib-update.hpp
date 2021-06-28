@@ -57,7 +57,11 @@ public:
   }
 
   static FibUpdate
+#ifdef ETRI_DCN_ROUTING
   createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost, const uint64_t flags);
+#else
+  createAddUpdate(const Name& name, const uint64_t faceId, const uint64_t cost);
+#endif
 
   static FibUpdate
   createRemoveUpdate(const Name& name, const uint64_t faceId);

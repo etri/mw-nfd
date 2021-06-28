@@ -185,6 +185,9 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
         int32_t verb;
         int32_t ret;
         size_t retval;
+#ifndef ETRI_DCN_ROUTING
+        bool netName;
+#endif
         std::shared_ptr<ndn::Interest> interest;
         std::shared_ptr<ndn::nfd::ControlParameters> parameters;
     }mw_nfdc, *mw_nfdc_ptr;
@@ -198,7 +201,11 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 	bool getOutgoingMwNfd();
 	bool getBulkFibTest();
 
+#ifdef ETRI_DCN_ROUTING
     size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters);
+#else
+    size_t emitMwNfdcCommand(int, int, int,ndn::nfd::ControlParameters, bool);
+#endif
 
     typedef struct st_ndn_out_msg {
         const ndn::Interest* interest;
@@ -233,6 +240,10 @@ extern bool g_workerTimerTriggerList[DCN_MAX_WORKERS];
 	std::shared_ptr<nfd::MwNfd> getMwNfd(int8_t wid);
 
     void mq_allocation();
+#ifndef ETRI_DCN_ROUTING
+    bool getGlobalNetName();
+    void setGlobalNetName(bool);
+#endif
     
     bool dcnReceivePacket(const uint8_t *, size_t, uint64_t);
     bool dcnReceivePacket(ndn::ConstBufferPtr, size_t, uint64_t);

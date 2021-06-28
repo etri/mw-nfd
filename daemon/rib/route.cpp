@@ -56,7 +56,6 @@ Route::Route(const ndn::PrefixAnnouncement& ann, uint64_t faceId)
   , expires(computeExpiration(ann))
   , announcement(ann)
   , annExpires(*expires)
-  , netNamePrefix(false)
 {
 }
 

@@ -81,9 +81,21 @@ namespace nfd {
 
 	face::FaceSystem *g_faceSystem;
 
-	bool g_mwNfdParameters=0;
 
 	std::map<uint64_t/*MessageIdentifier*/, int32_t/*worker-id*/> g_fragmentMap;
+
+#ifndef ETRI_DCN_ROUGING
+	bool g_mwNfdParameters=false;
+    void setGlobalNetName(bool val)
+    {
+            g_mwNfdParameters=val;
+    }
+
+    bool getGlobalNetName()
+    {
+            return g_mwNfdParameters;
+    }
+#endif
 
 	std::string g_routerName="N/A";
 	void setRouterName(std::string val)
@@ -149,9 +161,13 @@ namespace nfd {
 	{
 		return g_mwNfds[wid];
 	}
-
+#ifdef ETRI_DCN_ROUTING
 	size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
 			ndn::nfd::ControlParameters parameters)
+#else
+	size_t emitMwNfdcCommand(int wid/*-1, all emit*/, int mgr, int verb,
+			ndn::nfd::ControlParameters parameters,bool netName)
+#endif
 	{
 
 		int i,numbytes;
@@ -181,6 +197,9 @@ namespace nfd {
 			nfdc->mgr = mgr;
 			nfdc->verb = verb;
 			nfdc->ret = MW_NFDC_CMD_OK;
+#ifndef ETRI_DCN_ROUTING
+            nfdc->netName = netName;
+#endif
 			nfdc->parameters = params;
 
 			numbytes = sendto(g_nfdcSocket, buf, sizeof(buf), 0,

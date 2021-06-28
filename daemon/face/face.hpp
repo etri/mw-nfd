@@ -248,25 +248,11 @@ Face::sendNack(const lp::Nack& nack)
 {
   m_service->sendNack(nack);
 }
-#if 0
-inline uint8_t
-Face::getIfIndex() const
-{
-  return m_ifIndex;
-}
-#endif
 inline FaceId
 Face::getId() const
 {
   return m_id;
 }
-#if 0
-inline void
-Face::setIfIndex(uint8_t id)
-{
-  m_ifIndex = id;
-}
-#endif
 inline void
 Face::setId(FaceId id)
 {

@@ -268,7 +268,12 @@ void MwNfd::processNfdcCommand( char * cmd)
 			}
 
 			// for network name parameter
+#ifdef ETRI_DCN_ROUTING
 			if( flags & ndn::nfd::ROUTE_FLAG_NET_NAME ){
+#else
+            if( nfdc->netName ){
+#endif
+                std::cout << "To be Installed(" << prefix << ") with NET-NAME on CPU " << sched_getcpu() << std::endl;
 				fib::Entry* entry = m_forwarder->getFib().insert(prefix).first;
 				getFibTable().addOrUpdateNextHop(*entry, *face, cost);
 				goto response;

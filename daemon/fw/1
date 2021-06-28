@@ -70,11 +70,7 @@ FaceTable::add(shared_ptr<Face> face)
 #ifndef ETRI_NFD_ORG_ARCH
     ndn::nfd::ControlParameters param;
     param.setFaceId(faceId);
-#ifdef ETRI_DCN_ROUTING
-    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_CREATE, param); 
-#else
     emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_CREATE, param, false); 
-#endif
 #endif
   return faceId;
 }
@@ -123,11 +119,7 @@ FaceTable::remove(FaceId faceId)
 #ifndef ETRI_NFD_ORG_ARCH
     ndn::nfd::ControlParameters param;
     param.setFaceId(faceId);
-#ifdef ETRI_DCN_ROUTING
-    emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, param); 
-#else
     emitMwNfdcCommand(-1, MW_NFDC_MGR_FACE, MW_NFDC_VERB_DESTROYED, param, false); 
-#endif
 #endif
   // defer Face deallocation, so that Transport isn't deallocated during afterStateChange signal
   getGlobalIoService().post([face] {});
