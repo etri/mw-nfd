@@ -275,6 +275,14 @@ RibManager::registerEntry(const Name& topPrefix, const Interest& interest,
   // added by ETRI(modor) on 20201014
 #ifndef ETRI_DCN_ROUTING
   auto flags = parameters.getFlags();
+  if( (flags >> ROUTE_FLAGS_NET_NAME) & 1U ){
+      setGlobalNetName(true);
+      flags &=~(1UL << ROUTE_FLAGS_NET_NAME);
+      route.flags = flags;
+  }
+
+#else
+  auto flags = parameters.getFlags();
   if( parameters.getFlags() & ndn::nfd::ROUTE_FLAG_NET_NAME ){
       setGlobalNetName(true);
       flags &=~(1UL << ROUTE_FLAGS_NET_NAME);
