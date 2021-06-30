@@ -100,7 +100,9 @@ Policy::setEmLimit(size_t nMaxEntries)
   NFD_LOG_INFO("setEmLimit " << nMaxEntries );
 #endif
   m_em_limit = nMaxEntries;
+#ifdef ETRI_DUAL_CS
   this->evictEntriesExact();
+#endif
 }
 
 void
