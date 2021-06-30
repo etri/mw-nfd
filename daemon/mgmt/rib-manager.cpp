@@ -281,13 +281,6 @@ RibManager::registerEntry(const Name& topPrefix, const Interest& interest,
       route.flags = flags;
   }
 
-#else
-  auto flags = parameters.getFlags();
-  if( parameters.getFlags() & ndn::nfd::ROUTE_FLAG_NET_NAME ){
-      setGlobalNetName(true);
-      flags &=~(1UL << ROUTE_FLAGS_NET_NAME);
-      route.flags = flags;
-  }
 #endif
 
   beginAddRoute(parameters.getName(), std::move(route), expires, [] (RibUpdateResult) {});
