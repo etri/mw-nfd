@@ -50,6 +50,10 @@ def options(opt):
     opt.add_option('--with-tests', action='store_true', default=False,
                    help='Build tests')
 
+#MODORI 20210630
+    opt.add_option('--with-dcn-routing', action='store_true', default=False,
+                   help='Enable DCN Routing')
+
     opt.add_option('--without-tools', action='store_false', default=True, dest='with_tools',
                    help='Do not build tools')
 
@@ -79,6 +83,9 @@ def configure(conf):
     conf.env.WITH_TESTS = conf.options.with_tests
     conf.env.WITH_TOOLS = conf.options.with_tools
     conf.env.WITH_EXAMPLES = conf.options.with_examples
+
+# MODORI 20210630
+    conf.env.WITH_DCN_ROUTING = conf.options.with_dcn_routing
 
     conf.find_program('sh', var='SH')
 
@@ -153,6 +160,8 @@ def configure(conf):
 
     conf.define_cond('HAVE_STACKTRACE', conf.env.HAVE_STACKTRACE)
     conf.define_cond('HAVE_TESTS', conf.env.WITH_TESTS)
+    #MODORI 20210630
+    conf.define_cond('ETRI_DCN_ROUTING', conf.env.WITH_DCN_ROUTING)
     conf.define_cond('WITH_OSX_KEYCHAIN', conf.env.HAVE_OSX_FRAMEWORKS and conf.options.with_osx_keychain)
     conf.define_cond('DISABLE_SQLITE3_FS_LOCKING', not conf.options.with_sqlite_locking)
     conf.define('SYSCONFDIR', conf.env.SYSCONFDIR)

@@ -205,8 +205,10 @@ FibAddNextHopCommand::FibAddNextHopCommand()
   m_requestValidator
     .required(CONTROL_PARAMETER_NAME)
     .optional(CONTROL_PARAMETER_FACE_ID)
+#ifdef NDN_CXX_ETRI_DCN_ROUTING
     //added by MODORI on 20210626
     .optional(CONTROL_PARAMETER_FLAGS)
+#endif
     .optional(CONTROL_PARAMETER_COST);
   m_responseValidator
     .required(CONTROL_PARAMETER_NAME)
