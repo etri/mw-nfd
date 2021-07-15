@@ -240,8 +240,10 @@ FibUpdater::sendAddNextHopUpdate(const FibUpdate& update,
     ControlParameters()
       .setName(update.name)
       .setFaceId(update.faceId)
+#ifdef ETRI_DCN_ROUTING
       //added by MODORI on 20210626
       .setFlags(update.flags)
+#endif
       .setCost(update.cost), 
     bind(&FibUpdater::onUpdateSuccess, this, update, onSuccess, onFailure),
     bind(&FibUpdater::onUpdateError, this, update, onSuccess, onFailure, _1, nTimeouts));

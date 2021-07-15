@@ -217,10 +217,10 @@ void
 RibManager::registerTopPrefix(const Name& topPrefix)
 {
   // add FIB nexthop
+#ifdef ETRI_DCN_ROUTING
   m_nfdController.start<ndn::nfd::FibAddNextHopCommand>(
     ControlParameters().setName(Name(topPrefix).append(MGMT_MODULE_NAME))
                        .setFaceId(0)
-                       //added by MODORI on 20210626
                        .setFlags(0),
     [=] (const ControlParameters& res) {
       NFD_LOG_DEBUG("Successfully registered " << topPrefix << " with NFD");
@@ -237,6 +237,26 @@ RibManager::registerTopPrefix(const Name& topPrefix)
       NDN_THROW(Error("Cannot add FIB entry " + topPrefix.toUri() + " (" +
                       to_string(res.getCode()) + " " + res.getText() + ")"));
     });
+#else
+  m_nfdController.start<ndn::nfd::FibAddNextHopCommand>(
+    ControlParameters().setName(Name(topPrefix).append(MGMT_MODULE_NAME))
+                       .setFaceId(0),
+    [=] (const ControlParameters& res) {
+      NFD_LOG_DEBUG("Successfully registered " << topPrefix << " with NFD");
+
+      // Routes must be inserted into the RIB so route flags can be applied
+      Route route;
+      route.faceId = res.getFaceId();
+      route.origin = ndn::nfd::ROUTE_ORIGIN_APP;
+      route.flags = ndn::nfd::ROUTE_FLAG_CHILD_INHERIT;
+
+      m_rib.insert(topPrefix, route);
+    },
+    [=] (const ControlResponse& res) {
+      NDN_THROW(Error("Cannot add FIB entry " + topPrefix.toUri() + " (" +
+                      to_string(res.getCode()) + " " + res.getText() + ")"));
+    });
+#endif
 
   // add top prefix to the dispatcher without prefix registration
   m_dispatcher.addTopPrefix(topPrefix, false);
