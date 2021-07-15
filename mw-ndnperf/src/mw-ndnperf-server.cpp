@@ -55,6 +55,7 @@ using OptionalConfigSection = boost::optional<const ConfigSection&>;
 #define MAX_SLEEP_NS  128000L
 #define ZERO_BULK_TH    5L
 #define MAX_THREAD    30
+#define MAX_PREFIX_LIST  20
 
 // global constants and variables
 namespace global {
@@ -83,6 +84,7 @@ private:
 
     bool m_stop = false;
     std::string m_prefix;
+		size_t m_max_cnt = MAX_PREFIX_LIST;
     boost::thread_group m_thread_pool;
     shared_ptr<Face> m_faces[MAX_THREAD];
 
@@ -101,8 +103,7 @@ private:
     const time::milliseconds m_freshness;
 
 		std::vector<size_t>& m_cores;
-		std::vector<std::string> m_prefixList;
-		size_t m_max_cnt = 0;
+		std::vector<Name> m_prefixList;
 		size_t m_max_core = 0;
 		int m_sendTime = 0;
 
@@ -115,9 +116,10 @@ private:
     std::chrono::steady_clock::time_point m_gapTime = std::chrono::steady_clock::now();
 
 public:
-    Server(std::string prefix, tlv::SignatureTypeValue key_type, size_t key_size,
+    Server(std::string prefix, size_t max_prefix, tlv::SignatureTypeValue key_type, size_t key_size,
            size_t payload_size, size_t freshness, std::vector<size_t> &cores, size_t multi_face)
         : m_prefix(prefix)
+        , m_max_cnt(max_prefix)
         , m_key_type(key_type)
         , m_key_size(key_size)
         , m_payload_size(payload_size) 
@@ -159,15 +161,20 @@ public:
 
         std::cout << "Concurrency = " << cores.size() << std::endl;
 
+#if 0
         for(size_t  i=0; i< cores.size(); i++) {
           io_svc[i] = std::make_shared<boost::asio::io_service>();
           m_faces[i] = make_shared<Face>(*io_svc[i]);
           if(m_max_core < cores[i]) {     
             m_max_core = cores[i];        
           }
-
         }
-
+#else
+        for(size_t i=0; i< m_multi_face; i++) {
+          io_svc[i] = std::make_shared<boost::asio::io_service>();
+          m_faces[i] = make_shared<Face>(*io_svc[i]);
+        }       
+#endif
         m_timer = std::make_shared<boost::asio::deadline_timer>(*io_svc[0]);
 
         // build once for all the data carried by the packets (packets generated from files ignore this)
@@ -181,9 +188,46 @@ public:
 
     ~Server() = default;
 
+    bool readPrefixList() {
+      FILE *fp;                    
+      size_t line_cnt=0;              
+      
+      char line[1024]={0,};        
+      char *prefix_list = (char *)"./prefix-list.txt";                                                                                        
+      fp =  fopen (prefix_list, "r");                                                                                                                       
+      if (fp==NULL) {
+          std::cout << "MW-NDNPERF can't read prefix-list.txt file:" << prefix_list << std::endl;                               return false;             
+      }
+
+      char* unused __attribute__((unused)); 
+
+      //while ( !feof(fp) && (line_cnt < m_max_cnt) ) { 
+      while ( !feof(fp) ) { 
+          unused = fgets(line, sizeof(line), fp);  
+          if(strlen(line)==0) continue;   
+          if(line[0]=='"') continue;      
+
+          line[strlen(line)-1]='\0';      
+          line_cnt++;
+
+          Name name(line);
+          m_prefixList.push_back(name);   
+          
+          memset(line, '\0', sizeof(line));
+      }
+
+      std::cout << "Prefix List Size = " << m_prefixList.size() << std::endl;
+      m_max_cnt = m_prefixList.size();
+      fclose(fp);
+      return true;
+    }
+
     void start() {
 
 				int i =0;
+
+        readPrefixList();
+
         for(std::vector<size_t>::iterator it = m_cores.begin(); it!=m_cores.end(); ++it) {
             m_thread_pool.create_thread(boost::bind(&Server::process, this, i, *it));
             m_thread_pool.create_thread(boost::bind(&Server::makeData, this, i, (m_max_core + (i+1)*2)));
@@ -201,11 +245,18 @@ public:
 				Name name(m_prefix);
         name.append("dummy");
 				Interest interest(name);
+#if 0
         for (size_t i = 0; i < m_cores.size(); ++i) {
             m_faces[i]->getIoService().stop();
             m_queue.enqueue(std::make_pair(std::make_shared<Interest>(interest), i));
         }
-        m_thread_pool.join_all();
+#else
+        for (size_t i = 0; i < m_multi_face; ++i) {
+            m_faces[i]->getIoService().stop();
+            m_queue.enqueue(std::make_pair(std::make_shared<Interest>(interest), i));
+        }
+#endif
+       m_thread_pool.join_all();
 
         // clean up
 #if 0
@@ -225,19 +276,42 @@ public:
 				int ret  = pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
 				std::cout << "rsched_setaffiniti's ret: " << ret << std::endl;
 
-				Name name(m_prefix);
-				name.append(std::to_string(i));
-
         size_t face_idx = 0;
+        size_t list_idx = 0;
+        size_t list_cnt = 0;
 
         face_idx = i % m_multi_face;
+
+#if 1
         if( !m_proceesFlag[face_idx]) {
           m_thread_pool.create_thread(boost::bind(&Face::processEvents, m_faces[face_idx].get(), time::milliseconds::zero(), false));
           m_proceesFlag[face_idx] = 1;
 				  std::cout << "processEvents face_idx = " << face_idx <<" on CPU: " << core << std::endl;
         }
-        m_faces[face_idx]->setInterestFilter(name, bind(&Server::on_interest, this, _2, face_idx), bind(&Server::on_register_failed, this, _2, 1));
-				std::cout << "setInterestFilter face = "<< face_idx << " core = " << core << " name =  " << name << std::endl;
+
+        for(size_t idx = 0; idx < m_max_cnt; idx++) {
+            list_idx = idx % m_multi_face;
+            if(list_idx == face_idx) {
+              m_faces[face_idx]->setInterestFilter(m_prefixList[idx], bind(&Server::on_interest, this, _2, face_idx), bind(&Server::on_register_failed, this, _2, list_idx));
+              std::this_thread::sleep_for(std::chrono::milliseconds(1));
+              list_cnt++;
+			        //std::cout << "process face_idx = " << face_idx <<" register prefix_list = " << m_prefixList[idx] << std::endl;
+            }
+        }
+        
+			  std::cout << "process face_idx = " << face_idx <<" register prefix_list = " << list_cnt << std::endl;
+#else
+        for(size_t idx = 0; idx < m_max_cnt; idx++) {
+            list_idx = idx % m_multi_face;
+            if(list_idx == face_idx) {
+              m_faces[face_idx]->setInterestFilter(m_prefixList[idx], bind(&Server::on_interest, this, _2, face_idx), bind(&Server::on_register_failed, this, _2, list_idx));
+              m_faces[face_idx]->processEvents();
+              std::this_thread::sleep_for(std::chrono::milliseconds(1));
+              list_cnt++;
+			        //std::cout << "process face_idx = " << face_idx <<" register prefix_list = " << m_prefixList[idx] << std::endl;
+            }
+        }
+#endif
 
     }
 
@@ -368,6 +442,7 @@ int main(int argc, char *argv[]) {
     tlv::SignatureTypeValue key_type = global::DEFAULT_SIGNATURE_TYPE;
     size_t key_size = 0;
     size_t multi_face = 1;
+    size_t max_prefix = 100;
     size_t payload_size = global::DEFAULT_CHUNK_SIZE;
     size_t freshness = global::DEFAULT_FRESHNESS;
 
@@ -434,6 +509,9 @@ int main(int argc, char *argv[]) {
       if( tn.first == "prefix" )
         prefix = boost::lexical_cast<std::string>(val);
 
+			if( tn.first == "max-prefix" )
+				max_prefix = boost::lexical_cast<size_t>(val);
+
 			if( tn.first == "signature-type" ){
 				if( val == "DigestSha256" )
 					key_type = tlv::DigestSha256;
@@ -459,7 +537,7 @@ int main(int argc, char *argv[]) {
 
 		inputFile.close();
 
-		Server server(prefix, key_type, key_size, payload_size, freshness, core_assign, multi_face);
+		Server server(prefix, max_prefix, key_type, key_size, payload_size, freshness, core_assign, multi_face);
     signal(SIGINT, signalHandler);
     server.start();
 
