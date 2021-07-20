@@ -27,7 +27,7 @@ After=network.target
 
 [Service]
 Environment=HOME=%S/ndn/nfd
-ExecStart=@BINDIR@/nfd
+ExecStart=@BINDIR@/mw-nfd
 ExecStartPost=/bin/sh -ec 'if [ -f @SYSCONFDIR@/ndn/nfd-init.sh ]; then . @SYSCONFDIR@/ndn/nfd-init.sh; fi'
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-abnormal
