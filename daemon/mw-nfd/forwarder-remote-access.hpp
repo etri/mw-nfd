@@ -18,6 +18,8 @@ using boost::property_tree::ptree;
 #include <ndn-cxx/security/signing-info.hpp>
 #include <ndn-cxx/ims/in-memory-storage-fifo.hpp>
 
+#include <condition_variable>
+
 using std::map;
 
 namespace nfd {
@@ -25,7 +27,7 @@ namespace nfd {
 class ForwarderRemoteAccess: noncopyable
 {
 public:
-  ForwarderRemoteAccess(size_t imsLimit=256);
+  ForwarderRemoteAccess();
   void
   publish(const ndn::Name &, const Interest &, ndn::Face &);
 
@@ -53,6 +55,7 @@ private:
       std::string m_nfdStatus;
 
        ndn::InMemoryStorageFifo m_ims;
+  //     std::mutex& m_mutex;
 };
 
 } // namespace nfd

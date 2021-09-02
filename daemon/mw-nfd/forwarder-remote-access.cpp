@@ -43,8 +43,8 @@ static const time::milliseconds STATUS_FRESHNESS(5000);
 extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
-ForwarderRemoteAccess::ForwarderRemoteAccess( size_t imsLimit)
-	:m_ims(imsLimit)
+ForwarderRemoteAccess::ForwarderRemoteAccess()
+	:m_ims(1024)
 {
 }
 
@@ -498,7 +498,7 @@ ForwarderRemoteAccess::replyFromStore(const ndn::Interest& interest, ndn::Face &
 	}
 	return false;
 }
-
+std::string g_nfdStatus;
 void
 ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& interest, ndn::Face &face)
 {
@@ -510,24 +510,25 @@ ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& intere
     }
 
     if(interestSegment==0){
-        m_nfdStatus = prepareNextData();
-//	std::cout << "m_nfdStatus: " << m_nfdStatus.length() << std::endl;
+        g_nfdStatus = prepareNextData();
     }
 
-    auto buffer = std::make_shared<const ndn::Buffer>(m_nfdStatus.c_str(), m_nfdStatus.length());
+	//std::cout << "interestSegment: " << interestSegment << ", g_nfdStatus: " << g_nfdStatus.length() << std::endl;
+    auto buffer = std::make_shared<const ndn::Buffer>(g_nfdStatus.c_str(), g_nfdStatus.length());
 
     const uint8_t* rawBuffer = buffer->data();
     const uint8_t* segmentBegin = rawBuffer;
     const uint8_t* end = rawBuffer + buffer->size();
 
-    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 1); 
+    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 2); 
 
     uint64_t totalSegments = buffer->size() / maxPacketSize;
 
     ndn::Name segmentPrefix(dataName);
-    segmentPrefix.appendVersion();
+    //segmentPrefix.appendVersion();
 
     uint64_t segmentNo = 0;
+    std::shared_ptr<ndn::Data> data0;
     do {
         const uint8_t* segmentEnd = segmentBegin + maxPacketSize;
         if (segmentEnd > end) {
@@ -547,25 +548,22 @@ ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& intere
 
         segmentBegin = segmentEnd;
 	std::string key;
-        //m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
-        //m_keyChain.sign(*data,  security::SigningInfo(key));
-        //m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_ID, "/etri"));
         m_keyChain.sign(*data);
 
-        // Put on face only the segment which has a pending interest
-        // otherwise the segment is unsolicited
         if (interestSegment == segmentNo) {
             face.put(*data);
+            std::cout << "put - " << *data << std::endl;
+            break;
         }   
 
-	m_ims.insert(*data, 4_s);
-	getScheduler().schedule(4_s, [this, segmentName] { 
-			m_ims.erase(segmentName); });
+//	m_ims.insert(*data, 1_s);
+	//getScheduler().schedule(1_s, [this, segmentName] { 
+    //std::cout << "erase - cpu: " << sched_getcpu() << ", ims_size:" << m_ims.size() << ", " << segmentName << std::endl;
+	//		m_ims.erase(segmentName); });
 
         ++segmentNo;
     } while (segmentBegin < end);
 
-    //std::cout << "ims_size:" << m_ims.size() << ", segmentNo: " << segmentNo << std::endl;
 }
 
 
