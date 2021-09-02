@@ -513,14 +513,13 @@ ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& intere
         g_nfdStatus = prepareNextData();
     }
 
-	//std::cout << "interestSegment: " << interestSegment << ", g_nfdStatus: " << g_nfdStatus.length() << std::endl;
     auto buffer = std::make_shared<const ndn::Buffer>(g_nfdStatus.c_str(), g_nfdStatus.length());
 
     const uint8_t* rawBuffer = buffer->data();
     const uint8_t* segmentBegin = rawBuffer;
     const uint8_t* end = rawBuffer + buffer->size();
 
-    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 2); 
+    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 1); 
 
     uint64_t totalSegments = buffer->size() / maxPacketSize;
 
@@ -540,8 +539,6 @@ ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& intere
 
         // We get a std::exception: bad_weak_ptr from m_ims if we don't use shared_ptr for data
         auto data = std::make_shared<ndn::Data>(segmentName);
-	//auto pit = interest.getTag<lp::PitToken>();
-	//if(pit!=nullptr) data->setTag(pit);
         data->setContent(segmentBegin, segmentEnd - segmentBegin);
         data->setFreshnessPeriod(1_s);
         data->setFinalBlock(ndn::name::Component::fromSegment(totalSegments));
@@ -552,14 +549,11 @@ ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& intere
 
         if (interestSegment == segmentNo) {
             face.put(*data);
-            std::cout << "put - " << *data << std::endl;
+//            std::cout << "put - " << *data << std::endl;
             break;
         }   
 
 //	m_ims.insert(*data, 1_s);
-	//getScheduler().schedule(1_s, [this, segmentName] { 
-    //std::cout << "erase - cpu: " << sched_getcpu() << ", ims_size:" << m_ims.size() << ", " << segmentName << std::endl;
-	//		m_ims.erase(segmentName); });
 
         ++segmentNo;
     } while (segmentBegin < end);
