@@ -303,15 +303,11 @@ ignoreRibAndLogSections(const std::string& filename, const std::string& sectionN
 
 void Nfd::onInterestRemoteAccess(const ndn::Name& name, const ndn::Interest& interest)
 {
-    NDN_LOG_INFO("onInterestRemoteAccess: " << name );
-    ndn::Name interestName(interest.getName());
-
 #ifndef ETRI_NFD_ORG_ARCH
-    if (interestName[-2].isVersion()) {
-        m_forwarderRemoteAccess.replyFromStore(interest, *m_internalClientFaceRemoteAccess);
-        return;
-    }
-    m_forwarderRemoteAccess.publish(name, interest, *m_internalClientFaceRemoteAccess);
+    //if (interestName[-2].isVersion()) {
+        //m_forwarderRemoteAccess.replyFromStore(interest, *m_internalClientFaceRemoteAccess);
+    //}else
+        m_forwarderRemoteAccess.publish(name, interest, *m_internalClientFaceRemoteAccess);
 #endif
     return;
 }
