@@ -18,8 +18,6 @@ using boost::property_tree::ptree;
 #include <ndn-cxx/security/signing-info.hpp>
 #include <ndn-cxx/ims/in-memory-storage-fifo.hpp>
 
-#include <condition_variable>
-
 using std::map;
 
 namespace nfd {
