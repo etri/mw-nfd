@@ -372,10 +372,10 @@ void MwNfd::processNfdcCommand( char * cmd)
 					m_setReservedFace = true;
 
 #ifndef ETRI_NFD_ORG_ARCH
-                    Name rtPrefix(getRouterName()+"/nfd/status");
-                    fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
+                    Name rtPrefix(getRouterName()+"/nfd-info");
+                    //fib::Entry* entry = m_forwarder->getFib().insert(rtPrefix).first;
                     auto korenFace = m_faceTable->get(FACEID_REMOTE_ACCESS);
-                    m_forwarder->getFib().addOrUpdateNextHop(*entry, *korenFace, 0);
+                    //m_forwarder->getFib().addOrUpdateNextHop(*entry, *korenFace, 0);
 
                     m_face =m_faceTable->get(FACEID_REMOTE_ACCESS);    
                     gls = std::make_shared<nfd::face::GenericLinkService>(options);
