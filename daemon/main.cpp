@@ -31,8 +31,10 @@
 #include <iostream>
 #include <thread>
 
+#include <ndn-cxx/transport/unix-transport.hpp>
 #include <ndn-cxx/util/logging.hpp>
 #include <ndn-cxx/version.hpp>
+#include <ndn-cxx/face.hpp>
 
 #ifdef HAVE_LIBPCAP
 #include <pcap/pcap.h>
@@ -242,6 +244,7 @@ public:
     std::mutex m;
     std::condition_variable cv;
 
+
     std::thread ribThread([configFile = m_configFile, &retval, &ribIo, mainIo, &cv, &m] {
       {
         std::lock_guard<std::mutex> lock(m);
@@ -268,6 +271,24 @@ public:
         std::lock_guard<std::mutex> lock(m);
         ribIo = nullptr;
       }
+    });
+
+    std::thread raThread([&cv, &m, &retval, mainIo] {
+        //std::lock_guard<std::mutex> lock(m);
+      //cv.notify_all(); // notify that ribIo has been assigned
+                cpu_set_t cpuset;
+                CPU_ZERO(&cpuset);
+                CPU_SET(32, &cpuset);
+                int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
+        try{
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        ndn::KeyChain keyChain;
+        ForwarderRemoteAccess fra(keyChain);
+        }catch(const std::exception& e) {
+            std::cout << boost::diagnostic_information(e) << std::endl;
+            retval = 1;
+            mainIo->stop();
+        }
     });
 
     {

@@ -16,6 +16,8 @@
 
 #include <ndn-cxx/mgmt/nfd/face-status.hpp>
 #include <ndn-cxx/mgmt/nfd/fib-entry.hpp>
+#include <ndn-cxx/encoding/nfd-constants.hpp>
+
 
 #include <sstream>
 #include <map>
@@ -43,8 +45,31 @@ static const time::milliseconds STATUS_FRESHNESS(5000);
 extern shared_ptr<FaceTable> g_faceTable;
 extern Forwarder* g_mgmt_forwarder;
 
-ForwarderRemoteAccess::ForwarderRemoteAccess()
-	:m_ims(1024)
+static shared_ptr<ndn::Transport>
+makeLocalNfdTransport1(std::string path)
+{
+    return make_shared<ndn::UnixTransport>(path);
+}
+
+ForwarderRemoteAccess::ForwarderRemoteAccess(ndn::KeyChain& keyChain)
+    :m_keyChain(keyChain)
+    ,m_face(makeLocalNfdTransport1("/var/run/nfd.sock"), getGlobalIoService(), keyChain)
+    , m_nfdController(m_face, m_keyChain)
+    , m_faceMonitor(m_face)
+{
+    m_faceMonitor.onNotification.connect(bind(&ForwarderRemoteAccess::onNotification, this, _1));
+    m_faceMonitor.start();
+
+    m_face.registerPrefix(getRouterName()+"/nfd/status", nullptr, nullptr, 
+    security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256), ndn::nfd::ROUTE_FLAGS_NONE );
+    m_face.setInterestFilter(getRouterName()+"/nfd/status",
+          std::bind(&ForwarderRemoteAccess::publish, this, _1, _2));
+
+    m_face.processEvents();
+}
+
+void
+ForwarderRemoteAccess::onNotification(const ndn::nfd::FaceEventNotification& notification)
 {
 }
 
@@ -467,99 +492,93 @@ void ForwarderRemoteAccess::formatCsJson( ptree& parent )
 parent.add_child("nfdStatus.cs", pt);
 }
 
+std::string g_nfdStatus;
 std::string
-ForwarderRemoteAccess::prepareNextData()
+ForwarderRemoteAccess::prepareNextData( const ndn::Name & cmd )
 {
     ptree nfd_info;
+
     auto status = this->collectGeneralStatus();
     formatStatusJson(nfd_info, status);
     formatChannelsJson(nfd_info);
-    formatFacesJson(nfd_info);
-    formatFibJson(nfd_info);
-    formatRibJson(nfd_info);
-    formatCsJson(nfd_info);
-    formatScJson(nfd_info);
+        formatFacesJson(nfd_info);
+        formatFibJson(nfd_info);
+    //formatRibJson(nfd_info);
+        formatCsJson(nfd_info);
+        formatScJson(nfd_info);
 
-    std::ostringstream buf;
-    write_json (buf, nfd_info, false);
-    std::string nfdStatus = buf.str();
-    return nfdStatus;
+    std::ostringstream oss;
+    write_json (oss, nfd_info);
+    //std::string nfdStatus = buf.str();
+    //boost::property_tree::ini_parser::write_ini(oss, nfd_info);
+    //g_nfdStatus = oss.str();
+    //std::cout << oss.str() << std::endl;
+    return oss.str();
 }
 
 bool
 ForwarderRemoteAccess::replyFromStore(const ndn::Interest& interest, ndn::Face &face)
 {
-	auto it = m_ims.find(interest);
-
-	//std::cout << "replyFromStore: " << interest << std::endl;
-	if (it != nullptr) {
-		face.put(*it);
-		return true;
-	}
 	return false;
 }
-std::string g_nfdStatus;
 void
-ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& interest, ndn::Face &face)
+ForwarderRemoteAccess::publish(const ndn::Name& dataName, const Interest& interest )
 {
 
     const ndn::Name& interestName = interest.getName();
+
     uint64_t interestSegment = 0;
     if (interestName[-1].isSegment()) {
         interestSegment = interestName[-1].toSegment();
     }
 
+
     if(interestSegment==0){
-        g_nfdStatus = prepareNextData();
+        g_nfdStatus.clear();
+        m_store.clear();
+        g_nfdStatus = prepareNextData(interestName);
     }
 
-    auto buffer = std::make_shared<const ndn::Buffer>(g_nfdStatus.c_str(), g_nfdStatus.length());
-
-    const uint8_t* rawBuffer = buffer->data();
-    const uint8_t* segmentBegin = rawBuffer;
-    const uint8_t* end = rawBuffer + buffer->size();
-
-    size_t maxPacketSize = (ndn::MAX_NDN_PACKET_SIZE >> 1); 
-
-    uint64_t totalSegments = buffer->size() / maxPacketSize;
+    std::vector<uint8_t> buffer(1400);
 
     ndn::Name segmentPrefix(dataName);
-    //segmentPrefix.appendVersion();
+    segmentPrefix.append("status");
+    ndn::Name segmentName(segmentPrefix);
 
-    uint64_t segmentNo = 0;
-    std::shared_ptr<ndn::Data> data0;
-    do {
-        const uint8_t* segmentEnd = segmentBegin + maxPacketSize;
-        if (segmentEnd > end) {
-            segmentEnd = end;
-        }   
+    if(interestSegment==0){
+        std::istringstream is(g_nfdStatus);
+        while (is.good()) {
+            is.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+            const auto nCharsRead = is.gcount();
 
-        ndn::Name segmentName(segmentPrefix);
-        segmentName.appendSegment(segmentNo);
+            if (nCharsRead > 0) {
+                auto data = make_shared<Data>(Name(segmentName).appendSegment(m_store.size()));
+                data->setFreshnessPeriod(1_s);
+                data->setContent(buffer.data(), static_cast<size_t>(nCharsRead));
+                m_store.push_back(data);
+            }
+        }
+    }
 
-        // We get a std::exception: bad_weak_ptr from m_ims if we don't use shared_ptr for data
-        auto data = std::make_shared<ndn::Data>(segmentName);
-        data->setContent(segmentBegin, segmentEnd - segmentBegin);
+    if (m_store.empty()) {
+        auto data = make_shared<Data>(Name(segmentName).appendSegment(0));
         data->setFreshnessPeriod(1_s);
-        data->setFinalBlock(ndn::name::Component::fromSegment(totalSegments));
+        m_store.push_back(data);
+    }
 
-        segmentBegin = segmentEnd;
-	std::string key;
-        m_keyChain.sign(*data);
-
+    auto finalBlockId = name::Component::fromSegment(m_store.size() - 1);
+    uint64_t segmentNo = 0;
+    for (const auto& data : m_store) {
+        if(interestSegment==0){
+            data->setFinalBlock(finalBlockId);
+            m_keyChain.sign(*data,  security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256));
+        }
         if (interestSegment == segmentNo) {
-            face.put(*data);
-//            std::cout << "put - " << *data << std::endl;
-            break;
-        }   
-
-//	m_ims.insert(*data, 1_s);
-
+            m_face.put(*data);
+        }
         ++segmentNo;
-    } while (segmentBegin < end);
+    }
 
 }
-
-
 
 } // namespace nfd

@@ -120,11 +120,9 @@ RibManager::registerWithNfd()
     registerTopPrefix(LOCALHOP_TOP_PREFIX);
   }
 
-#if 1
-//ETRI
+//for KOREN monitoring
 	std::string routerName=getRouterName();
     registerTopPrefix(routerName);
-#endif
 
   NFD_LOG_INFO("Start monitoring face create/destroy events");
   m_faceMonitor.onNotification.connect(bind(&RibManager::onNotification, this, _1));

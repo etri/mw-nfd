@@ -17,6 +17,11 @@ using boost::property_tree::ptree;
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/signing-info.hpp>
 #include <ndn-cxx/ims/in-memory-storage-fifo.hpp>
+#include <ndn-cxx/transport/unix-transport.hpp>
+#include <ndn-cxx/security/key-chain.hpp>
+#include <ndn-cxx/mgmt/nfd/controller.hpp>
+#include <ndn-cxx/mgmt/nfd/face-monitor.hpp>
+
 
 using std::map;
 
@@ -25,15 +30,15 @@ namespace nfd {
 class ForwarderRemoteAccess: noncopyable
 {
 public:
-  ForwarderRemoteAccess();
-  void
-  publish(const ndn::Name &, const Interest &, ndn::Face &);
+  ForwarderRemoteAccess(ndn::KeyChain& keyChain);
+  void publish(const ndn::Name &, const ndn::Interest &);
 
     bool replyFromStore(const ndn::Interest& interestName, ndn::Face &);
 
-    std::string prepareNextData();
+    std::string prepareNextData(const ndn::Name &);
 
 
+void onNotification(const ndn::nfd::FaceEventNotification& notification);
 private:
   ndn::nfd::ForwarderStatus
   collectGeneralStatus();
@@ -46,14 +51,13 @@ private:
 	void formatChannelsJson( ptree & );
 	void formatRibJson( ptree & );
 	void formatFibJson( ptree & );
-	//using DataContainer = std::map<uint64_t, shared_ptr<ndn::Data>>;
-	  //DataContainer m_data;
-	  ndn::KeyChain m_keyChain;
-	  //ndn::Scheduler m_scheduler;
+	  ndn::KeyChain& m_keyChain;
       std::string m_nfdStatus;
 
-       ndn::InMemoryStorageFifo m_ims;
-  //     std::mutex& m_mutex;
+  std::vector<shared_ptr<Data>> m_store;
+  ndn::Face m_face;
+  ndn::nfd::Controller m_nfdController;
+  ndn::nfd::FaceMonitor m_faceMonitor;
 };
 
 } // namespace nfd
