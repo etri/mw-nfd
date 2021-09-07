@@ -57,7 +57,7 @@ private:
   std::vector<shared_ptr<Data>> m_store;
   ndn::Face m_face;
   ndn::nfd::Controller m_nfdController;
-  ndn::nfd::FaceMonitor m_faceMonitor;
+//  ndn::nfd::FaceMonitor m_faceMonitor;
 };
 
 } // namespace nfd

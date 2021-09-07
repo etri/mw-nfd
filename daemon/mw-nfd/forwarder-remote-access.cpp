@@ -55,10 +55,11 @@ ForwarderRemoteAccess::ForwarderRemoteAccess(ndn::KeyChain& keyChain)
     :m_keyChain(keyChain)
     ,m_face(makeLocalNfdTransport1("/var/run/nfd.sock"), getGlobalIoService(), keyChain)
     , m_nfdController(m_face, m_keyChain)
-    , m_faceMonitor(m_face)
+ //   , m_faceMonitor(m_face)
 {
-    m_faceMonitor.onNotification.connect(bind(&ForwarderRemoteAccess::onNotification, this, _1));
-    m_faceMonitor.start();
+
+//    m_faceMonitor.onNotification.connect(bind(&ForwarderRemoteAccess::onNotification, this, _1));
+ //   m_faceMonitor.start();
 
     m_face.registerPrefix(getRouterName()+"/nfd/status", nullptr, nullptr, 
     security::SigningInfo(security::SigningInfo::SIGNER_TYPE_SHA256), ndn::nfd::ROUTE_FLAGS_NONE );
