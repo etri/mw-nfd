@@ -154,8 +154,6 @@ private:
 	int m_face1;
 	int m_face2;
 
-	ForwarderRemoteAccess m_forwarderRemoteAccess;
-
 };
 
 } // namespace nfd
