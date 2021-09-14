@@ -259,6 +259,7 @@ private:
 
   scheduler::ScopedEventId m_activeFaceFetchEvent;
 	ndn::Face &m_face;
+    std::vector<shared_ptr<Data>> m_store;
 };
 
 std::ostream&
