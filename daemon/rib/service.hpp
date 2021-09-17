@@ -93,6 +93,11 @@ public:
   {
     return m_ribManager;
   }
+  Rib&
+  getRib()
+  {
+    return m_rib;
+  }
 
 private:
   template<typename ConfigParseFunc>
