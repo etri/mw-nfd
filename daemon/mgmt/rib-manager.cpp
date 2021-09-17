@@ -83,7 +83,6 @@ RibManager::RibManager(rib::Rib& rib, ndn::Face& face, ndn::KeyChain& keyChain,
     bind(&RibManager::unregisterEntry, this, _2, _3, _4, _5));
 
   registerStatusDatasetHandler("list", bind(&RibManager::listEntries, this, _1, _2, _3));
-  registerStatusDatasetHandler("info/status", bind(&RibManager::ribStatus, this, _1, _2, _3));
 }
 
 void
@@ -119,10 +118,6 @@ RibManager::registerWithNfd()
   if (m_isLocalhopEnabled) {
     registerTopPrefix(LOCALHOP_TOP_PREFIX);
   }
-
-//for KOREN monitoring
-	std::string routerName=getRouterName();
-    registerTopPrefix(routerName);
 
   NFD_LOG_INFO("Start monitoring face create/destroy events");
   m_faceMonitor.onNotification.connect(bind(&RibManager::onNotification, this, _1));
@@ -320,108 +315,6 @@ RibManager::unregisterEntry(const Name& topPrefix, const Interest& interest,
 
   beginRemoveRoute(parameters.getName(), route, [] (RibUpdateResult) {});
 }
-std::string g_ribStatus;
-
-void
-RibManager::ribStatus(const Name& dataName, const Interest& interest,
-                        ndn::mgmt::StatusDatasetContext& context)
-{
-	ptree pt;
-
-    const ndn::Name& interestName = interest.getName();
-        uint64_t interestSegment = 0;
-    if (interestName[-1].isSegment()) {
-        interestSegment = interestName[-1].toSegment();
-    }
-
-
-    if(interestSegment==0){
-        g_ribStatus.clear();
-        m_store.clear();
-
-        auto now = time::steady_clock::now();
-        for (const auto& kv : m_rib) {
-            const rib::RibEntry& entry = *kv.second;
-            ptree rib_node;
-            rib_node.put("prefix", entry.getName());
-            for (const Route& route : entry.getRoutes()) {
-                rib_node.put("routers.router.faceId", route.faceId);
-                rib_node.put("routers.router.origin", route.origin);
-                rib_node.put("routers.router.cost", route.cost);
-
-                if (route.isChildInherit()) {
-                    rib_node.put("routers.router.flags.childInherit", "null");
-                }
-                if (route.isRibCapture()) {
-                    rib_node.put("routers.router.flags.ribCapture", "null");
-                }
-
-                if (route.expires) {
-                    rib_node.put("routers.router.expirationPeriod", time::duration_cast<time::milliseconds>(*route.expires - now));
-                }
-                pt.push_back(std::make_pair("", rib_node));
-            }
-        }
-        context.end();
-
-        ptree rib_node;
-        rib_node.add_child("nfdStatus.rib.ribEntry", pt);
-
-        std::ostringstream buf;
-        write_json (buf, rib_node, false);
-        g_ribStatus = buf.str();
-    }
-
-    std::vector<uint8_t> buffer(1400);
-
-    ndn::Name segmentPrefix(dataName);
-    segmentPrefix.append("status");
-    ndn::Name segmentName(segmentPrefix);
-
-    if(interestSegment==0){
-        std::istringstream is(g_ribStatus);
-        while (is.good()) {
-            is.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
-            const auto nCharsRead = is.gcount();
-
-            if (nCharsRead > 0) {
-                auto data = make_shared<Data>(Name(segmentName).appendSegment(m_store.size()));
-                data->setFreshnessPeriod(1_s);
-                data->setContent(buffer.data(), static_cast<size_t>(nCharsRead));
-                m_store.push_back(data);
-            }
-        }
-    }
-
-    if (m_store.empty()) {
-        auto data = make_shared<Data>(Name(segmentName).appendSegment(0));
-        data->setFreshnessPeriod(1_s);
-        m_store.push_back(data);
-    }
-
-    auto finalBlockId = name::Component::fromSegment(m_store.size() - 1);
-    uint64_t segmentNo = 0;
-    for (const auto& data : m_store) {
-        if(interestSegment==0){
-            data->setFinalBlock(finalBlockId);
-            m_keyChain.sign(*data,  ndn::security::SigningInfo(ndn::security::SigningInfo::SIGNER_TYPE_SHA256));
-        }
-        if (interestSegment == segmentNo) {
-            m_face.put(*data);
-        }
-        ++segmentNo;
-    }
-
-#if 0
-	Data data(interest.getName());
-	data.setFreshnessPeriod(1_s);
-	data.setContent((uint8_t *)json.c_str(), json.length());
-	ndn::KeyChain m_keyChain;
-	m_keyChain.sign(data, ndn::signingWithSha256());
-	m_face.put(data);
-#endif
-}
-
 
 void
 RibManager::listEntries(const Name& topPrefix, const Interest& interest,

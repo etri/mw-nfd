@@ -32,6 +32,7 @@ class ForwarderRemoteAccess: noncopyable
 public:
   ForwarderRemoteAccess(ndn::KeyChain& keyChain);
   void publish(const ndn::Name &, const ndn::Interest &);
+  void ribPublish(const ndn::Name &, const ndn::Interest &);
 
     bool replyFromStore(const ndn::Interest& interestName, ndn::Face &);
 
@@ -55,6 +56,7 @@ private:
       std::string m_nfdStatus;
 
   std::vector<shared_ptr<Data>> m_store;
+  std::vector<shared_ptr<Data>> m_rib_store;
   ndn::Face m_face;
   ndn::nfd::Controller m_nfdController;
 //  ndn::nfd::FaceMonitor m_faceMonitor;

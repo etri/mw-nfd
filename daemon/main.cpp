@@ -73,6 +73,8 @@ std::string g_bulkFibTestPort0;
 std::string g_bulkFibTestPort1;
 bool g_wantFibSharding=true;
 
+rib::Rib *g_rib;
+
 //#ifndef ETRI_NFD_ORG_ARCH
 static void configMwNfdConfig(const std::string configFileName)
 {
@@ -259,6 +261,7 @@ public:
         ndn::KeyChain ribKeyChain;
         // must be created inside a separate thread
         rib::Service ribService(configFile, ribKeyChain);
+        g_rib = &ribService.getRib();
         getGlobalIoService().run(); // ribIo is not thread-safe to use here
       }
       catch (const std::exception& e) {
@@ -274,14 +277,12 @@ public:
     });
 
     std::thread raThread([&cv, &m, &retval, mainIo] {
-        //std::lock_guard<std::mutex> lock(m);
-      //cv.notify_all(); // notify that ribIo has been assigned
                 cpu_set_t cpuset;
                 CPU_ZERO(&cpuset);
                 CPU_SET(32, &cpuset);
                 int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
         try{
-        std::this_thread::sleep_for(std::chrono::seconds(3));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         ndn::KeyChain keyChain;
         ForwarderRemoteAccess fra(keyChain);
         }catch(const std::exception& e) {
