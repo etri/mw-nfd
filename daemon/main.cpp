@@ -279,7 +279,7 @@ public:
     std::thread raThread([&cv, &m, &retval, mainIo] {
                 cpu_set_t cpuset;
                 CPU_ZERO(&cpuset);
-                CPU_SET(32, &cpuset);
+                CPU_SET(0, &cpuset);
                 int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), (cpu_set_t*)&cpuset);
         try{
         std::this_thread::sleep_for(std::chrono::seconds(1));
