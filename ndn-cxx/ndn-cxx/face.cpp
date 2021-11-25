@@ -27,6 +27,11 @@
 #include "ndn-cxx/util/scope.hpp"
 #include "ndn-cxx/util/time.hpp"
 
+#ifdef NDN_CXX_ETRI_PIT_HASH
+//added by dmsul on 20211125
+#include "ndn-cxx/city-hash.hpp"
+#endif
+
 // NDN_LOG_INIT(ndn.Face) is declared in face-impl.hpp
 
 // A callback scheduled through io.post and io.dispatch may be invoked after the face is destructed.
@@ -165,10 +170,27 @@ Face::expressInterest(const Interest& interest,
                       const NackCallback& afterNacked,
                       const TimeoutCallback& afterTimeout)
 {
-  auto id = m_impl->m_pendingInterestTable.allocateId();
-
   auto interest2 = make_shared<Interest>(interest);
-  interest2->getNonce();
+  auto nonce = interest2->getNonce();
+
+#ifdef NDN_CXX_ETRI_PIT_HASH
+	Block wireBlock = interest2->wireEncode();
+	auto id = 0;
+	if(wireBlock.hasWire()) {
+		id = CityHash64(reinterpret_cast<const char*>(wireBlock.wire()), wireBlock.size());
+		NDN_LOG_DEBUG("PIT_HASH Interest2 name_hash^nonce id =  " << id);
+	}
+	else {
+  	id = m_impl->m_pendingInterestTable.allocateId();
+		NDN_LOG_DEBUG("PIT_HASH Interest2 nonce id =  " << id);
+	}
+	auto b= std::make_shared<Buffer>(sizeof(ST_PIT_TOKEN));
+	ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)b->data();
+	pitToken->hashValue = id;
+	interest2->setTag(std::make_shared<ndn::lp::PitToken>( std::make_pair(b->begin(), b->end()) ));
+#else
+  auto id = m_impl->m_pendingInterestTable.allocateId();
+#endif
 
   IO_CAPTURE_WEAK_IMPL(post) {
     impl->expressInterest(id, interest2, afterSatisfied, afterNacked, afterTimeout);

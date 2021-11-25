@@ -40,6 +40,13 @@
 // dmsul add for pit-token
 #include "ndn-cxx/lp/pit-token.hpp"
 
+typedef struct __attribute__((__packed__)) pit_token_st {
+    uint8_t workerId;
+    uint8_t CanBePrefix;
+    uint64_t hashValue;
+  } ST_PIT_TOKEN ;
+
+
 NDN_LOG_INIT(ndn.Face);
 // INFO level: prefix registration, etc.
 //
@@ -103,6 +110,10 @@ public: // consumer
     addFieldFromTag<lp::NextHopFaceIdField, lp::NextHopFaceIdTag>(lpPacket, interest2);
     addFieldFromTag<lp::CongestionMarkField, lp::CongestionMarkTag>(lpPacket, interest2);
 
+#ifdef NDN_CXX_ETRI_PIT_HASH
+    addFieldFromTag<lp::PitTokenField, lp::PitToken>(lpPacket, interest2);
+#endif
+
     entry.recordForwarding();
     m_face.m_transport->send(finishEncoding(std::move(lpPacket), interest2.wireEncode(),
                                             'I', interest2.getName()));
@@ -132,6 +143,37 @@ public: // consumer
   satisfyPendingInterests(const Data& data)
   {
     bool hasAppMatch = false, hasForwarderMatch = false;
+#ifdef NDN_CXX_ETRI_PIT_HASH
+    //added by dmsul on 20211125
+		auto token = data.getTag<lp::PitToken>();
+		uint64_t id = 0;
+
+		if(token!=nullptr){
+			ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)token->data();
+			id = pitToken->hashValue;
+			NDN_LOG_DEBUG("PitToken hashValue = " << id);
+		}else {
+			NDN_LOG_DEBUG("PitToken is NULL");
+		}
+
+    m_pendingInterestTable.findIf(id, [&] (PendingInterest& entry) {
+
+      if (!entry.getInterest()->matchesData(data)) {
+        return false;
+      }
+			NDN_LOG_DEBUG("[pit_hash]   satisfying " << *entry.getInterest() << " from " << entry.getOrigin());
+
+			if (entry.getOrigin() == PendingInterestOrigin::APP) {
+				hasAppMatch = true;
+				entry.invokeDataCallback(data);
+			}
+			else {
+				hasForwarderMatch = true;
+			}
+			return true;
+    });
+
+#else
     m_pendingInterestTable.removeIf([&] (PendingInterest& entry) {
       if (!entry.getInterest()->matchesData(data)) {
         return false;
@@ -149,6 +191,8 @@ public: // consumer
       return true;
     });
 
+#endif
+
     // if Data matches no pending Interest record, it is sent to the forwarder as unsolicited Data
     return hasForwarderMatch || !hasAppMatch;
   }
@@ -159,6 +203,40 @@ public: // consumer
   nackPendingInterests(const lp::Nack& nack)
   {
     optional<lp::Nack> outNack;
+
+#ifdef NDN_CXX_ETRI_PIT_HASH
+    //added by dmsul on 20211125
+		auto token = nack.getTag<lp::PitToken>();
+		uint64_t id = 0;
+
+		if(token!=nullptr){
+			ST_PIT_TOKEN  *pitToken = (ST_PIT_TOKEN *)token->data();
+			id = pitToken->hashValue;
+			NDN_LOG_DEBUG("PitToken hashValue = " << id);
+		}else {
+			NDN_LOG_DEBUG("PitToken is NULL");
+		}
+
+    m_pendingInterestTable.findIf(id, [&] (PendingInterest& entry) {
+      if (!nack.getInterest().matchesInterest(*entry.getInterest())) {
+        return false;
+      }
+      NDN_LOG_DEBUG("   nacking " << *entry.getInterest() << " from " << entry.getOrigin());
+
+      optional<lp::Nack> outNack1 = entry.recordNack(nack);
+      if (!outNack1) {
+        return false;
+      }
+
+      if (entry.getOrigin() == PendingInterestOrigin::APP) {
+        entry.invokeNackCallback(*outNack1);
+      }
+      else {
+        outNack = outNack1;
+      }
+      return true;
+    });
+#else
     m_pendingInterestTable.removeIf([&] (PendingInterest& entry) {
       if (!nack.getInterest().matchesInterest(*entry.getInterest())) {
         return false;
@@ -178,7 +256,7 @@ public: // consumer
       }
       return true;
     });
-
+#endif
     // send "least severe" Nack from any PendingInterest record originated from forwarder, because
     // it is unimportant to consider Nack reason for the unlikely case when forwarder sends multiple
     // Interests to an app in a short while

@@ -57,6 +57,10 @@ def options(opt):
     opt.add_option('--without-tools', action='store_false', default=True, dest='with_tools',
                    help='Do not build tools')
 
+#dmsul 20211014
+    opt.add_option('--with-pit-hash', action='store_true', default=False,
+                   help='Enable PIT using Hash Key')
+
 def configure(conf):
     conf.start_msg('Building static library')
     if conf.options.enable_static:
@@ -86,6 +90,9 @@ def configure(conf):
 
 # MODORI 20210630
     conf.env.WITH_DCN_ROUTING = conf.options.with_dcn_routing
+
+# dmsul 20211014
+    conf.env.WITH_PIT_HASH = conf.options.with_pit_hash
 
     conf.find_program('sh', var='SH')
 
@@ -164,6 +171,9 @@ def configure(conf):
     conf.define_cond('ETRI_DCN_ROUTING', conf.env.WITH_DCN_ROUTING)
     conf.define_cond('WITH_OSX_KEYCHAIN', conf.env.HAVE_OSX_FRAMEWORKS and conf.options.with_osx_keychain)
     conf.define_cond('DISABLE_SQLITE3_FS_LOCKING', not conf.options.with_sqlite_locking)
+		#dmsul 20211014
+    conf.define_cond('ETRI_PIT_HASH', conf.env.WITH_PIT_HASH)
+
     conf.define('SYSCONFDIR', conf.env.SYSCONFDIR)
     # The config header will contain all defines that were added using conf.define()
     # or conf.define_cond().  Everything that was added directly to conf.env.DEFINES
