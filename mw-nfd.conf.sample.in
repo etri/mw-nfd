@@ -67,7 +67,6 @@ tables
     /localhost      /localhost/nfd/strategy/multicast
     /localhost/nfd  /localhost/nfd/strategy/best-route
     /ndn/broadcast  /localhost/nfd/strategy/multicast
-    /hii/dcn  /localhost/nfd/strategy/multicast
   }
 
   ; Declare network region names
