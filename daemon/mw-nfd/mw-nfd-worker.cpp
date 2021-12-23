@@ -152,6 +152,8 @@ MwNfd::MwNfd(int8_t wid, boost::asio::io_service* ios, bool fibSharding, const s
 */
 #endif
 				nfd::face::GenericLinkService::Options options;
+                options.allowFragmentation = true;
+                options.allowReassembly = true;
 				auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
 			
 				gls->afterReceiveInterest.connect(
@@ -334,6 +336,8 @@ void MwNfd::processNfdcCommand( char * cmd)
 				NFD_LOG_INFO("Face Created - Face " << faceId << " on CPU " <<  sched_getcpu());
 #endif
 				nfd::face::GenericLinkService::Options options;
+                options.allowFragmentation = true;
+                options.allowReassembly = true;
 				auto gls = std::make_shared<nfd::face::GenericLinkService>(options);
 			
 				gls->afterReceiveInterest.connect(

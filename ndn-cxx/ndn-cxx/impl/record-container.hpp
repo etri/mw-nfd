@@ -75,7 +75,12 @@ class RecordContainer
 {
 public:
   using Record = T;
+#ifdef NDN_CXX_ETRI_PIT_HASH
+  //added by dmsul on 20211014
+  using Container = std::unordered_map<RecordId, Record>;
+#else
   using Container = std::map<RecordId, Record>;
+#endif
 
   /** \brief Retrieve record by ID.
    */
@@ -96,6 +101,16 @@ public:
   put(RecordId id, TArgs&&... args)
   {
     BOOST_ASSERT(id != 0);
+
+#ifdef NDN_CXX_ETRI_PIT_HASH
+    auto i = m_container.emplace(std::piecewise_construct, std::forward_as_tuple(id),
+                                  std::forward_as_tuple(std::forward<decltype(args)>(args)...));
+
+    Record& record = i.first->second;
+    record.m_container = this;
+    record.m_id = id;
+    return record;
+#else
     auto it = m_container.emplace(std::piecewise_construct, std::forward_as_tuple(id),
                                   std::forward_as_tuple(std::forward<decltype(args)>(args)...));
     BOOST_ASSERT(it.second);
@@ -104,6 +119,7 @@ public:
     record.m_container = this;
     record.m_id = id;
     return record;
+#endif
   }
 
   RecordId
@@ -158,6 +174,39 @@ public:
       this->onEmpty();
     }
   }
+
+#ifdef NDN_CXX_ETRI_PIT_HASH
+  template<typename Id, typename Visitor>
+  void
+  findIf(Id id, const Visitor& f)
+  {
+		if(id) {
+			auto i = m_container.find(id);
+			if(i != m_container.end()) {
+				bool wantErase = f(i->second);
+				if (wantErase) {
+					i = m_container.erase(i);
+				}
+			}
+			if (empty()) {
+				this->onEmpty();
+			}
+		} else {
+			for (auto i = m_container.begin(); i != m_container.end(); ) {
+				bool wantErase = f(i->second);
+				if (wantErase) {
+					i = m_container.erase(i);
+				}
+				else {
+					++i;
+				}
+			}
+			if (empty()) {
+				this->onEmpty();
+			}
+		}
+  }
+#endif
 
   /** \brief Visit all records.
    *  \tparam Visitor function of type 'void f(Record& record)'
