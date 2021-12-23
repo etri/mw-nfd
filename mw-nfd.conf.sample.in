@@ -76,7 +76,6 @@ tables
   network_region
   {
     ; /example/region1
-    ; /example/region2
   }
 }
 
